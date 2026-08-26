@@ -103,10 +103,16 @@ cubos. Tamanhos medidos serializando o JSON de verdade:
 
 | Cubo | Grão | Linhas | JSON | Serve |
 |---|---|---:|---:|---|
-| **`CUBO_PRINCIPAL`** | `ANO_MES × BANDEIRA × CATEGORIA × GERENTE × UF` | 72.256 | **1.758 KB** | páginas 1, 2, 3 e 5 e **todos** os filtros, menos SKU |
-| **`CUBO_SKU`** | `ANO_MES × SKU × HEAD × UF` | 208.716 | **4.388 KB** | página 4 e o filtro global de SKU |
+| **`CUBO_PRINCIPAL`** | `ANO_MES × BANDEIRA × CATEGORIA × HEAD/GERENTE × UF` | 72.378 | **2.474 KB** | páginas 1, 2, 3 e 5 e **todos** os filtros, menos SKU |
+| **`CUBO_SKU`** | `ANO_MES × SKU × HEAD × UF` | 208.716 | **6.409 KB** | página 4 e o filtro global de SKU |
 
-Total embutido ≈ **6,1 MB** de dados + 200 KB de biblioteca.
+Total medido no arquivo gerado: **8,71 MB** de dados + 195 KB de biblioteca
+= **8,94 MB** de HTML.
+
+> Os tamanhos das tabelas comparativas abaixo foram medidos em cubos de sondagem,
+> antes de o eixo HEAD/GERENTE virar par e antes do balde `DEMAIS`. Servem para
+> comparar as **alternativas entre si**; o tamanho do que foi gerado é o de cima.
+
 Referência: o protótipo `Dashboard_Gerencial_Dori.html` tem **9,6 MB**, e os
 Scorecards publicados têm 3,2 MB. Está dentro do que a empresa já abre.
 
@@ -157,7 +163,7 @@ que não reconcilia com a fato não é publicada.
 | Leitura de Excel com `python-calamine` | **sim** | ~10× mais rápido que `openpyxl` neste volume |
 | Cache Parquet por arquivo de origem | **sim** | reexecução sem mudança de base pula a leitura do Excel |
 | Parquet + seleção só das colunas necessárias | **sim** | |
-| Particionamento da fato por `ANO` | **sim** | 2 partições hoje; cresce 1 por ano |
+| Particionamento da fato por `ANO` | **sim** | 3 partições hoje (2024, 2025, 2026); cresce 1 por ano |
 | Categorias como `category`/dicionário no Parquet | **sim** | 16.131 clientes e 11.296 bandeiras repetidas |
 | Cubos pré-agregados no lugar da fato na interface | **sim** | 3,08 mi de linhas → 280 mil |
 | Tabelas do painel paginadas / com rolagem própria | **sim** | |

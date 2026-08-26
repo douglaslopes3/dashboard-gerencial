@@ -2,7 +2,7 @@
 """Camada analítica — os dois cubos que o painel consome.
 
 REGRA QUE MANDA AQUI: **linha transacional nunca chega ao HTML.**
-Entram 3.085.119 linhas de fato; saem 280.972 linhas de agregado.
+Entram 3.085.119 linhas de fato; saem 281.094 linhas de agregado.
 
 Os números vão para o JSON como INTEIROS ESCALADOS — receita em centavos, peso em
 gramas, caixas em centésimos. Dois motivos:
