@@ -1,0 +1,27 @@
+# Dados — nunca versionados (volume e confidencialidade)
+data/
+bases/
+logs/
+
+# Saída do dashboard
+dashboard/build/
+
+# Credenciais
+*.env
+.env
+secrets*
+credenciais*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Sistema
+Thumbs.db
+desktop.ini
+~$*
+*.tmp
