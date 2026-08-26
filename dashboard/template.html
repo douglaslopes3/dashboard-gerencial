@@ -387,9 +387,26 @@ function mesesOferecidos(){
   return Array.from({length:NM},(_,i)=>i);
 }
 function selecionados(){
-  const of = mesesOferecidos();
-  const s = of.filter(i=>F.meses.has(i));
-  return s.length?s:of;
+  // Sem fallback de propósito: selecao vazia é selecao vazia, e a tela diz isso.
+  // Se "Nenhum" devolvesse todos os meses, o botao seria indistinguivel de
+  // "Todos" e o leitor nao teria como saber qual periodo esta vendo.
+  return mesesOferecidos().filter(i=>F.meses.has(i));
+}
+/* Pre-selecao do periodo, aplicada ao abrir e a cada troca de base/ano.
+   Em "Meses vs LY" NAO se seleciona a serie inteira: com 24 meses de base, o
+   atual teria 24 meses e o LY so 12 — uma comparacao de dois anos contra um,
+   exibida como se fosse valida. O padrao e o ultimo ano fiscal, que tem LY
+   completo. Marcar os 24 continua possivel, e a linha de estado avisa quantos
+   meses do LY estao cobertos.                                                */
+function preSelecionarMeses(){
+  F.meses.clear();
+  if(F.base==="mes"){
+    const ultimoFY = CAL[NM-1][C_FYROT];
+    mesesDoFY(ultimoFY).forEach(i=>F.meses.add(i));
+    if(!F.meses.size) mesesOferecidos().forEach(i=>F.meses.add(i));
+  } else {
+    mesesOferecidos().forEach(i=>F.meses.add(i));
+  }
 }
 /* Define o par (atual, LY) conforme a base de comparacao.
    fis -> acumulado fiscal ate o mes de referencia, contra o mesmo intervalo do FY anterior
@@ -930,12 +947,12 @@ function alterna(conj, v){ conj.has(v) ? conj.delete(v) : conj.add(v); }
 
 function ligar(){
   ligarChips("fMetrica", k=>{ F.metrica=k; montarFiltros(); });
-  ligarChips("fBase", k=>{ F.base=k; F.meses.clear(); montarFiltros(); });
+  ligarChips("fBase", k=>{ F.base=k; preSelecionarMeses(); montarFiltros(); });
   ligarChips("fGran", k=>{ F.gran=k; montarFiltros(); });
   el("fAno").addEventListener("click", e=>{
     const c=e.target.closest(".chip"); if(!c||c.classList.contains("off")) return;
     if(c.dataset.t==="fy") F.fy=c.dataset.k; else F.ano=+c.dataset.k;
-    F.meses.clear(); montarFiltros(); render();
+    preSelecionarMeses(); montarFiltros(); render();
   });
   ligarChips("fMeses", k=>{ alterna(F.meses,+k); montarMeses(); });
   el("mTodos").onclick=()=>{ mesesOferecidos().forEach(i=>F.meses.add(i)); montarMeses(); render(); };
@@ -954,7 +971,7 @@ function ligar(){
   ligarChips("topSku", k=>{ F.topSku=+k; montarFiltros(); });
   el("limpar").onclick=()=>{
     ["cat","head","ger","uf","ban","sku"].forEach(k=>F[k].clear());
-    F.meses.clear(); el("bBan").value=""; el("bSku").value="";
+    preSelecionarMeses(); el("bBan").value=""; el("bSku").value="";
     montarFiltros(); render();
   };
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
@@ -970,6 +987,7 @@ function iniciar(){
   const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
   const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
   F.fy=fys[fys.length-1]; F.ano=anos[anos.length-1];
+  preSelecionarMeses();
   el("rodape").innerHTML=DB.meta.rodape;
   montarFiltros(); ligar(); render();
 }

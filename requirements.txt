@@ -1,0 +1,21 @@
+# Dashboard Gerencial de Canais — Sell In
+#
+# Cinco dependencias, todas ja presentes na maquina de destino (medido em
+# 26/08/2026). Nenhuma biblioteca de IA, nenhum cliente HTTP, nenhum servidor.
+#
+# Validado com Python 3.14.7.
+
+pandas>=2.2            # 3.0.5 na maquina de destino
+pyarrow>=15.0          # 25.0.1 — Parquet
+openpyxl>=3.1          # 3.1.5  — escrita de xlsx nos testes
+python-calamine>=0.2   # 0.8.2  — leitura de xlsx (~10x mais rapida que openpyxl neste volume)
+PyYAML>=6.0            # 6.0.3  — config
+numpy>=1.26            # 2.5.2  — vem com o pandas, declarado por clareza
+
+# Opcional, so para rodar os testes com pytest. Sem ele:
+#   python tests/test_regras.py
+# pytest>=8.0
+
+# A biblioteca de grafico do painel (Chart.js 4.4.1) NAO e uma dependencia
+# Python: o bundle vive em dashboard/lib/ e e embutido no HTML gerado.
+# O painel nao faz nenhuma requisicao de rede.
