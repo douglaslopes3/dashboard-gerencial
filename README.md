@@ -122,7 +122,7 @@ vem do **conteúdo**, nunca do nome do arquivo.
 ```
 bases/                     origem (somente leitura)
 data/{raw,staging,curated,quality}/
-src/{extract,transform,load,models,utils}/
+src/{extract,transform,load,utils}/
 dashboard/{lib,template.html,build/}
 config/{config.yaml,geografia.yaml}
 docs/  logs/  tests/

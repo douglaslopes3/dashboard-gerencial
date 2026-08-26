@@ -175,7 +175,6 @@ Dashboard - Gerencial/
 │   ├── extract/    leitura das fontes, cache, validacao de schema
 │   ├── transform/  normalizacao, dimensoes, fato, calendario
 │   ├── load/       gravacao em parquet, agregacao dos cubos
-│   ├── models/     schemas e contratos de coluna
 │   └── utils/      config, log, texto, numeros
 ├── dashboard/
 │   ├── lib/chart.umd.min.js      (biblioteca embutida)
