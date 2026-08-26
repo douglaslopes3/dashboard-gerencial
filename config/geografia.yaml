@@ -1,0 +1,38 @@
+# Rótulos de apresentação da UF. NÃO é regra de negócio nem filtro: a lista de
+# UFs do painel sai da base. Isto aqui só traduz a sigla para o nome por extenso
+# no tooltip. UF que aparecer na base e não estiver aqui é exibida pela sigla.
+nome_uf:
+  AC: "Acre"
+  AL: "Alagoas"
+  AP: "Amapá"
+  AM: "Amazonas"
+  BA: "Bahia"
+  CE: "Ceará"
+  DF: "Distrito Federal"
+  ES: "Espírito Santo"
+  GO: "Goiás"
+  MA: "Maranhão"
+  MT: "Mato Grosso"
+  MS: "Mato Grosso do Sul"
+  MG: "Minas Gerais"
+  PA: "Pará"
+  PB: "Paraíba"
+  PR: "Paraná"
+  PE: "Pernambuco"
+  PI: "Piauí"
+  RJ: "Rio de Janeiro"
+  RN: "Rio Grande do Norte"
+  RS: "Rio Grande do Sul"
+  RO: "Rondônia"
+  RR: "Roraima"
+  SC: "Santa Catarina"
+  SP: "São Paulo"
+  SE: "Sergipe"
+  TO: "Tocantins"
+
+regiao:
+  N:  ["AC", "AP", "AM", "PA", "RO", "RR", "TO"]
+  NE: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"]
+  CO: ["DF", "GO", "MT", "MS"]
+  SE: ["ES", "MG", "RJ", "SP"]
+  S:  ["PR", "RS", "SC"]

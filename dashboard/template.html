@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard Gerencial de Canais — Dori</title>
+<!--
+  ============================================================================
+  Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
+  O passo `run_dashboard.py` faz exatamente duas substituicoes de texto:
+
+      o marcador de lib       ->  o bundle do Chart.js, embutido
+      o par de marcadores      ->  o JSON dos cubos
+      de dados
+
+  Os marcadores NAO aparecem escritos neste comentario, de proposito: a troca e
+  por busca de texto, e escreve-los aqui faria a substituicao acontecer DENTRO
+  do comentario — o Chart.js entraria duas vezes e o JSON iria parar num bloco
+  que o navegador ignora. Eles estao declarados em
+  `config/config.yaml -> dashboard.marcador_inicio / marcador_fim`, e
+  `run_dashboard.py` aborta se cada um nao aparecer exatamente uma vez.
+
+  Nenhuma linha de HTML, CSS ou JS nasce em Python. No ciclo mensal o template
+  nao e tocado.
+
+  POR QUE OS DADOS VAO EMBUTIDOS E NAO POR fetch()
+  ------------------------------------------------
+  O painel e aberto por duplo clique a partir do OneDrive, em file://, e nesse
+  protocolo o navegador bloqueia fetch/XHR de arquivo local. Um painel que so
+  funciona com servidor nao atende o requisito. Um arquivo, duplo clique, sem
+  servidor e sem internet.
+  ============================================================================
+-->
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --linha:#e3e8ee; --txt:#16202b; --txt2:#5b6b7c;
+  --azul:#00539f; --azul2:#e8f0f9; --acento:#f5a623;
+  --gd:#1a7f4b; --gdbg:#e8f5ee; --bd:#c0392b; --bdbg:#fdecea;
+  --zebra:#fafbfc;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:18px 22px 40px;background:var(--bg);color:var(--txt);
+  font:13px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+h1{font-size:20px;margin:0 0 2px;letter-spacing:-.2px}
+h1 span{color:var(--azul)}
+.sub{color:var(--txt2);font-size:12px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--linha);border-radius:8px;
+  padding:12px 14px;box-shadow:0 1px 2px rgba(16,32,48,.04)}
+.card h3{margin:0 0 10px;font-size:13px;font-weight:600;display:flex;
+  align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 small{font-weight:400;color:var(--txt2);font-size:11px}
+.grid{display:grid;gap:12px;margin-bottom:12px}
+.note{color:var(--txt2);font-size:11px;margin-top:8px;line-height:1.4}
+
+/* ---------------------------------------------------------------- filtros */
+.filters{background:var(--card);border:1px solid var(--linha);border-radius:8px;
+  padding:10px 12px;margin-bottom:12px}
+.frow{display:flex;align-items:flex-start;gap:8px;padding:4px 0;flex-wrap:wrap}
+.flab{min-width:78px;font-size:11px;font-weight:600;color:var(--txt2);
+  text-transform:uppercase;letter-spacing:.4px;padding-top:5px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;flex:1}
+.chip{border:1px solid var(--linha);background:#fff;border-radius:20px;
+  padding:3px 11px;font-size:12px;cursor:pointer;user-select:none;
+  transition:background .12s,border-color .12s;white-space:nowrap}
+.chip:hover{border-color:var(--azul)}
+.chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
+.chip.vazio{opacity:.38}
+.chip.off{opacity:.5;cursor:not-allowed}
+.mon-wrap,.uf-wrap{max-height:78px;overflow:auto}
+.mini{border:1px solid var(--linha);background:#fff;border-radius:5px;
+  padding:3px 9px;font-size:11px;cursor:pointer;color:var(--txt2)}
+.mini:hover{border-color:var(--azul);color:var(--azul)}
+.reset{border:1px solid var(--bd);background:#fff;color:var(--bd);border-radius:5px;
+  padding:4px 12px;font-size:12px;cursor:pointer;font-weight:600}
+.reset:hover{background:var(--bdbg)}
+.busca{border:1px solid var(--linha);border-radius:5px;padding:4px 9px;
+  font-size:12px;min-width:190px;font-family:inherit}
+.estado{background:var(--azul2);border-left:3px solid var(--azul);border-radius:4px;
+  padding:6px 10px;font-size:11.5px;color:var(--txt);margin-top:6px}
+
+/* ------------------------------------------------------------------- abas */
+.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:2px solid var(--linha);
+  flex-wrap:wrap}
+.tab{padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;
+  color:var(--txt2);border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab:hover{color:var(--azul)}
+.tab.active{color:var(--azul);border-bottom-color:var(--azul)}
+.panel{display:none}.panel.active{display:block}
+
+/* ------------------------------------------------------------------- kpis */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:12px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--linha);border-radius:8px;
+  padding:12px 14px;box-shadow:0 1px 2px rgba(16,32,48,.04)}
+.kpi .rot{font-size:11px;color:var(--txt2);text-transform:uppercase;
+  letter-spacing:.4px;font-weight:600}
+.kpi .val{font-size:25px;font-weight:700;letter-spacing:-.6px;margin:3px 0 1px}
+.kpi .cmp{font-size:11.5px;color:var(--txt2)}
+.kpi.destaque{border-left:3px solid var(--acento)}
+
+/* ----------------------------------------------------------------- tabelas */
+.scroll{overflow:auto;max-height:460px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{padding:5px 9px;text-align:right;white-space:nowrap;
+  border-bottom:1px solid var(--linha)}
+th{position:sticky;top:0;background:#f0f3f7;z-index:2;font-weight:600;
+  font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--txt2);
+  cursor:pointer}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;
+  background:var(--card);z-index:1;max-width:340px;overflow:hidden;
+  text-overflow:ellipsis}
+th:first-child{z-index:3;background:#f0f3f7}
+tbody tr:nth-child(even) td:first-child{background:var(--zebra)}
+tbody tr:nth-child(even){background:var(--zebra)}
+tbody tr:hover td{background:var(--azul2)}
+tfoot td{font-weight:700;border-top:2px solid var(--linha);background:#f0f3f7}
+tfoot td:first-child{background:#f0f3f7}
+.sobe{color:var(--gd);font-weight:600}
+.desce{color:var(--bd);font-weight:600}
+.nd{color:var(--txt2);font-style:italic}
+.barra{display:inline-block;height:7px;background:var(--azul);border-radius:2px;
+  vertical-align:middle;margin-right:5px;min-width:1px}
+
+/* ---------------------------------------------------------------- ranking */
+.rank{display:flex;justify-content:space-between;gap:10px;padding:5px 0;
+  border-bottom:1px solid var(--linha);font-size:12px}
+.rank:last-child{border-bottom:0}
+.rank .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.rank .vl{font-weight:600;white-space:nowrap}
+
+canvas{max-height:280px}
+.vazio{padding:26px;text-align:center;color:var(--txt2);font-size:12.5px}
+.alerta{background:#fff8e6;border-left:3px solid var(--acento);border-radius:4px;
+  padding:8px 11px;font-size:11.5px;margin-bottom:12px;line-height:1.5}
+footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
+  color:var(--txt2);font-size:11px;line-height:1.6}
+@media(max-width:900px){.grid{grid-template-columns:1fr !important}
+  .flab{min-width:100%}}
+</style>
+</head><body>
+
+<h1>Dashboard Gerencial de Canais <span>· Sell In</span></h1>
+<div class="sub" id="sub"></div>
+
+<div class="filters">
+  <div class="frow">
+    <div class="flab">Métrica</div>
+    <div class="chips" id="fMetrica"></div>
+  </div>
+  <div class="frow">
+    <div class="flab">Comparar</div>
+    <div class="chips" id="fBase"></div>
+    <div class="flab" style="min-width:60px">Período</div>
+    <div class="chips" id="fGran"></div>
+  </div>
+  <div class="frow">
+    <div class="flab">Ano</div>
+    <div class="chips" id="fAno"></div>
+  </div>
+  <div class="frow">
+    <div class="flab">Meses</div>
+    <div class="chips mon-wrap" id="fMeses"></div>
+    <button class="mini" id="mTodos">Todos</button>
+    <button class="mini" id="mNenhum">Nenhum</button>
+  </div>
+  <div class="frow"><div class="flab">Categoria</div><div class="chips" id="fCat"></div></div>
+  <div class="frow"><div class="flab">Head</div><div class="chips" id="fHead"></div></div>
+  <div class="frow"><div class="flab">Gerente</div><div class="chips" id="fGer"></div></div>
+  <div class="frow"><div class="flab">UF</div><div class="chips uf-wrap" id="fUF"></div></div>
+  <div class="frow">
+    <div class="flab">Bandeira</div>
+    <input class="busca" id="bBan" placeholder="buscar bandeira…" autocomplete="off">
+    <div class="chips" id="fBan"></div>
+  </div>
+  <div class="frow">
+    <div class="flab">SKU</div>
+    <input class="busca" id="bSku" placeholder="buscar SKU…" autocomplete="off">
+    <div class="chips" id="fSku"></div>
+  </div>
+  <div class="frow">
+    <div class="flab">&nbsp;</div>
+    <button class="reset" id="limpar">✕ Limpar filtros</button>
+  </div>
+  <div class="estado" id="estado"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-p="geral">Visão Geral</div>
+  <div class="tab" data-p="geo">Geografia</div>
+  <div class="tab" data-p="band">Bandeiras</div>
+  <div class="tab" data-p="sku">SKU</div>
+  <div class="tab" data-p="preco">R$/kg</div>
+</div>
+
+<div class="panel active" id="geral">
+  <div class="kpis" id="kpis"></div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas>
+      <div class="note" id="nEvo"></div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="card"><h3>Comparativo YTD <small id="sYTD"></small></h3>
+      <div class="scroll"><table id="tabYTD"></table></div>
+      <div class="note">Os dois acumulados aparecem sempre, independente da base de
+        comparação escolhida. Respeitam todos os filtros de dimensão.</div></div>
+    <div class="card"><h3>Evolução por período <small id="sPer"></small></h3>
+      <div class="scroll"><table id="tabPer"></table></div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>Detalhamento <small>— por:</small>
+        <span class="chips" id="dimGeral"></span><small id="sDet"></small></h3>
+      <div class="scroll"><table id="tabDet"></table></div>
+      <div class="note">Participação % calculada sobre o total do recorte com o
+        filtro desta dimensão removido — por isso a coluna soma 100%.</div></div>
+  </div>
+</div>
+
+<div class="panel" id="geo">
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>Performance por UF <small id="sUF"></small></h3>
+      <div class="scroll"><table id="tabUF"></table></div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>UF por período <small id="sUFper"></small></h3>
+      <div class="scroll"><table id="tabUFper"></table></div>
+      <div class="note">Matriz UF × período, na granularidade selecionada.</div></div>
+  </div>
+</div>
+
+<div class="panel" id="band">
+  <div class="frow" style="margin-bottom:10px">
+    <div class="flab">Top</div><div class="chips" id="topBan"></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="card"><h3 style="color:var(--gd)">▲ Maiores ganhos <small id="sGanhoB"></small></h3>
+      <div id="ganhoBan"></div></div>
+    <div class="card"><h3 style="color:var(--bd)">▼ Maiores quedas</h3>
+      <div id="quedaBan"></div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>Bandeiras <small id="sBan"></small></h3>
+      <div class="scroll"><table id="tabBan"></table></div>
+      <div class="note" id="nBan"></div></div>
+  </div>
+</div>
+
+<div class="panel" id="sku">
+  <div class="frow" style="margin-bottom:10px">
+    <div class="flab">Top</div><div class="chips" id="topSku"></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="card"><h3 style="color:var(--gd)">▲ Maiores ganhos <small id="sGanhoS"></small></h3>
+      <div id="ganhoSku"></div></div>
+    <div class="card"><h3 style="color:var(--bd)">▼ Maiores quedas</h3>
+      <div id="quedaSku"></div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>SKUs <small id="sSku"></small></h3>
+      <div class="scroll"><table id="tabSku"></table></div>
+      <div class="note" id="nSku"></div></div>
+  </div>
+</div>
+
+<div class="panel" id="preco">
+  <div class="alerta">O seletor global de métrica <b>não altera</b> a definição do
+    preço médio. Aqui ele é sempre <b>R$/kg = soma da receita líquida ÷ soma do peso
+    em kg</b> — razão das somas, nunca média das linhas.</div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>Preço médio R$/kg <small>— por:</small>
+        <span class="chips" id="dimPreco"></span></h3>
+      <div class="scroll"><table id="tabPreco"></table></div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>Preço médio por período <small id="sPrecoPer"></small></h3>
+      <div class="scroll"><table id="tabPrecoPer"></table></div></div>
+  </div>
+</div>
+
+<footer id="rodape"></footer>
+
+<!--LIB:chart-->
+<script>
+const DB = /*DADOS_INICIO*/null/*DADOS_FIM*/;
+</script>
+<script>
+"use strict";
+/* ===========================================================================
+   MOTOR
+   Os cubos chegam como inteiros escalados (receita em centavos, peso em gramas,
+   caixas em centesimos). Dividir aqui, na leitura, mantem a soma exata: se os
+   numeros viessem arredondados em reais, a soma das 72 mil linhas divergiria da
+   fato — pouco na tela, mas o bastante para a conferencia nunca fechar.
+   =========================================================================== */
+const ESC = DB.escala, CAL = DB.cal, D = DB.dims;
+const CUBO = DB.cubo, CUBO_SKU = DB.cubo_sku;
+const NM = CAL.length;
+
+// indices das colunas do calendario
+const C_AM=0, C_ROT=1, C_ANO=2, C_MES=3, C_TRI=4, C_SEM=5,
+      C_FY=6, C_FYROT=7, C_MFIS=8, C_TFIS=9, C_SFIS=10, C_LY=11;
+
+const METRICAS = {
+  val: {rot:"Valor (R$)", col:5, esc:ESC.R, un:"R$"},
+  vol: {rot:"Volume (t)", col:6, esc:ESC.P*1000, un:"t"},
+  cx : {rot:"Caixas",     col:7, esc:ESC.C, un:"cx"}
+};
+const BASES = {
+  fis:{rot:"YTD Fiscal (set→)"}, cal:{rot:"YTD Calendário (jan→)"},
+  mes:{rot:"Meses vs mesmo período LY"}
+};
+const GRANS = {mes:"Mês", tri:"Trimestre", sem:"Semestre"};
+
+const F = {
+  metrica:"val", base:"fis", gran:"mes",
+  fy:null, ano:null, meses:new Set(),
+  cat:new Set(), head:new Set(), ger:new Set(), uf:new Set(),
+  ban:new Set(), sku:new Set(),
+  dimGeral:"cat", dimPreco:"cat",
+  topBan:50, topSku:50, aba:"geral"
+};
+
+/* ------------------------------------------------------------- formatacao */
+const nbsp = s => s.replace(/ /g," ");
+function fmtNum(v, casas){
+  if(v===null||v===undefined||!isFinite(v)) return null;
+  return v.toLocaleString("pt-BR",{minimumFractionDigits:casas,maximumFractionDigits:casas});
+}
+function abrev(v, un){
+  if(v===null||!isFinite(v)) return "n/d";
+  const s = v<0 ? "−" : "", a = Math.abs(v);
+  let t;
+  if(a>=1e9)      t = fmtNum(a/1e9,2)+" bi";
+  else if(a>=1e6) t = fmtNum(a/1e6,2)+" mi";
+  else if(a>=1e3) t = fmtNum(a/1e3,1)+" mil";
+  else            t = fmtNum(a, a<10?2:0);
+  return nbsp(s + (un==="R$" ? "R$ "+t : t + (un?" "+un:"")));
+}
+function fmtMetrica(v){
+  const m = METRICAS[F.metrica];
+  if(v===null||!isFinite(v)) return '<span class="nd">n/d</span>';
+  return abrev(v, m.un);
+}
+function fmtPct(p){
+  if(p===null||p===undefined||!isFinite(p))
+    return '<span class="nd" title="sem base no ano anterior">n/d</span>';
+  const c = p>0?"sobe":(p<0?"desce":"");
+  const seta = p>0?"▲":(p<0?"▼":"■");
+  const sinal = p>0?"+":(p<0?"−":"");
+  return `<span class="${c}">${seta} ${sinal}${fmtNum(Math.abs(p)*100,1)}%</span>`;
+}
+function fmtDelta(v){
+  if(v===null||!isFinite(v)) return '<span class="nd">n/d</span>';
+  const c = v>0?"sobe":(v<0?"desce":"");
+  const sinal = v>0?"+":(v<0?"−":"");
+  return `<span class="${c}">${sinal}${abrev(Math.abs(v),METRICAS[F.metrica].un)}</span>`;
+}
+// Participacao %: valor simples, mas com o sinal "−" de verdade. Categoria que
+// so teve devolucao no periodo tem participacao NEGATIVA, e o hifen do
+// toLocaleString some no meio da tabela.
+function fmtParte(v){
+  if(v===null||v===undefined||!isFinite(v)) return '<span class="nd">n/d</span>';
+  const s = v<0 ? "−" : "";
+  return `<span class="${v<0?"desce":""}">${s}${fmtNum(Math.abs(v)*100,1)}%</span>`;
+}
+function fmtPreco(v){
+  if(v===null||!isFinite(v)) return '<span class="nd">n/d</span>';
+  return nbsp("R$ "+fmtNum(v,2)+" /kg");
+}
+// Variacao %: base zero ou nula devolve null (a tela mostra "n/d", nunca
+// infinito). Base negativa usa o MODULO no denominador, para que uma devolucao
+// liquida no LY nao inverta o sinal da variacao.
+function varPct(atual, ly){
+  if(ly===0 || ly===null || !isFinite(ly)) return null;
+  return (atual-ly)/Math.abs(ly);
+}
+function razao(a,b){ return (b===0||!isFinite(b)) ? null : a/b; }
+
+/* --------------------------------------------------------------- periodos */
+function mesesDoFY(fyRot){
+  const r=[]; for(let i=0;i<NM;i++) if(CAL[i][C_FYROT]===fyRot) r.push(i); return r;
+}
+function mesesDoAno(ano){
+  const r=[]; for(let i=0;i<NM;i++) if(CAL[i][C_ANO]===ano) r.push(i); return r;
+}
+// Meses que os chips oferecem, conforme a base escolhida.
+function mesesOferecidos(){
+  if(F.base==="fis") return mesesDoFY(F.fy);
+  if(F.base==="cal") return mesesDoAno(F.ano);
+  return Array.from({length:NM},(_,i)=>i);
+}
+function selecionados(){
+  const of = mesesOferecidos();
+  const s = of.filter(i=>F.meses.has(i));
+  return s.length?s:of;
+}
+/* Define o par (atual, LY) conforme a base de comparacao.
+   fis -> acumulado fiscal ate o mes de referencia, contra o mesmo intervalo do FY anterior
+   cal -> acumulado calendario, contra o mesmo intervalo do ano anterior
+   mes -> os meses escolhidos, contra os mesmos meses do ano anterior          */
+function periodo(){
+  const sel = selecionados();
+  if(!sel.length) return {atual:[], ly:[], ref:null};
+  const ref = sel[sel.length-1];
+  if(F.base==="mes"){
+    const ly = sel.map(i=>CAL[i][C_LY]).filter(i=>i>=0);
+    return {atual:sel, ly, ref};
+  }
+  if(F.base==="fis"){
+    const fy=CAL[ref][C_FY], mf=CAL[ref][C_MFIS];
+    const a=[],l=[];
+    for(let i=0;i<NM;i++){
+      if(CAL[i][C_MFIS]>mf) continue;
+      if(CAL[i][C_FY]===fy)   a.push(i);
+      if(CAL[i][C_FY]===fy-1) l.push(i);
+    }
+    return {atual:a, ly:l, ref};
+  }
+  const ano=CAL[ref][C_ANO], mes=CAL[ref][C_MES];
+  const a=[],l=[];
+  for(let i=0;i<NM;i++){
+    if(CAL[i][C_MES]>mes) continue;
+    if(CAL[i][C_ANO]===ano)   a.push(i);
+    if(CAL[i][C_ANO]===ano-1) l.push(i);
+  }
+  return {atual:a, ly:l, ref};
+}
+function ytdFiscal(ref){
+  const fy=CAL[ref][C_FY], mf=CAL[ref][C_MFIS]; const a=[],l=[];
+  for(let i=0;i<NM;i++){ if(CAL[i][C_MFIS]>mf) continue;
+    if(CAL[i][C_FY]===fy) a.push(i); if(CAL[i][C_FY]===fy-1) l.push(i); }
+  return [a,l];
+}
+function ytdCalendario(ref){
+  const an=CAL[ref][C_ANO], me=CAL[ref][C_MES]; const a=[],l=[];
+  for(let i=0;i<NM;i++){ if(CAL[i][C_MES]>me) continue;
+    if(CAL[i][C_ANO]===an) a.push(i); if(CAL[i][C_ANO]===an-1) l.push(i); }
+  return [a,l];
+}
+
+/* --------------------------------------------------------------- filtros
+   `ignorar` remove UMA dimensao do filtro — e assim que o denominador da
+   participacao % e montado, sem duplicar codigo de agregacao.               */
+function passaPrincipal(l, ignorar){
+  if(ignorar!=="ban" && F.ban.size && !F.ban.has(l[1])) return false;
+  if(ignorar!=="cat" && F.cat.size && !F.cat.has(l[2])) return false;
+  if(F.head.size || F.ger.size){
+    const p = D.par[l[3]];
+    if(ignorar!=="head" && F.head.size && !F.head.has(p[0])) return false;
+    if(ignorar!=="ger"  && F.ger.size  && !F.ger.has(p[1]))  return false;
+  }
+  if(ignorar!=="uf" && F.uf.size && !F.uf.has(l[4])) return false;
+  // O cubo principal nao tem SKU. Com filtro de SKU ativo, a leitura migra para
+  // o cubo de SKU — ver `usaCuboSku()`.
+  return true;
+}
+function passaSku(l, ignorar){
+  if(ignorar!=="sku" && F.sku.size && !F.sku.has(l[1])) return false;
+  if(ignorar!=="head" && F.head.size && !F.head.has(D.head[l[2]])) return false;
+  if(ignorar!=="uf" && F.uf.size && !F.uf.has(l[3])) return false;
+  if(ignorar!=="cat" && F.cat.size){
+    const ic = D.sku[l[1]][2];
+    if(!F.cat.has(ic)) return false;
+  }
+  return true;
+}
+// O cubo de SKU nao cruza com gerente nem com bandeira. Quando um desses
+// filtros esta ativo junto com um filtro de SKU, a tela AVISA em vez de mentir.
+function usaCuboSku(){ return F.sku.size>0; }
+function conflitoSku(){ return F.sku.size>0 && (F.ger.size>0 || F.ban.size>0); }
+
+/* ------------------------------------------------------------- agregacao */
+const MZERO = ()=>[0,0,0];
+function somar(meses, chaveFn, ignorar){
+  const alvo = new Uint8Array(NM);
+  meses.forEach(i=>alvo[i]=1);
+  const sku = usaCuboSku();
+  const cubo = sku ? CUBO_SKU : CUBO;
+  const passa = sku ? passaSku : passaPrincipal;
+  const base = sku ? 4 : 5;
+  const out = new Map();
+  for(let k=0;k<cubo.length;k++){
+    const l = cubo[k];
+    if(!alvo[l[0]]) continue;
+    if(!passa(l, ignorar)) continue;
+    const ch = chaveFn ? chaveFn(l, sku) : 0;
+    if(ch===null) continue;
+    let v = out.get(ch);
+    if(!v){ v = MZERO(); out.set(ch, v); }
+    v[0]+=l[base]; v[1]+=l[base+1]; v[2]+=l[base+2];
+  }
+  return out;
+}
+function total(meses, ignorar){
+  const m = somar(meses, null, ignorar);
+  return m.get(0) || MZERO();
+}
+function met(v){
+  const m = METRICAS[F.metrica];
+  return v[m.col-5] / m.esc;
+}
+function receita(v){ return v[0]/ESC.R; }
+function pesoKg(v){ return v[1]/ESC.P; }
+
+/* ================================================================= UI ==== */
+function chip(txt, on, extra){
+  return `<span class="chip${on?" on":""}${extra||""}">${txt}</span>`;
+}
+function el(id){ return document.getElementById(id); }
+
+function montarFiltros(){
+  el("fMetrica").innerHTML = Object.entries(METRICAS)
+    .map(([k,v])=>`<span class="chip${F.metrica===k?" on":""}" data-k="${k}">${v.rot}</span>`).join("");
+  el("fBase").innerHTML = Object.entries(BASES)
+    .map(([k,v])=>`<span class="chip${F.base===k?" on":""}" data-k="${k}">${v.rot}</span>`).join("");
+  el("fGran").innerHTML = Object.entries(GRANS)
+    .map(([k,v])=>`<span class="chip${F.gran===k?" on":""}" data-k="${k}">${v}</span>`).join("");
+  montarAno(); montarMeses();
+  el("fCat").innerHTML = D.cat.map((c,i)=>
+    `<span class="chip${F.cat.has(i)?" on":""}" data-k="${i}">${c}</span>`).join("");
+  el("fHead").innerHTML = D.head.map(h=>
+    `<span class="chip${F.head.has(h)?" on":""}" data-k="${h}">${h}</span>`).join("");
+  const gers = [...new Set(D.par.map(p=>p[1]))].sort();
+  el("fGer").innerHTML = gers.map(g=>
+    `<span class="chip${F.ger.has(g)?" on":""}" data-k="${g}">${g}</span>`).join("");
+  el("fUF").innerHTML = D.uf.map((u,i)=>
+    `<span class="chip${F.uf.has(i)?" on":""}" data-k="${i}">${u}</span>`).join("");
+  el("topBan").innerHTML = DB.tops.ban.map(n=>
+    `<span class="chip${F.topBan===n?" on":""}" data-k="${n}">${n}</span>`).join("");
+  el("topSku").innerHTML = DB.tops.sku.map(n=>
+    `<span class="chip${F.topSku===n?" on":""}" data-k="${n}">${n===0?"Todos":n}</span>`).join("");
+  const dims = [["cat","Categoria"],["head","Head"],["ger","Gerente"],["uf","UF"]];
+  el("dimGeral").innerHTML = dims.map(([k,r])=>
+    `<span class="chip${F.dimGeral===k?" on":""}" data-k="${k}">${r}</span>`).join("");
+  el("dimPreco").innerHTML = dims.map(([k,r])=>
+    `<span class="chip${F.dimPreco===k?" on":""}" data-k="${k}">${r}</span>`).join("");
+  buscaChips("fBan","bBan",D.ban,F.ban);
+  buscaChips("fSku","bSku",D.sku.map(s=>s[1]),F.sku);
+}
+function montarAno(){
+  const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
+  const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
+  let h="";
+  if(F.base==="fis")
+    h = fys.map(f=>`<span class="chip${F.fy===f?" on":""}" data-t="fy" data-k="${f}">${f}</span>`).join("")
+      + `<span style="align-self:center;color:var(--txt2);font-size:11px;margin-left:8px">o período segue o ano fiscal</span>`;
+  else if(F.base==="cal")
+    h = anos.map(a=>`<span class="chip${F.ano===a?" on":""}" data-t="ano" data-k="${a}">${a}</span>`).join("")
+      + `<span style="align-self:center;color:var(--txt2);font-size:11px;margin-left:8px">o período segue o ano calendário</span>`;
+  else
+    h = fys.map(f=>`<span class="chip off">${f}</span>`).join("")
+      + anos.map(a=>`<span class="chip off">${a}</span>`).join("")
+      + `<span style="align-self:center;color:var(--txt2);font-size:11px;margin-left:8px">em “Meses vs LY” quem manda é a seleção de meses</span>`;
+  el("fAno").innerHTML=h;
+}
+function montarMeses(){
+  const of=mesesOferecidos();
+  el("fMeses").innerHTML = of.map(i=>
+    `<span class="chip${F.meses.has(i)?" on":""}" data-k="${i}">${CAL[i][C_ROT]}</span>`).join("");
+}
+function buscaChips(idChips, idBusca, rotulos, sel){
+  const q=(el(idBusca).value||"").trim().toUpperCase();
+  let idx = rotulos.map((r,i)=>i);
+  if(q) idx = idx.filter(i=>String(rotulos[i]).toUpperCase().includes(q));
+  const escolhidos=[...sel];
+  const mostrar=[...new Set(escolhidos.concat(q?idx.slice(0,25):[]))];
+  el(idChips).innerHTML = mostrar.map(i=>
+    `<span class="chip${sel.has(i)?" on":""}" data-k="${i}">${rotulos[i]}</span>`).join("")
+    || `<span style="align-self:center;color:var(--txt2);font-size:11px">digite para buscar</span>`;
+}
+
+/* ------------------------------------------------------------ tabela util */
+function tabela(cabec, linhas, rodape){
+  let h="<thead><tr>"+cabec.map(c=>`<th>${c}</th>`).join("")+"</tr></thead><tbody>";
+  h += linhas.map(l=>"<tr>"+l.map(c=>`<td>${c}</td>`).join("")+"</tr>").join("");
+  h += "</tbody>";
+  if(rodape) h+="<tfoot><tr>"+rodape.map(c=>`<td>${c}</td>`).join("")+"</tr></tfoot>";
+  return h;
+}
+function vazio(id, msg){
+  el(id).innerHTML = `<tbody><tr><td class="vazio" colspan="9">${msg||"Sem dados para este recorte."}</td></tr></tbody>`;
+}
+
+/* ================================================================ RENDER = */
+let chart=null;
+function render(){
+  const p = periodo();
+  atualizarEstado(p);
+  if(!p.atual.length){
+    ["tabYTD","tabPer","tabDet","tabUF","tabUFper","tabBan","tabSku","tabPreco","tabPrecoPer"]
+      .forEach(i=>vazio(i,"Nenhum mês selecionado. Escolha ao menos um mês."));
+    el("kpis").innerHTML="";
+    return;
+  }
+  renderKPIs(p); renderEvolucao(p); renderYTD(p); renderPeriodo(p); renderDet(p);
+  renderGeo(p); renderBandeiras(p); renderSkus(p); renderPreco(p);
+}
+
+function atualizarEstado(p){
+  const m=METRICAS[F.metrica];
+  const partes=[];
+  partes.push(`<b>${m.rot}</b>`);
+  partes.push(BASES[F.base].rot);
+  if(p.atual.length) partes.push(`período: <b>${CAL[p.atual[0]][C_ROT]}–${CAL[p.atual[p.atual.length-1]][C_ROT]}</b> (${p.atual.length} meses)`);
+  partes.push(`LY: ${p.ly.length ? `<b>${p.ly.length}</b> de ${p.atual.length} meses cobertos` : "<b>sem base</b>"}`);
+  const d=[];
+  if(F.cat.size)  d.push(`${F.cat.size} categoria(s)`);
+  if(F.head.size) d.push(`${F.head.size} head(s)`);
+  if(F.ger.size)  d.push(`${F.ger.size} gerente(s)`);
+  if(F.uf.size)   d.push(`${F.uf.size} UF(s)`);
+  if(F.ban.size)  d.push(`${F.ban.size} bandeira(s)`);
+  if(F.sku.size)  d.push(`${F.sku.size} SKU(s)`);
+  partes.push(d.length ? "filtros: "+d.join(" · ") : "sem filtro de dimensão");
+  let h = partes.join(" &nbsp;·&nbsp; ");
+  if(conflitoSku())
+    h += `<br><b style="color:var(--bd)">⚠ Filtro de SKU ativo junto com gerente/bandeira:</b>
+          a camada agregada de SKU cruza com head e UF, não com gerente nem bandeira.
+          Esses dois filtros estão sendo <b>ignorados</b> enquanto houver SKU selecionado.`;
+  el("estado").innerHTML=h;
+  el("sub").textContent =
+    `${DB.meta.periodo} · ${DB.meta.meses} meses · ${DB.meta.linhas.toLocaleString("pt-BR")} linhas de origem · atualizado em ${DB.meta.gerado_em}`;
+}
+
+function renderKPIs(p){
+  const a=total(p.atual), l=total(p.ly);
+  const itens=[];
+  for(const [k,mt] of Object.entries(METRICAS)){
+    const va=a[mt.col-5]/mt.esc, vl=l[mt.col-5]/mt.esc;
+    const pc=varPct(va, p.ly.length?vl:null);
+    itens.push(`<div class="kpi${F.metrica===k?" destaque":""}">
+      <div class="rot">${mt.rot}</div>
+      <div class="val">${abrev(va,mt.un)}</div>
+      <div class="cmp">LY ${abrev(p.ly.length?vl:null,mt.un)} &nbsp;·&nbsp; ${fmtPct(pc)}</div></div>`);
+  }
+  const pa=razao(receita(a),pesoKg(a)), pl=razao(receita(l),pesoKg(l));
+  itens.push(`<div class="kpi">
+    <div class="rot">Preço médio</div>
+    <div class="val">${fmtPreco(pa)}</div>
+    <div class="cmp">LY ${p.ly.length?fmtPreco(pl):'<span class="nd">n/d</span>'} &nbsp;·&nbsp; ${fmtPct(varPct(pa,p.ly.length?pl:null))}</div></div>`);
+  el("kpis").innerHTML=itens.join("");
+}
+
+function grupoPeriodo(i){
+  if(F.gran==="mes") return CAL[i][C_ROT];
+  if(F.gran==="tri") return CAL[i][C_ANO]+"-T"+CAL[i][C_TRI];
+  return CAL[i][C_ANO]+"-S"+CAL[i][C_SEM];
+}
+function renderEvolucao(p){
+  const rotulos=[], atual=[], anterior=[];
+  const vistos=new Map();
+  p.atual.forEach(i=>{
+    const g=grupoPeriodo(i);
+    if(!vistos.has(g)){ vistos.set(g,[[],[]]); }
+    vistos.get(g)[0].push(i);
+    const ly=CAL[i][C_LY]; if(ly>=0) vistos.get(g)[1].push(ly);
+  });
+  for(const [g,[ms,ls]] of vistos){
+    rotulos.push(g);
+    atual.push(met(total(ms)));
+    anterior.push(ls.length?met(total(ls)):null);
+  }
+  const m=METRICAS[F.metrica];
+  el("tEvo").textContent=`Evolução — ${m.rot} · ${GRANS[F.gran]}`;
+  el("nEvo").innerHTML=`Linha cheia = período selecionado. Linha tracejada = mesmo período do ano anterior.
+    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior aparecem interrompidos</b> — não são exibidos como zero.":""}`;
+  const ctx=el("cEvo").getContext("2d");
+  if(chart) chart.destroy();
+  chart=new Chart(ctx,{type:"line",data:{labels:rotulos,datasets:[
+      {label:"Atual",data:atual,borderColor:"#00539f",backgroundColor:"rgba(0,83,159,.08)",
+       fill:true,tension:.25,pointRadius:3,spanGaps:false},
+      {label:"Ano anterior",data:anterior,borderColor:"#8fa3b8",borderDash:[6,4],
+       fill:false,tension:.25,pointRadius:2,spanGaps:false}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+": "+(c.parsed.y===null?"n/d":abrev(c.parsed.y,m.un))}}},
+      scales:{y:{beginAtZero:false,ticks:{callback:v=>abrev(v,m.un),font:{size:10}}},
+              x:{ticks:{font:{size:10}}}}}});
+}
+
+function renderYTD(p){
+  if(p.ref===null) return vazio("tabYTD");
+  const [fa,fl]=ytdFiscal(p.ref), [ca,cl]=ytdCalendario(p.ref);
+  const linhas=[];
+  for(const [rot,ma,ml] of [["YTD Fiscal",fa,fl],["YTD Calendário",ca,cl]]){
+    const a=met(total(ma)), l=ml.length?met(total(ml)):null;
+    linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]}–${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]}–${CAL[ml[ml.length-1]][C_ROT]}`:""}</small>`,
+      fmtMetrica(a), l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
+      l===null?'<span class="nd">n/d</span>':fmtDelta(a-l), fmtPct(varPct(a,l))]);
+  }
+  el("sYTD").textContent="· referência "+CAL[p.ref][C_ROT];
+  el("tabYTD").innerHTML=tabela(["Acumulado","Atual","Anterior","Δ","Δ%"],linhas);
+}
+
+function renderPeriodo(p){
+  const grupos=new Map();
+  p.atual.forEach(i=>{
+    const g=grupoPeriodo(i);
+    if(!grupos.has(g)) grupos.set(g,[[],[]]);
+    grupos.get(g)[0].push(i);
+    const ly=CAL[i][C_LY]; if(ly>=0) grupos.get(g)[1].push(ly);
+  });
+  const linhas=[]; let ta=0, tl=0, temLy=false;
+  for(const [g,[ms,ls]] of grupos){
+    const a=met(total(ms)), l=ls.length?met(total(ls)):null;
+    ta+=a; if(l!==null){ tl+=l; temLy=true; }
+    linhas.push([g,fmtMetrica(a),l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
+                 l===null?'<span class="nd">n/d</span>':fmtDelta(a-l),fmtPct(varPct(a,l))]);
+  }
+  el("sPer").textContent="· "+GRANS[F.gran]+" · "+METRICAS[F.metrica].rot;
+  el("tabPer").innerHTML=tabela(["Período","Atual","LY","Δ","Δ%"],linhas,
+    ["<b>Total</b>",fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
+     temLy?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(ta,tl):null)]);
+}
+
+/* Quebra por dimensao. O denominador da participacao % e o total do recorte COM
+   O FILTRO DESTA DIMENSAO REMOVIDO — por isso a coluna soma 100% mesmo com a
+   dimensao filtrada.                                                          */
+const CHAVES = {
+  cat : (l,sku)=> sku ? D.sku[l[1]][2] : l[2],
+  head: (l,sku)=> sku ? l[2] : null,
+  ger : (l,sku)=> sku ? null : l[3],
+  uf  : (l,sku)=> sku ? l[3] : l[4],
+};
+const ROTULOS = {
+  cat : i=>D.cat[i],
+  head: i=>D.head[i],
+  ger : i=>D.par[i][1]+"  ·  "+D.par[i][0],
+  uf  : i=>D.uf[i]+(DB.nome_uf[D.uf[i]]?" — "+DB.nome_uf[D.uf[i]]:""),
+};
+function quebra(p, dim, idTab, idInfo){
+  const sku=usaCuboSku();
+  if(dim==="head" && !sku){
+    // no cubo principal o head vem do par head/gerente
+    const a=somar(p.atual,(l)=>D.head.indexOf(D.par[l[3]][0]),"head");
+    const l=somar(p.ly,(x)=>D.head.indexOf(D.par[x[3]][0]),"head");
+    const den=total(p.atual,"head");
+    return desenharQuebra(a,l,den,i=>D.head[i],idTab,p);
+  }
+  const fn=CHAVES[dim];
+  if(fn(sku?CUBO_SKU[0]:CUBO[0],sku)===null){
+    el(idTab).innerHTML=`<tbody><tr><td class="vazio">Esta quebra não existe na camada
+      agregada em uso${sku?" (o cubo de SKU não cruza com gerente)":""}. Escolha outra dimensão.</td></tr></tbody>`;
+    return;
+  }
+  const a=somar(p.atual,fn,dim), l=somar(p.ly,fn,dim), den=total(p.atual,dim);
+  desenharQuebra(a,l,den,ROTULOS[dim],idTab,p);
+}
+function desenharQuebra(mapA,mapL,den,rot,idTab,p){
+  const denV=met(den);
+  const itens=[...mapA.entries()].map(([k,v])=>({k,a:met(v),l:mapL.has(k)?met(mapL.get(k)):null}));
+  mapL.forEach((v,k)=>{ if(!mapA.has(k)) itens.push({k,a:0,l:met(v)}); });
+  itens.sort((x,y)=>y.a-x.a);
+  const maxA=Math.max(...itens.map(i=>Math.abs(i.a)),1);
+  let ta=0,tl=0,temLy=false;
+  const linhas=itens.map(i=>{
+    ta+=i.a; if(i.l!==null&&p.ly.length){ tl+=i.l; temLy=true; }
+    const part=razao(i.a,denV);
+    const larg=Math.max(1,Math.round(Math.abs(i.a)/maxA*54));
+    const ly = (p.ly.length && i.l!==null) ? i.l : null;
+    return [rot(i.k), fmtMetrica(i.a),
+      ly===null?'<span class="nd">n/d</span>':fmtMetrica(ly),
+      ly===null?'<span class="nd">n/d</span>':fmtDelta(i.a-ly),
+      fmtPct(varPct(i.a,ly)),
+      `<span class="barra" style="width:${larg}px"></span>${fmtParte(part)}`];
+  });
+  el(idTab).innerHTML=tabela(["Dimensão","Atual","LY","Δ","Δ%","Part. %"],linhas,
+    ["<b>Total</b>",fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
+     temLy?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(ta,tl):null),
+     denV?fmtParte(ta/denV):"—"]);
+}
+function renderDet(p){
+  el("sDet").textContent="· "+METRICAS[F.metrica].rot;
+  quebra(p,F.dimGeral,"tabDet");
+}
+
+/* -------------------------------------------------------------- geografia */
+function renderGeo(p){
+  el("sUF").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
+  quebra(p,"uf","tabUF");
+  // matriz UF x periodo
+  const sku=usaCuboSku();
+  const grupos=new Map();
+  p.atual.forEach(i=>{ const g=grupoPeriodo(i);
+    if(!grupos.has(g)) grupos.set(g,[]); grupos.get(g).push(i); });
+  const cols=[...grupos.keys()];
+  const porUF=new Map();
+  cols.forEach(g=>{
+    const m=somar(grupos.get(g),(l,s)=>s?l[3]:l[4]);
+    m.forEach((v,k)=>{ if(!porUF.has(k)) porUF.set(k,{}); porUF.get(k)[g]=met(v); });
+  });
+  const ordem=[...porUF.entries()].map(([k,o])=>({k,t:Object.values(o).reduce((a,b)=>a+b,0),o}))
+    .sort((a,b)=>b.t-a.t);
+  const linhas=ordem.map(r=>[D.uf[r.k]].concat(cols.map(c=>fmtMetrica(r.o[c]||0))).concat([`<b>${fmtMetrica(r.t)}</b>`]));
+  const tot=cols.map(c=>ordem.reduce((a,r)=>a+(r.o[c]||0),0));
+  el("sUFper").textContent="· "+GRANS[F.gran]+" · "+METRICAS[F.metrica].rot;
+  el("tabUFper").innerHTML=tabela(["UF"].concat(cols).concat(["Total"]),linhas,
+    ["<b>Total</b>"].concat(tot.map(v=>fmtMetrica(v))).concat([`<b>${fmtMetrica(tot.reduce((a,b)=>a+b,0))}</b>`]));
+}
+
+/* ------------------------------------------------------ rankings genericos */
+function ranking(mapA,mapL,rot,n){
+  const itens=[...new Set([...mapA.keys(),...mapL.keys()])].map(k=>{
+    const a=mapA.has(k)?met(mapA.get(k)):0, l=mapL.has(k)?met(mapL.get(k)):0;
+    return {k,a,l,d:a-l,novo:!mapL.has(k),sumiu:!mapA.has(k)};
+  });
+  const ganhos=itens.filter(i=>i.d>0).sort((x,y)=>y.d-x.d).slice(0,n);
+  const quedas=itens.filter(i=>i.d<0).sort((x,y)=>x.d-y.d).slice(0,n);
+  const html=arr=>arr.length?arr.map(i=>
+    `<div class="rank"><span class="nm">${rot(i.k)}${i.novo?' <small style="color:var(--gd)">novo</small>':""}${i.sumiu?' <small style="color:var(--bd)">sem faturamento</small>':""}</span>
+     <span class="vl">${fmtDelta(i.d)} &nbsp;<small style="color:var(--txt2)">${fmtPct(varPct(i.a,i.novo?null:i.l))}</small></span></div>`).join("")
+    : '<div class="vazio">Nenhum item nesta direção.</div>';
+  return [html(ganhos),html(quedas),itens];
+}
+function tabelaRanking(itens,rot,den,n,idTab){
+  const lista=[...itens].sort((x,y)=>y.a-x.a);
+  const corte = n>0 ? lista.slice(0,n) : lista;
+  const linhas=corte.map(i=>{
+    const part=razao(i.a,den);
+    return [rot(i.k),fmtMetrica(i.a),i.novo?'<span class="nd">n/d</span>':fmtMetrica(i.l),
+      i.novo?'<span class="nd">n/d</span>':fmtDelta(i.d),fmtPct(varPct(i.a,i.novo?null:i.l)),
+      fmtParte(part)];
+  });
+  const sa=corte.reduce((a,b)=>a+b.a,0), sl=corte.reduce((a,b)=>a+(b.novo?0:b.l),0);
+  el(idTab).innerHTML=tabela(["Item","Atual","LY","Δ","Δ%","Part. %"],linhas,
+    [`<b>Exibidos (${corte.length} de ${lista.length})</b>`,fmtMetrica(sa),fmtMetrica(sl),
+     fmtDelta(sa-sl),fmtPct(varPct(sa,sl)),den?fmtParte(sa/den):"—"]);
+}
+function renderBandeiras(p){
+  if(usaCuboSku()){
+    el("ganhoBan").innerHTML=el("quedaBan").innerHTML=
+      '<div class="vazio">Com filtro de SKU ativo, a leitura migra para a camada de SKU, que não cruza com bandeira.</div>';
+    vazio("tabBan","Remova o filtro de SKU para ver o ranking de bandeiras.");
+    el("nBan").textContent="";
+    return;
+  }
+  const a=somar(p.atual,l=>l[1],"ban"), l=somar(p.ly,x=>x[1],"ban");
+  const rot=i=>D.ban[i];
+  const [g,q,itens]=ranking(a,l,rot,DB.top_ranking);
+  el("ganhoBan").innerHTML=g; el("quedaBan").innerHTML=q;
+  el("sGanhoB").textContent="· por Δ absoluto de "+METRICAS[F.metrica].rot;
+  el("sBan").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
+  tabelaRanking(itens,rot,met(total(p.atual,"ban")),F.topBan,"tabBan");
+  const c=DB.corte_bandeira;
+  el("nBan").innerHTML=`As <b>${c.top}</b> maiores bandeiras aparecem nominalmente
+    (<b>${fmtNum(c.cobertura*100,1)}%</b> do faturamento). As outras
+    <b>${c.demais.toLocaleString("pt-BR")}</b> <b>não somem</b>: entram agregadas na linha
+    “${c.rotulo_demais}”, então o total continua batendo com a base.
+    Ordenação dos destaques por <b>variação absoluta</b>, não percentual.`;
+}
+function renderSkus(p){
+  // A pagina de SKU sempre le o CUBO_SKU, com ou sem filtro de SKU ativo:
+  // e a unica camada que tem o eixo de produto. O filtro da propria dimensao e
+  // ignorado (`passaSku(l,"sku")`) para que o ranking mostre o universo, e nao
+  // so o que ja esta selecionado.
+  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM);
+  p.atual.forEach(i=>alvo[i]=1); p.ly.forEach(i=>alvoL[i]=1);
+  const somaSku=(mask)=>{
+    const out=new Map();
+    for(let k=0;k<CUBO_SKU.length;k++){
+      const l=CUBO_SKU[k];
+      if(!mask[l[0]]) continue;
+      if(!passaSku(l,"sku")) continue;
+      let v=out.get(l[1]); if(!v){v=MZERO(); out.set(l[1],v);}
+      v[0]+=l[4]; v[1]+=l[5]; v[2]+=l[6];
+    }
+    return out;
+  };
+  const a=somaSku(alvo), l=somaSku(alvoL);
+  const rot=i=>D.sku[i][1];
+  const [g,q,itens]=ranking(a,l,rot,DB.top_ranking);
+  el("ganhoSku").innerHTML=g; el("quedaSku").innerHTML=q;
+  el("sGanhoS").textContent="· por Δ absoluto de "+METRICAS[F.metrica].rot;
+  el("sSku").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
+  const den=[...a.values()].reduce((s,v)=>s+met(v),0);
+  tabelaRanking(itens,rot,den,F.topSku,"tabSku");
+  el("nSku").innerHTML=`Todos os <b>${D.sku.length}</b> SKUs, sem corte de cobertura.
+    A camada de SKU cruza com <b>categoria, head e UF</b> — <b>não</b> com gerente
+    nem com bandeira. Ordenação dos destaques por <b>variação absoluta</b>.`;
+}
+
+/* ------------------------------------------------------------- preço médio */
+function renderPreco(p){
+  const dim=F.dimPreco, sku=usaCuboSku();
+  let fn, rot;
+  if(dim==="head" && !sku){ fn=l=>D.head.indexOf(D.par[l[3]][0]); rot=i=>D.head[i]; }
+  else { fn=CHAVES[dim]; rot=ROTULOS[dim]; }
+  if(!fn || fn(sku?CUBO_SKU[0]:CUBO[0],sku)===null){
+    vazio("tabPreco","Esta quebra não existe na camada agregada em uso.");
+  } else {
+    const a=somar(p.atual,fn,dim), l=somar(p.ly,fn,dim);
+    const itens=[...a.entries()].map(([k,v])=>({k,pa:razao(receita(v),pesoKg(v)),
+      pl:l.has(k)?razao(receita(l.get(k)),pesoKg(l.get(k))):null, r:receita(v)}))
+      .sort((x,y)=>y.r-x.r);
+    const ta=total(p.atual), tl=total(p.ly);
+    const pa=razao(receita(ta),pesoKg(ta)), pl=p.ly.length?razao(receita(tl),pesoKg(tl)):null;
+    el("tabPreco").innerHTML=tabela(["Dimensão","R$/kg atual","R$/kg LY","Δ","Δ%"],
+      itens.map(i=>[rot(i.k),fmtPreco(i.pa),
+        p.ly.length?fmtPreco(i.pl):'<span class="nd">n/d</span>',
+        (i.pl===null||i.pa===null||!p.ly.length)?'<span class="nd">n/d</span>':nbsp((i.pa-i.pl>=0?"+":"−")+"R$ "+fmtNum(Math.abs(i.pa-i.pl),2)),
+        fmtPct(varPct(i.pa,p.ly.length?i.pl:null))]),
+      ["<b>Total</b>",fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
+       (pa===null||pl===null)?'<span class="nd">n/d</span>':nbsp((pa-pl>=0?"+":"−")+"R$ "+fmtNum(Math.abs(pa-pl),2)),
+       fmtPct(varPct(pa,pl))]);
+  }
+  // preco por periodo
+  const grupos=new Map();
+  p.atual.forEach(i=>{ const g=grupoPeriodo(i);
+    if(!grupos.has(g)) grupos.set(g,[[],[]]);
+    grupos.get(g)[0].push(i);
+    const ly=CAL[i][C_LY]; if(ly>=0) grupos.get(g)[1].push(ly); });
+  const linhas=[];
+  for(const [g,[ms,ls]] of grupos){
+    const va=total(ms), vl=ls.length?total(ls):null;
+    const pa=razao(receita(va),pesoKg(va));
+    const pl=vl?razao(receita(vl),pesoKg(vl)):null;
+    linhas.push([g,fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
+      fmtPct(varPct(pa,pl))]);
+  }
+  el("sPrecoPer").textContent="· "+GRANS[F.gran];
+  el("tabPrecoPer").innerHTML=tabela(["Período","R$/kg atual","R$/kg LY","Δ%"],linhas);
+}
+
+/* ================================================================ eventos */
+function ligarChips(id, aoClicar){
+  el(id).addEventListener("click", e=>{
+    const c=e.target.closest(".chip");
+    if(!c || c.classList.contains("off")) return;
+    aoClicar(c.dataset.k, c);
+    render();
+  });
+}
+function alterna(conj, v){ conj.has(v) ? conj.delete(v) : conj.add(v); }
+
+function ligar(){
+  ligarChips("fMetrica", k=>{ F.metrica=k; montarFiltros(); });
+  ligarChips("fBase", k=>{ F.base=k; F.meses.clear(); montarFiltros(); });
+  ligarChips("fGran", k=>{ F.gran=k; montarFiltros(); });
+  el("fAno").addEventListener("click", e=>{
+    const c=e.target.closest(".chip"); if(!c||c.classList.contains("off")) return;
+    if(c.dataset.t==="fy") F.fy=c.dataset.k; else F.ano=+c.dataset.k;
+    F.meses.clear(); montarFiltros(); render();
+  });
+  ligarChips("fMeses", k=>{ alterna(F.meses,+k); montarMeses(); });
+  el("mTodos").onclick=()=>{ mesesOferecidos().forEach(i=>F.meses.add(i)); montarMeses(); render(); };
+  el("mNenhum").onclick=()=>{ F.meses.clear(); montarMeses(); render(); };
+  ligarChips("fCat", k=>{ alterna(F.cat,+k); montarFiltros(); });
+  ligarChips("fHead", k=>{ alterna(F.head,k); montarFiltros(); });
+  ligarChips("fGer", k=>{ alterna(F.ger,k); montarFiltros(); });
+  ligarChips("fUF", k=>{ alterna(F.uf,+k); montarFiltros(); });
+  ligarChips("fBan", k=>{ alterna(F.ban,+k); buscaChips("fBan","bBan",D.ban,F.ban); });
+  ligarChips("fSku", k=>{ alterna(F.sku,+k); buscaChips("fSku","bSku",D.sku.map(s=>s[1]),F.sku); });
+  el("bBan").oninput=()=>buscaChips("fBan","bBan",D.ban,F.ban);
+  el("bSku").oninput=()=>buscaChips("fSku","bSku",D.sku.map(s=>s[1]),F.sku);
+  ligarChips("dimGeral", k=>{ F.dimGeral=k; montarFiltros(); });
+  ligarChips("dimPreco", k=>{ F.dimPreco=k; montarFiltros(); });
+  ligarChips("topBan", k=>{ F.topBan=+k; montarFiltros(); });
+  ligarChips("topSku", k=>{ F.topSku=+k; montarFiltros(); });
+  el("limpar").onclick=()=>{
+    ["cat","head","ger","uf","ban","sku"].forEach(k=>F[k].clear());
+    F.meses.clear(); el("bBan").value=""; el("bSku").value="";
+    montarFiltros(); render();
+  };
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    el(t.dataset.p).classList.add("active");
+    F.aba=t.dataset.p;
+  });
+}
+
+function iniciar(){
+  const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
+  const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
+  F.fy=fys[fys.length-1]; F.ano=anos[anos.length-1];
+  el("rodape").innerHTML=DB.meta.rodape;
+  montarFiltros(); ligar(); render();
+}
+iniciar();
+</script>
+</body></html>

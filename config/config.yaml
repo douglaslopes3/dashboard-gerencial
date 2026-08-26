@@ -1,0 +1,158 @@
+# =============================================================================
+# Dashboard Gerencial de Canais (Sell In) — configuração
+#
+# REGRA: nenhum valor de negócio mora no código. Canal, categoria, head, UF,
+# bandeira, cliente, SKU, período e ano NUNCA aparecem aqui como lista fixa —
+# eles saem das bases. O que mora aqui é PARÂMETRO: pastas, formatos, nomes de
+# coluna de ORIGEM, tolerâncias, cortes de exibição e correções DECLARADAS.
+#
+# Todos os caminhos são relativos à raiz do projeto.
+# =============================================================================
+
+projeto:
+  nome: "Dashboard Gerencial de Canais — Sell In"
+  pasta_dados: "data"
+  pasta_logs: "logs"
+  pasta_docs: "docs"
+
+# -----------------------------------------------------------------------------
+# FONTES
+# -----------------------------------------------------------------------------
+fontes:
+
+  sellin:
+    # DUAS pastas de entrada, de propósito:
+    #   - `bases/Sell In` é onde os 28 arquivos já estavam;
+    #   - `data/raw/sell_in` é a pasta do ciclo mensal (§1 do prompt).
+    # As duas são varridas. Largar o arquivo novo em qualquer uma funciona, e
+    # nenhum Excel precisou ser movido. Ver decisão D-03.
+    pastas:
+      - "bases/Sell In"
+      - "data/raw/sell_in"
+    padroes_aceitos: ["*.xlsx", "*.xlsm"]
+    aba: "Export"
+    # A linha de rodapé com a coluna `Ano` = "Total" é o gabarito de conferência.
+    ultima_linha_e_total: true
+    rotulo_linha_total: "total"
+    # Colunas OBRIGATÓRIAS. Faltando qualquer uma, o arquivo é REJEITADO e o
+    # pipeline aborta — nunca ingerido pela metade.
+    colunas_obrigatorias:
+      - "Ano"
+      - "Ano mês"
+      - "Cód. cliente"
+      - "Cliente"
+      - "Bandeira cliente"
+      - "Estado"
+      - "Desc. categoria"
+      - "Cód. material"
+      - "Desc. material sem código"
+      - "Receita Líquida"
+      - "Peso Líquido"
+      - "Qtde Faturado"
+    # Colunas opcionais: se aparecerem, são lidas; se não, o pipeline segue.
+    # `Subcanal` está aqui à espera do BI — ver GAP-01. Basta a extração passar
+    # a trazê-la que ela entra na DIM_CLIENTE sem tocar em código.
+    colunas_opcionais:
+      - "Comissão Faturada Líquida"
+      - "Subcanal"
+      - "Representante"
+
+  produtos:
+    arquivo: "bases/Bases para tabelas dimensões/Produtos.xlsx"
+    aba: "Produtos"
+    colunas_obrigatorias: ["Código Produto", "Descrição Produto", "Categoria"]
+    colunas_opcionais: ["Marca"]
+
+  estrutura_comercial:
+    arquivo: "bases/Bases para tabelas dimensões/DePara_Estrutura_Comercial.xlsx"
+    aba: "Planilha1"
+    colunas_obrigatorias: ["Cód. cliente", "Novo Head", "Novo Gerente", "Novo Supervisor"]
+    colunas_opcionais: ["Atendimento Ponta", "PROJETO"]
+    # A ausência deste arquivo NÃO derruba o pipeline: o painel roda sem
+    # hierarquia, com todo mundo em "NÃO ATRIBUÍDO" e um aviso na tela.
+    obrigatorio: false
+
+# -----------------------------------------------------------------------------
+# CALENDÁRIO
+# -----------------------------------------------------------------------------
+calendario:
+  # Mês de início do ano fiscal. 9 = setembro. Trocar para 1 iguala fiscal e
+  # calendário sem tocar em uma linha de código.
+  fiscal_mes_inicio: 9
+  # O ano fiscal é nomeado pelo ano de FECHAMENTO: set/2025..ago/2026 = 2026.
+  # Confere com o §7 do prompt ("set/2025 a ago/2026 = FY2026"). Ver D-02.
+  fiscal_prefixo: "FY"
+
+# -----------------------------------------------------------------------------
+# DIMENSÕES — correções DECLARADAS
+#
+# Toda chave abaixo nasce VAZIA. Correção de rótulo é decisão de negócio: quando
+# alguém preencher, a troca acontece e sai no log e no relatório de qualidade.
+# NENHUMA correção acontece em silêncio.
+# -----------------------------------------------------------------------------
+dimensoes:
+  estrutura_comercial:
+    # ex.: "Maykon - 2600": "Vago - 2600"   <- ver GAP-03, pendente do Comercial
+    correcoes_head: {}
+    correcoes_gerente: {}
+    correcoes_supervisor: {}
+    # Cliente com duas linhas e supervisores diferentes: declare aqui quem vence.
+    # Sem declaração, vence a 1a linha COM AVISO.
+    # ex.: "1010846": "Supervisor SP Interior"
+    desempate_cliente: {}
+  # Rótulo usado para quem não tem linha no de-para. Não é um valor de negócio
+  # inventado: é a marca explícita de ausência.
+  rotulo_sem_estrutura: "NÃO ATRIBUÍDO"
+
+# -----------------------------------------------------------------------------
+# VALIDAÇÃO
+# -----------------------------------------------------------------------------
+validacao:
+  # Soma dos dados x linha `Total` da fonte, por arquivo.
+  tolerancia_receita_reais: 0.01
+  tolerancia_peso_kg: 0.01
+  tolerancia_caixas: 0.01
+  # Soma do cubo x soma da fato (erro relativo).
+  tolerancia_cubo_relativa: 0.000001
+  # Piso de cobertura da estrutura comercial sobre a receita. Abaixo disso o
+  # pipeline ABORTA. Existe por um erro real do projeto anterior: `Cód. cliente`
+  # zero-preenchido faz o join casar com ZERO cliente — e casar em silêncio.
+  cobertura_minima_head: 0.95
+  # Lista de valores esperados só para CONFERIR (§9 do prompt). O que não estiver
+  # aqui vira linha em data/quality/valores_nao_reconhecidos.csv.
+  # ISTO NÃO FILTRA, NÃO CORRIGE E NÃO ORDENA NADA. É só o gabarito do relatório.
+  valores_esperados:
+    categoria:
+      ["AMENDOIM", "BALA", "CHOCOLATE", "COMPOUND", "GELATINA", "GOMAS",
+       "GRANULADO", "JUBES FRUIT SNACK", "PIRULITO", "REGALIZ"]
+    head: ["Ademir", "Izabela", "Michel", "Vago"]
+
+# -----------------------------------------------------------------------------
+# DASHBOARD
+# -----------------------------------------------------------------------------
+dashboard:
+  arquivo_saida: "Dashboard_Gerencial_Canais.html"
+  template: "dashboard/template.html"
+  pasta_saida: "dashboard/build"
+  libs:
+    chart: "dashboard/lib/chart.umd.min.js"
+  marcador_inicio: "/*DADOS_INICIO*/"
+  marcador_fim: "/*DADOS_FIM*/"
+
+  # Corte do cubo de bandeira. As demais NÃO somem: viram um balde agregado, e
+  # o total do painel continua reconciliando com a fato.
+  # Medido: 300 = 73,4% da receita e 1.758 KB de JSON.
+  #         500 = 78,9% e 3.634 KB.  200 = 68,0% e 1.965 KB.
+  top_bandeiras: 300
+  rotulo_demais_bandeiras: "DEMAIS BANDEIRAS"
+
+  # Quantos itens no bloco de destaque de ganhos/quedas.
+  top_ranking: 10
+  # Opções do seletor "Top" nas tabelas.
+  tops_bandeira: [10, 50, 100, 200, 300]
+  tops_sku: [25, 50, 100, 0]      # 0 = todos
+
+logs:
+  nivel: "info"
+  # Um arquivo por execução, nomeado pelo EXECUCAO_ID.
+  manter_ultimos: 30
