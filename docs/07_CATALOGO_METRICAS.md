@@ -69,15 +69,15 @@ Valor de controle (24 meses, sem filtro): `2.260.853.914,86 / 161.321.487,32`
 
 ---
 
-## 3. Ticket Médio — **não implementado**
+## 3. Ticket Médio — **é o Preço Médio** (decisão de 26/08/2026)
 
-Não existe definição validada na fonte. O grão é `mês × cliente × SKU`, sem
-pedido, nota fiscal ou data transacional — os denominadores possíveis dão
-respostas diferentes e incompatíveis.
-
-Conforme o §6 do prompt: *"Sem definição validada: não implementar, registrar
-como gap"*. Ver **GAP-02**. O card **não aparece** na tela — não aparece zerado,
-nem com "—", nem com uma definição provisória.
+A devolutiva definiu: ticket médio e preço médio são **a mesma métrica**
+(`Σvalor ÷ Σpeso`). Não existem dois indicadores. O card **"Faturamento
+médio/mês"** (`receita ÷ nº de meses do período`) existe à parte, com o rótulo
+dizendo exatamente o que a fórmula calcula — ele **não** é ticket médio.
+Nenhuma divisão por cliente comprador ou por pedido foi criada (as contagens
+não existem no grão). Ver D-22 e o adendo (a descrição da decisão não aparece
+na interface, só aqui).
 
 ---
 
@@ -86,11 +86,14 @@ nem com "—", nem com uma definição provisória.
 Todas valem para **Valor R$, Volume (t) e Caixas**, e todas usam
 `DIM_CALENDARIO.ANO_MES_LY` — **junção explícita**, nunca deslocamento posicional.
 
-| Base de comparação | Período atual | Período de comparação |
-|---|---|---|
-| **YTD Fiscal** | de `MES_FISCAL = 1` do FY selecionado até o mês selecionado | **o mesmo intervalo de meses fiscais** do FY anterior |
-| **YTD Calendário** | de janeiro do ano selecionado até o mês selecionado | o mesmo intervalo do ano anterior |
-| **Mês vs LY** | os meses selecionados | os mesmos meses do ano anterior |
+A base de comparação tem **dois estados** — YTD Fiscal e YTD Calendário — e a
+comparação contra o ano anterior está **embutida** (Solicitação 02 / D-28):
+
+| Conceito | Regra |
+|---|---|
+| **Período atual** | exatamente os meses selecionados nos chips |
+| **Período anterior** | os **mesmos meses** do ano anterior, mapeados por `ANO_MES_LY` |
+| **Papel da base** | decide qual ano emoldura a lista de meses (fiscal set→ago ou calendário jan→dez) e como o card "Comparativo YTD" acumula |
 
 O intervalo LY é montado mapeando cada `ANO_MES` do período atual pelo seu
 `ANO_MES_LY`. Mês sem LY na dimensão simplesmente **não entra** no denominador —
@@ -129,8 +132,8 @@ PARTICIPACAO = METRICA(linha) / METRICA(denominador do contexto)
 
 | Bloco | Denominador | Filtros **preservados** | Filtro **removido** |
 |---|---|---|---|
-| Quebra por categoria (Visão Geral) | total do recorte | período, head, gerente, UF, bandeira, SKU | **categoria** |
-| Quebra por head | total do recorte | período, categoria, UF, bandeira, SKU | **head** |
+| Quebra por categoria (Visão Geral) | total do recorte | período, canal, head, gerente, projeto, UF, bandeira, SKU | **categoria** |
+| Quebra por canal / head / gerente / projeto | total do recorte | todos os demais | **a própria dimensão** |
 | Tabela de UF (Geografia) | total do recorte | todos os demais | **UF** |
 | Tabela de bandeiras | total do recorte | todos os demais | **bandeira** |
 | Tabela de SKUs | total do recorte | todos os demais | **SKU** |

@@ -12,23 +12,33 @@ python run_dashboard.py     # Parquet -> Dashboard_Gerencial_Canais.html
 
 ---
 
-## Estado atual — medido em 26/08/2026
+## Estado no encerramento do ciclo — medido em 26/08/2026
 
 ```
 28 arquivos de Sell In       3.085.119 linhas       24 meses (2024-09 a 2026-08)
 receita liquida              R$ 2.260.853.914,86
 peso                         161.321,49 t
 caixas                       32.659.819
-clientes 16.131              SKUs 494               bandeiras 11.296
+clientes 16.131              SKUs 494               bandeiras 11.296  canais 8
 
 reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
 grao                         zero duplicados em 3,08 mi de linhas
 cobertura da estrutura       99,98% da receita
 cobertura de canal           100,00% da receita
 testes                       26/26 unitarios · 6/6 cenarios ponta a ponta
-pipeline                     107s a frio · 19s com cache · exit 0
-painel                       14,28 MB · zero requisicao de rede
+pipeline                     ~2 min a frio · ~20 s com cache · exit 0
+painel                       14,3 MB · zero requisicao de rede · 5 paginas
+                             exportacao CSV/XLSX em toda tabela
+                             drills: Categoria -> SKU · Head -> Gerente
 ```
+
+O caminho do dado bruto ao painel, sem ler código:
+**[docs/13_FLUXO_GERACAO_PAINEL.md](docs/13_FLUXO_GERACAO_PAINEL.md)** (diagrama
+em [docs/fluxo_geracao_painel.html](docs/fluxo_geracao_painel.html)). Cadência
+de atualização (Sell In diário; o resto estático):
+**[docs/14](docs/14_CADENCIA_DE_ATUALIZACAO.md)**. Saída do ambiente de IA para
+o SharePoint: **[docs/15](docs/15_PLANO_SHAREPOINT.md)** — com 5 decisões em
+aberto.
 
 ---
 
@@ -62,9 +72,14 @@ máquina de destino.
 e **Preço Médio R$/kg**, calculado sempre como `SUM(receita) / SUM(peso_kg)`
 (razão das somas; o seletor global **não** altera essa definição).
 
-**3 bases de comparação** — YTD Fiscal (set→ago), YTD Calendário (jan→dez) e
-Meses vs mesmo período do ano anterior. Variação absoluta, variação % e
-participação % em toda tabela.
+**2 bases de comparação** — YTD Fiscal (set→ago) e YTD Calendário (jan→dez),
+com a comparação contra o mesmo período do ano anterior **embutida** (o período
+é a seleção de meses; o anterior são os mesmos meses do LY). Variação absoluta,
+variação % e participação % em toda tabela.
+
+**Exportação CSV/XLSX em todas as tabelas** (dado cru, respeitando os filtros)
+e **drill-down**: Categoria → SKUs e Head → Gerentes, ordenados pela maior
+queda.
 
 **Filtros globais** derivados das dimensões: ano fiscal, ano calendário, meses,
 **canal**, categoria, head, gerente, **projeto**, UF, bandeira e SKU.
@@ -142,8 +157,23 @@ run_pipeline.py  run_dashboard.py
 | 08 | [Especificação funcional](docs/08_ESPECIFICACAO_FUNCIONAL_DASHBOARD.md) |
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
-| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — 18 decisões, com o porquê |
+| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-25 |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — 31 decisões, com o porquê |
+| 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
+| 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
+| 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
+
+## Pendências abertas no encerramento — e de quem dependem
+
+| # | Pendência | Dono | Tamanho medido | Onde está o material |
+|---|---|---|---|---|
+| P1 | Colar os **71 clientes sem estrutura** no DePara (head `Vago - 2600` já preenchido; falta gerente/supervisor) | **Comercial** | R$ 421 mil (0,02%) | `data/quality/incluir_no_DePara_estrutura.xlsx` |
+| P2 | Reclassificar no `Canais.xlsx` os 3 clientes `KEY ACCOUNT` (R$ 0) e as 2 linhas de P&L (`Orçado/Rateio KR`) | **BI** | impacto zero de receita | `data/quality/clientes_canal_key_account.csv` |
+| P3 | `KEY ACCOUNT NACIONAL/REGIONAL` são canais novos ou reclassificação? | **Comercial** | 90 clientes no de-para | GAP-01 / D-27 |
+| P4 | Caixas na devolução: pedir `Qtde` negativa ao BI (opção A), estimar pelo fator kg/caixa (B, cobre 98,6%) ou manter bruta (C, atual) | **Douglas decide** + BI | 0,28% das caixas | GAP-04 e a tabela de opções na conversa de 26/08 |
+| P5 | 7 SKUs fora do `Produtos.xlsx` | **Cadastro de Produtos** | R$ 910 mil (0,04%) | `data/quality/skus_sem_cadastro.csv` |
+| P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
+| P7 | As **5 decisões do SharePoint** (D-a a D-e) | **Douglas decide** | — | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
 
 ---
 

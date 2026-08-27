@@ -106,8 +106,8 @@ cubos. Tamanhos medidos serializando o JSON de verdade:
 | **`CUBO_PRINCIPAL`** | `ANO_MES × BANDEIRA × CATEGORIA × HEAD/GERENTE × UF` | 72.378 | **2.474 KB** | páginas 1, 2, 3 e 5 e **todos** os filtros, menos SKU |
 | **`CUBO_SKU`** | `ANO_MES × SKU × HEAD × UF` | 208.716 | **6.409 KB** | página 4 e o filtro global de SKU |
 
-Total medido no arquivo gerado: **8,71 MB** de dados + 195 KB de biblioteca
-= **8,94 MB** de HTML.
+Total medido no arquivo gerado (após canal, projeto, exportação e drills):
+**14,30 MB** de HTML — dados embutidos + 195 KB de biblioteca.
 
 > Os tamanhos das tabelas comparativas abaixo foram medidos em cubos de sondagem,
 > antes de o eixo HEAD/GERENTE virar par e antes do balde `DEMAIS`. Servem para

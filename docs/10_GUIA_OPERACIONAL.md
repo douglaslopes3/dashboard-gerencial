@@ -104,8 +104,19 @@ filtra, não corrige e não ordena nada.)
 ## Como ler o painel
 
 **Seletores globais** — métrica (Valor R$ / Volume t / Caixas), base de
-comparação (YTD Fiscal / YTD Calendário / Meses vs LY) e granularidade
-(Mês / Trimestre / Semestre).
+comparação (YTD Fiscal / YTD Calendário — a comparação com o ano anterior está
+**embutida**: o painel compara os meses selecionados com os mesmos meses do LY)
+e granularidade (Mês / Trimestre / Semestre).
+
+**Exportar** — toda tabela tem botões `⬇ CSV` / `⬇ XLSX` no cabeçalho do card.
+Sai o que está na tela (todos os filtros valem), com **número como número**
+(sem "R$", decimal com ponto) e o nome dizendo tabela, recorte, base e mês
+(`sku-amendoim_ytd-fiscal_2026-08.xlsx`).
+
+**Drill-down** — no card Detalhamento, a quebra por **Categoria** abre os SKUs
+da categoria clicada e a quebra por **Head** abre os gerentes do head, sempre
+ordenados pela **maior queda** ("quem puxou o resultado para baixo"), com o
+mesmo período, base e filtros da tela, botão "← voltar" e exportação própria.
 
 **A linha azul de estado**, logo abaixo dos filtros, sempre diz o que está
 ativo: métrica, base, período, **quantos meses do ano anterior estão cobertos** e

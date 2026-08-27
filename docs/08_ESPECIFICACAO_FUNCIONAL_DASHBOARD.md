@@ -9,17 +9,18 @@ no template.
 |---|---|---|---|
 | **Métrica** | fixo | 1 de 3 | Valor R$ · Volume (t) · Caixas |
 | **Granularidade** | fixo | 1 de 3 | Mês · Trimestre · Semestre |
-| **Base de comparação** | fixo | 1 de 3 | YTD Fiscal · YTD Calendário · Mês vs LY |
+| **Base de comparação** | fixo | **1 de 2** | YTD Fiscal · YTD Calendário — o LY está **embutido**: o período é a seleção de meses e o anterior são os mesmos meses do ano anterior (D-28) |
 | **Ano fiscal** | `DIM_CALENDARIO.ANO_FISCAL_ROTULO` | 1 | ver §1.1 |
 | **Ano calendário** | `DIM_CALENDARIO.ANO` | 1 | ver §1.1 |
 | **Meses** | `DIM_CALENDARIO` | N | multisseleção + `Todos` / `Nenhum` |
+| **Canal** | `DIM_CLIENTE.CANAL` | N | de `bases/Canais/Canais.xlsx` — 100% de cobertura (D-19) |
 | **Categoria** | `DIM_PRODUTO.CATEGORIA` | N | |
 | **Head** | `DIM_CLIENTE.HEAD` | N | inclui `NÃO ATRIBUÍDO` |
-| **Gerente** | `DIM_CLIENTE.GERENTE` | N | **entra no lugar do canal** (GAP-01) |
+| **Gerente** | `DIM_CLIENTE.GERENTE` | N | do de-para de estrutura |
+| **Projeto** | `DIM_CLIENTE.PROJETO` | N | 8 valores do de-para de estrutura (D-25) |
 | **UF** | `DIM_CLIENTE.UF` | N | |
 | **Bandeira** | `DIM_CLIENTE.BANDEIRA` | busca + N | 11.296 valores: campo de busca, não lista de chips |
 | **SKU** | `DIM_PRODUTO` | busca + N | 494 valores |
-| ~~Canal~~ | — | — | **ausente.** Sem fonte — GAP-01 |
 
 ### 1.1 Ano fiscal e ano calendário usados juntos — comportamento declarado
 
@@ -29,7 +30,7 @@ O seletor de **base de comparação** decide qual dos dois manda:
 |---|---|---|
 | `YTD Fiscal` | **ano fiscal** | fica visível e **desabilitado**, com a nota *"o período segue o ano fiscal"* |
 | `YTD Calendário` | **ano calendário** | idem, invertido |
-| `Mês vs LY` | a **seleção de meses** | ambos ficam livres, filtrando a lista de meses |
+
 
 Nunca os dois filtram ao mesmo tempo. Escolher "FY2026" e "2025" ao mesmo tempo
 produziria a interseção set–dez/2025 — um período que ninguém pediu e que
@@ -54,16 +55,23 @@ ninguém consegue explicar depois.
 
 ### Página 1 — Visão Geral
 
-* **Cards:** Valor R$ · Volume (t) · Caixas · Preço Médio R$/kg.
+* **Cards:** Valor R$ · Volume (t) · Caixas · **Faturamento médio/mês**
+  (`receita ÷ nº de meses`) · Preço Médio R$/kg (**= ticket médio**, D-22).
   Cada um com o valor do período, o LY, a variação absoluta e a **variação % com
-  sinal e seta**. Sem card de Ticket Médio (GAP-02).
+  sinal e seta**.
 * **Evolução mensal:** linha do período atual + linha do mesmo período LY, no eixo
   da métrica selecionada, com tooltip trazendo os dois valores e a variação.
 * **Comparativo YTD:** YTD Fiscal atual × anterior e YTD Calendário atual ×
   anterior, cada um com Δ absoluto e Δ %. **Os dois aparecem sempre**, independente
   da base selecionada — é a comparação que o §11 pede.
-* **Detalhamento** com quebra por **Categoria**, **Head** ou **Gerente**, com
-  colunas: `Atual · LY · Δ · Δ% · Participação %`.
+* **Detalhamento** com quebra por **Canal**, **Categoria**, **Head**,
+  **Gerente**, **Projeto** ou **UF**, com colunas:
+  `Atual · LY · Δ · Δ% · Participação %`.
+* **Drill-down** (Solicitação 02): na quebra por Categoria a linha abre os
+  **SKUs da categoria**; na quebra por Head, os **gerentes do head** — mesmo
+  período/base/filtros, ordenado pela maior queda, com "← voltar" e exportação
+  própria (D-30/D-31).
+* **Exportação:** toda tabela tem `⬇ CSV` / `⬇ XLSX` com dado cru (D-29).
 
 ### Página 2 — Geografia
 
@@ -83,7 +91,7 @@ ninguém consegue explicar depois.
 
 ### Página 5 — R$/kg
 
-* Preço médio por Total / Categoria / Head / Gerente, no período.
+* Preço médio por Canal / Categoria / Head / Gerente / Projeto / UF, no período.
 * Comparativo de preço médio Atual × LY pela dimensão escolhida.
 * **O seletor global de métrica não altera a definição do preço** — a página
   declara isso em nota fixa.
@@ -132,8 +140,9 @@ Rodapé fixo, gerado pelo pipeline (nada digitado à mão):
 * período coberto e nº de meses;
 * nº de arquivos de origem e nº de linhas;
 * data/hora do processamento e `EXECUCAO_ID`;
-* **as ressalvas medidas:** Caixas bruta (GAP-04), canal ausente (GAP-01),
-  Ticket Médio ausente (GAP-02).
+* **as ressalvas medidas:** Caixas bruta (GAP-04), cobertura de canal e onde
+  saem as exceções, corte de bandeiras (300 + balde) e o que a camada de SKU
+  não cruza (gerente, bandeira, projeto).
 
 Um painel que esconde a ressalva faz quem cruzar com outra fonte concluir que o
 painel está errado.

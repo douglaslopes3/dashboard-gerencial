@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fluxo de geração — Dashboard Gerencial de Canais</title>
+<style>
+  body{margin:0;padding:24px;background:#f4f6f8;color:#16202b;
+    font:13px/1.45 "Segoe UI",system-ui,Arial,sans-serif}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:#5b6b7c;font-size:12px;margin-bottom:16px}
+  .wrap{overflow-x:auto;background:#fff;border:1px solid #e3e8ee;border-radius:8px;padding:10px}
+  svg{display:block;min-width:1180px}
+  .leg{color:#5b6b7c;font-size:11.5px;margin-top:10px;line-height:1.6}
+</style></head><body>
+<h1>Fluxo de geração do painel — do Excel bruto ao HTML publicado</h1>
+<div class="sub">Dashboard Gerencial de Canais (Sell In) · medido em 26/08/2026 ·
+explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
+<div class="wrap">
+<svg viewBox="0 0 1180 640" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
+  <defs>
+    <marker id="seta" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#5b6b7c"/>
+    </marker>
+  </defs>
+  <style>
+    .col{fill:#5b6b7c;font-size:11px;font-weight:700;letter-spacing:1px}
+    .box{fill:#fff;stroke:#c9d4e0;rx:8}
+    .base{fill:#eef4fb;stroke:#9db8d4}
+    .etl{fill:#fff8e6;stroke:#e0c37a}
+    .modelo{fill:#e8f5ee;stroke:#8fc7a8}
+    .agg{fill:#f3eefb;stroke:#b9a3dc}
+    .pub{fill:#00539f;stroke:#00539f}
+    .t{font-size:12px;font-weight:700;fill:#16202b}
+    .d{font-size:10.5px;fill:#4a5a6a}
+    .tp{font-size:12px;font-weight:700;fill:#fff}
+    .dp{font-size:10.5px;fill:#d7e6f5}
+    .fio{stroke:#5b6b7c;stroke-width:1.4;fill:none;marker-end:url(#seta)}
+    .nota{font-size:10px;fill:#8a97a5;font-style:italic}
+  </style>
+
+  <!-- titulos das colunas -->
+  <text class="col" x="20"  y="24">1 · BASES DE ORIGEM (Excel)</text>
+  <text class="col" x="330" y="24">2 · ETL — run_pipeline.py (passos 1–4)</text>
+  <text class="col" x="640" y="24">3 · MODELO ESTRELA (Parquet)</text>
+  <text class="col" x="640" y="330">4 · AGREGAÇÃO (passo 6)</text>
+  <text class="col" x="920" y="330">5 · PUBLICAÇÃO — run_dashboard.py</text>
+
+  <!-- ============ coluna 1: bases ============ -->
+  <rect class="box base" x="20" y="40"  width="270" height="86" rx="8"/>
+  <text class="t" x="32" y="60">Sell In · 28 arquivos .xlsx</text>
+  <text class="d" x="32" y="76">bases/Sell In/ e data/raw/sell_in/ · aba Export</text>
+  <text class="d" x="32" y="90">3.085.119 linhas · 24 meses (2024-09 a 2026-08)</text>
+  <text class="d" x="32" y="104">rodapé: linha Total (gabarito) + filtros</text>
+  <text class="d" x="32" y="118">ATUALIZAÇÃO DIÁRIA — substituir o mês corrente</text>
+
+  <rect class="box base" x="20" y="140" width="270" height="58" rx="8"/>
+  <text class="t" x="32" y="160">Produtos.xlsx</text>
+  <text class="d" x="32" y="176">1.712 SKUs · categoria e marca do cadastro</text>
+  <text class="d" x="32" y="190">estática</text>
+
+  <rect class="box base" x="20" y="212" width="270" height="72" rx="8"/>
+  <text class="t" x="32" y="232">DePara_Estrutura_Comercial.xlsx</text>
+  <text class="d" x="32" y="248">16.061 clientes · head, gerente, supervisor,</text>
+  <text class="d" x="32" y="262">projeto · código ZERO-PREENCHIDO</text>
+  <text class="d" x="32" y="276">estática</text>
+
+  <rect class="box base" x="20" y="298" width="270" height="58" rx="8"/>
+  <text class="t" x="32" y="318">Canais.xlsx</text>
+  <text class="d" x="32" y="334">43.073 clientes · canal + subcanal · 100% do sell-in</text>
+  <text class="d" x="32" y="348">estática</text>
+
+  <rect class="box base" x="20" y="372" width="270" height="56" rx="8"/>
+  <text class="t" x="32" y="392">config.yaml · geografia.yaml</text>
+  <text class="d" x="32" y="408">ano fiscal set→ago · tolerâncias · correções</text>
+  <text class="d" x="32" y="422">declaradas (Maykon→Vago) · cortes de exibição</text>
+
+  <!-- ============ coluna 2: ETL ============ -->
+  <rect class="box etl" x="330" y="40" width="280" height="118" rx="8"/>
+  <text class="t" x="342" y="60">Ler + validar + normalizar</text>
+  <text class="d" x="342" y="78">· rejeita arquivo sem as colunas obrigatórias</text>
+  <text class="d" x="342" y="92">· remove rodapé; Total vira gabarito</text>
+  <text class="d" x="342" y="106">· códigos sem zeros à esquerda (senão o join = 0)</text>
+  <text class="d" x="342" y="120">· sinais preservados; caixa nula fica nula</text>
+  <text class="d" x="342" y="134">· cache: 1 Excel → 1 Parquet em data/staging/</text>
+  <text class="d" x="342" y="148">· correções SÓ as declaradas no config, com log</text>
+
+  <rect class="box etl" x="330" y="176" width="280" height="104" rx="8"/>
+  <text class="t" x="342" y="196">Conferências que travam</text>
+  <text class="d" x="342" y="214">· grão: zero duplicados em mês × cliente × SKU</text>
+  <text class="d" x="342" y="228">· soma × linha Total: 28/28 nas 3 métricas</text>
+  <text class="d" x="342" y="242">· FKs 100% · cobertura estrutura ≥95% (99,98%)</text>
+  <text class="d" x="342" y="256">· cobertura canal ≥95% (100,00%)</text>
+  <text class="d" x="342" y="270">falhou → exit 1 e NADA é atualizado</text>
+
+  <rect class="box etl" x="330" y="298" width="280" height="86" rx="8"/>
+  <text class="t" x="342" y="318">Relatório de qualidade</text>
+  <text class="d" x="342" y="336">data/quality/relatorio_qualidade.md +</text>
+  <text class="d" x="342" y="350">CSVs de exceção: sem estrutura, sem canal,</text>
+  <text class="d" x="342" y="364">SKUs sem cadastro, valores não reconhecidos,</text>
+  <text class="d" x="342" y="378">linhagem arquivo → mês</text>
+
+  <!-- ============ coluna 3: modelo ============ -->
+  <rect class="box modelo" x="640" y="40" width="250" height="64" rx="8"/>
+  <text class="t" x="652" y="60">DIM_CALENDARIO · 24 meses</text>
+  <text class="d" x="652" y="78">civil + fiscal (set→ago) na mesma tabela</text>
+  <text class="d" x="652" y="92">ANO_MES_LY = pareamento explícito</text>
+
+  <rect class="box modelo" x="640" y="118" width="250" height="64" rx="8"/>
+  <text class="t" x="652" y="138">DIM_CLIENTE · 16.131</text>
+  <text class="d" x="652" y="156">bandeira, UF + head/ger/superv/projeto</text>
+  <text class="d" x="652" y="170">+ canal/subcanal — tudo atributo, sem snowflake</text>
+
+  <rect class="box modelo" x="640" y="196" width="250" height="50" rx="8"/>
+  <text class="t" x="652" y="216">DIM_PRODUTO · 494 SKUs</text>
+  <text class="d" x="652" y="234">categoria + marca; 7 órfãos adotados marcados</text>
+
+  <rect class="box modelo" x="640" y="260" width="250" height="56" rx="8"/>
+  <text class="t" x="652" y="280">FATO_SELLIN · 3.085.119</text>
+  <text class="d" x="652" y="296">grão: mês × cliente × SKU · R$, kg, caixas</text>
+  <text class="d" x="652" y="310">particionada por ANO · linhagem por execução</text>
+
+  <!-- ============ coluna 4: agregacao ============ -->
+  <rect class="box agg" x="640" y="346" width="250" height="90" rx="8"/>
+  <text class="t" x="652" y="366">CUBO_PRINCIPAL · 90.644 linhas</text>
+  <text class="d" x="652" y="382">mês × bandeira(300+balde) × categoria ×</text>
+  <text class="d" x="652" y="396">PERFIL(head,ger,canal,proj) × UF</text>
+  <text class="t" x="652" y="414">CUBO_SKU · 368.699 linhas</text>
+  <text class="d" x="652" y="430">mês × SKU × (head,canal) × UF</text>
+
+  <rect class="box agg" x="640" y="452" width="250" height="54" rx="8"/>
+  <text class="t" x="652" y="472">Reconciliação cubo × fato</text>
+  <text class="d" x="652" y="488">3 métricas · não fecha → não publica</text>
+  <text class="d" x="652" y="502">saída: cubos.json + resumo.json</text>
+
+  <!-- ============ coluna 5: publicacao ============ -->
+  <rect class="box" x="920" y="346" width="240" height="86" rx="8"/>
+  <text class="t" x="932" y="366">template.html (interface, à mão)</text>
+  <text class="d" x="932" y="384">2 substituições de texto:</text>
+  <text class="d" x="932" y="398">· JSON dos cubos → marcador de dados</text>
+  <text class="d" x="932" y="412">· Chart.js 200 KB → marcador de lib</text>
+  <text class="d" x="932" y="426">marcador duplicado/ausente → aborta</text>
+
+  <rect class="box pub" x="920" y="452" width="240" height="96" rx="8"/>
+  <text class="tp" x="932" y="474">Dashboard_Gerencial_Canais.html</text>
+  <text class="dp" x="932" y="492">dashboard/build/ · 14,3 MB · 1 arquivo</text>
+  <text class="dp" x="932" y="506">zero rede · abre por duplo clique (file://)</text>
+  <text class="dp" x="932" y="520">5 páginas · exportação CSV/XLSX · drills</text>
+  <text class="dp" x="932" y="534">rodapé gerado: totais, execução, ressalvas</text>
+
+  <!-- ============ fios ============ -->
+  <path class="fio" d="M290 83  L330 83"/>
+  <path class="fio" d="M290 169 L310 169 L310 95 L330 95"/>
+  <path class="fio" d="M290 248 L310 248 L310 110 L330 110"/>
+  <path class="fio" d="M290 327 L316 327 L316 125 L330 125"/>
+  <path class="fio" d="M290 400 L322 400 L322 140 L330 140"/>
+  <path class="fio" d="M470 158 L470 176"/>
+  <path class="fio" d="M470 280 L470 298"/>
+  <path class="fio" d="M610 100 L640 72"/>
+  <path class="fio" d="M610 150 L640 150"/>
+  <path class="fio" d="M610 221 L640 221"/>
+  <path class="fio" d="M610 260 L625 260 L625 288 L640 288"/>
+  <path class="fio" d="M765 316 L765 346"/>
+  <path class="fio" d="M765 436 L765 452"/>
+  <path class="fio" d="M890 479 L905 479 L905 389 L920 389"/>
+  <path class="fio" d="M1040 432 L1040 452"/>
+
+  <text class="nota" x="330" y="415">comandos: python run_pipeline.py  →  python run_dashboard.py</text>
+  <text class="nota" x="330" y="431">2 min a frio · ~20 s com cache · exit 0/1 sempre explícito</text>
+  <text class="nota" x="330" y="460">O que NÃO entra: Sell Out, Metas, Previsão, Estoque, Alavancas</text>
+  <text class="nota" x="330" y="476">(estão em bases/ mas nenhum é lido — insumo dos Scorecards de canal)</text>
+  <text class="nota" x="330" y="505">Regra que manda: linha transacional NUNCA chega ao HTML;</text>
+  <text class="nota" x="330" y="521">agregado que não reconcilia com a fato NÃO é publicado.</text>
+</svg>
+</div>
+<div class="leg">
+  <b>Azul claro</b> = bases de origem · <b>amarelo</b> = ETL e conferências ·
+  <b>verde</b> = modelo estrela · <b>lilás</b> = camada agregada ·
+  <b>azul escuro</b> = painel publicado. Chaves e cardinalidades no
+  <code>13_FLUXO_GERACAO_PAINEL.md §3</code>; cadência de atualização no
+  <code>14_CADENCIA_DE_ATUALIZACAO.md</code>.
+</div>
+</body></html>
