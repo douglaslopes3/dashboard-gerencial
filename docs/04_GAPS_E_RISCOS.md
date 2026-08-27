@@ -5,106 +5,56 @@ Um gap por bloco. Cada um traz **o que falta**, **quanto custa** (medido),
 
 ---
 
-## GAP-01 — `CANAL` não existe em nenhuma base · **BLOQUEIO MATERIAL**
+## GAP-01 — Canal · **RESOLVIDO em 26/08/2026**
 
-| | |
-|---|---|
-| **Indicador impactado** | filtro global `Canal`; quebra por canal na Visão Geral e na página R$/kg; visão "Por canal" da página Bandeiras |
-| **Coluna/tabela necessária** | coluna `Subcanal` na extração de Sell In, **ou** coluna de canal no `DePara_Estrutura_Comercial.xlsx` |
-| **Dono** | **BI / Cadastro de Clientes** |
-| **Tamanho** | **100% dos 16.131 clientes** e **100% dos R$ 2,26 bi** ficam sem canal |
-| **Estado** | o filtro e as quebras por canal **não foram implementados**. Nada foi inventado |
-
-### O que foi medido
-
-Nenhuma das colunas de nenhuma das bases entregues contém canal. Varredura
-completa de `bases/` (inclusive dentro dos quatro `.zip` de
-`bases/scorecards-comerciais/kits/`).
-
-A lista de 7 canais do §9 do prompt (`ATACADO ESPECIALIZADO`, `ATACADO
-GENERALISTA`, `VAREJO ESPECIALIZADO`, `VAREJO`, `CASH & CARRY`, `NOVOS CANAIS`,
-`DISTRIBUIDOR`) aparece **exatamente uma vez cada** no HTML de referência — no
-array `DB.dims.canal`, que o próprio rodapé do arquivo declara como **dados
-fictícios**.
-
-### Onde a classificação real existe
-
-Dentro de `bases/scorecards-comerciais/kits/Scorecard_Atacado_kit.zip`, o script
-`prep_at.py` lê um pickle `v33.pkl` (a **extração "V3.3"** do BI) e usa uma
-coluna **`Subcanal`** com 12 valores:
+A base chegou: `bases/Canais/Canais.xlsx` (aba `Export`, chave `Cód. cliente`,
+colunas `Cód. canal`, `Canal`, `Subcanal`). Medido na integração:
 
 ```
-Atacado Doceiro · Atacado Generalista · Atacado para VP · Atacado para festas
-AtacadoEspecializado · Atacarejo · Cash & Carry · Distribuidor · Novos Canais
-Nao informado · Varejo · Varejo Especializado
+clientes do sell-in com canal   16.131 de 16.131  (100,0000%)
+receita classificada            R$ 2.260.853.914,86 (100,0000%)
+clientes orfaos                 0
+canais com receita              8 (KEY ACCOUNT NACIONAL existe no de-para
+                                   com receita zero no periodo)
 ```
 
-Os 7 canais do protótipo são uma consolidação desses 12.
+O filtro e as quebras por canal estão implementados nas cinco páginas, e o
+piso de cobertura (`validacao.cobertura_minima_canal`, 95%) aborta o pipeline
+se o join se perder — o arquivo traz o código zero-preenchido, como o de-para
+de estrutura. Clientes sem canal sairiam em
+`data/quality/clientes_sem_canal.csv`, nunca escondidos num "Outros".
 
-**Confirmação cruzada:** o registro de lacunas do próprio projeto anterior
-(`docs/lacunas.md`) já traz a mesma pendência, com o mesmo dono:
-
-> `SUBCANAL` · DIM_CLIENTE_CANAL · faltam **16.060 de 16.060 (100,0%)** ·
-> dono **BI / Cadastro de clientes** · fonte que precisamos: *"coluna Subcanal
-> no DePara_Estrutura_Comercial.xlsx ou na extração de sell-in"*.
-
-### Opções, com tamanho medido — decisão do Douglas
-
-| | Opção | Cobertura | Rastreabilidade | Esforço | Risco |
-|---|---|---|---|---|---|
-| **A** | **Pedir ao BI a extração de Sell In com a coluna `Subcanal`** (V3.3) | 100% dos clientes, 24 meses, série histórica coerente | total — vira coluna de origem | 1 pedido; o ETL já está preparado (basta declarar a coluna no config) | nenhum |
-| **B** | Reaproveitar o mapa cliente→subcanal do `at.json` | **11.177 de 16.131 clientes (69,3%)** e **R$ 907,4 mi de R$ 2.260,9 mi (40,1%)** — só o head Ademir | baixa: é artefato derivado, congelado numa data, de outro projeto | ~2 h | **alto** — 60% da receita ficaria "sem canal" e o filtro mentiria por omissão |
-| **C** | Derivar canal de `Novo Gerente` / `PROJETO` / bandeira | — | **nenhuma** — seria regra inventada | — | **proibido** pelo §2.2 do prompt |
-
-**Recomendação: A.** Enquanto ela não chega, o eixo de canal fica ausente da
-tela (não desabilitado com valor falso, não preenchido com "NÃO INFORMADO").
-
-### O que substitui o canal hoje
-
-A estrutura comercial **real** disponível, com 99,98% de cobertura de receita:
-`HEAD` (4) → `GERENTE` (12) → `SUPERVISOR` (57). Os três estão implementados
-como filtro e como quebra. **Não são renomeados para "canal".**
+**Sobra registrada:** o §9 do prompt esperava 7 canais; a base traz **9**
+(`KEY ACCOUNT NACIONAL` e `KEY ACCOUNT REGIONAL` a mais). Nada foi agrupado —
+os dois saem no relatório de valores não reconhecidos, para o Comercial dizer
+se são canais novos ou reclassificação pendente. O rodapé do arquivo traz um
+texto de filtro citando só "Nome Gerente é Izabela - 2650", incoerente com a
+cobertura total medida — registrado como aviso, sem bloquear.
 
 ---
 
-## GAP-02 — Ticket Médio não tem definição validada
+## GAP-02 — Ticket Médio · **RESOLVIDO por decisão em 26/08/2026**
 
-| | |
-|---|---|
-| **Indicador impactado** | card "Ticket Médio" da Visão Geral (§11 do prompt) |
-| **O que falta** | a definição. Ticket médio pede um **denominador de transação** — número de pedidos, notas, ou clientes compradores |
-| **Dono** | **Comercial / Controladoria** |
-| **Estado** | **não implementado**, conforme a própria regra do §6: *"Sem definição validada: não implementar, registrar como gap"* |
+A devolutiva definiu: **ticket médio e preço médio são a mesma métrica** —
+`Σvalor ÷ Σpeso`, razão das somas, com guarda contra divisor zero. Não existem
+dois indicadores; a interface declara a equivalência no card e na página R$/kg.
 
-### Por que não dá para inferir
-
-O grão da fonte é `mês × cliente × SKU`. Não há número de pedido, nota fiscal nem
-data transacional. Os denominadores possíveis dão respostas diferentes e
-incompatíveis:
-
-* `Receita ÷ clientes compradores no mês` → ticket por cliente/mês;
-* `Receita ÷ linhas` → média por linha de faturamento, que **não é** ticket;
-* `Receita ÷ pedidos` → **impossível**, a base não tem pedido.
-
-**Pergunta objetiva para o Comercial:** *"Ticket médio do gerencial é receita
-líquida dividida por cliente comprador no mês, ou por pedido? Se for por pedido,
-precisamos da contagem de pedidos na extração."*
+O KPI "faturamento ÷ nº de meses" do protótipo **não é ticket médio** e entrou
+com o rótulo que diz o que a fórmula calcula: **"Faturamento médio/mês"**.
+Nenhuma divisão por cliente comprador ou por pedido foi introduzida — nenhuma
+das duas contagens existe no modelo.
 
 ---
 
-## GAP-03 — rótulo do head vago (`Maykon - 2600`)
+## GAP-03 — head vago · **RESOLVIDO em 26/08/2026**
 
-| | |
-|---|---|
-| **Impacto** | o filtro Head mostra `Maykon - 2600`; o protótipo mostra `Vago` |
-| **Tamanho** | **R$ 466,5 mi (20,6% da receita)** e 787 clientes no de-para |
-| **Dono** | **Comercial / RH** |
-| **Estado** | **nada foi corrigido.** O valor de origem é exibido como está |
-
-A chave `dimensoes.estrutura_comercial.correcoes_head` existe em
-`config/config.yaml`, **vazia**. Basta declarar `"Maykon - 2600": "Vago - 2600"`
-para a troca acontecer — e ela sai **registrada no log e no relatório de
-qualidade**, nunca em silêncio.
+O Comercial confirmou: **Maykon = Vago**. A correção foi declarada em
+`config/config.yaml → dimensoes.estrutura_comercial.correcoes_head`
+(`"Maykon - 2600": "Vago - 2600"`) e sai registrada no log a cada execução
+("785 linha(s) tiveram HEAD corrigido..."). Conferido no aceite: os
+**R$ 466.521.780,95** trocaram de rótulo e o total geral seguiu em
+**R$ 2.260.853.914,86**. O código fica no rótulo pela mesma convenção dos
+pares (`Izabela - 2650`, `Michel - 1000`).
 
 ---
 
@@ -115,11 +65,15 @@ qualidade**, nunca em silêncio.
 | **Impacto** | a métrica Caixas é **bruta**; Valor R$ e Volume são **líquidos** |
 | **Tamanho** | **90.289 de 32.659.819 caixas (0,28%)**; 74.749 das 79.758 linhas de devolução têm `Qtde Faturado` nula |
 | **Dono** | **BI** |
-| **Estado** | **implementado com a ressalva na tela.** O painel exibe a nota, e o relatório de qualidade traz o número a cada execução |
+| **Estado** | **comportamento confirmado pela devolutiva de 26/08/2026**: é o padrão da base — não filtrar, não tratar como erro, não aplicar ABS, manter o sinal |
 
-Não foi "consertado": zerar, estimar ou inverter o sinal dessas caixas seria
-inventar dado. A pergunta ao BI é se a extração pode trazer `Qtde Faturado`
-negativa na devolução, como já traz para receita e peso.
+O pipeline já fazia exatamente isso. Uma divergência de fato permanece
+registrada: a devolutiva descreve a devolução vindo com **quantidade negativa**,
+mas o medido nas 3,08 mi de linhas é outro — 93,7% das linhas de devolução vêm
+com a quantidade **nula** e as demais, **positiva** (`Qtde Faturado` nunca é
+negativa na base entregue). O tratamento pedido e o implementado coincidem;
+só a descrição do dado difere, e fica anotada para quando o BI revisar a
+extração.
 
 ---
 

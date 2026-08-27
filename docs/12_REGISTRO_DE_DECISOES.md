@@ -91,6 +91,8 @@ de onde ele vem. Ver GAP-04.
 
 ## D-06 · Canal fica **ausente** da tela, não desabilitado nem preenchido
 
+> **Superada em 26/08/2026 pela D-19** — a base de canais chegou e foi integrada.
+
 **Contexto.** Nenhuma base entregue traz canal ou subcanal (GAP-01).
 
 **Decisão.** Não existe filtro nem quebra por canal. O eixo comercial exibido é o
@@ -154,6 +156,8 @@ pequenas só não aparecem no ranking.
 ---
 
 ## D-09 · O cubo de SKU cruza com head e UF, não com gerente
+
+> **Superada em 26/08/2026 pela D-21** — o eixo virou (head, canal).
 
 **Contexto.** O §11 pede recorte por SKU também na página geográfica.
 
@@ -292,3 +296,108 @@ grafia real (tipo `CHOLOCATE`) foi encontrado nas 3,08 mi de linhas.
 queimou com um arquivo cujo nome dizia um mês e o conteúdo dizia outro. Sem chave
 segura, o §3 do prompt manda priorizar correção e simplicidade. Custo medido:
 **107s a frio, 13s com o cache de leitura quente** para 3,08 mi de linhas.
+
+---
+
+# Devolutiva de 26/08/2026 — decisões da segunda onda
+
+## D-19 · Canal integrado pela base `bases/Canais/Canais.xlsx`
+
+**Contexto.** A devolutiva entregou a base de canais. Perfilada antes de codar:
+43.073 clientes, chave `Cód. cliente` (zero-preenchida), 9 canais, 43 subcanais,
+rodapé de `Filtros aplicados` como no sell-in.
+
+**Decisão.** Canal e subcanal entram como **atributos do cliente** na
+`DIM_CLIENTE` — o modelo estrela não muda. Canal vira filtro global e dimensão
+de quebra em todas as páginas.
+
+**O que sustenta.** Cobertura medida: **100,0000%** dos 16.131 clientes e dos
+R$ 2,26 bi, **zero órfãos**. Zero clientes com dois canais. O mesmo piso de
+cobertura da estrutura (95%) protege o join, porque o arquivo traz o código no
+mesmo formato zero-preenchido que já derrubou join uma vez.
+
+**Sobra declarada.** 9 canais na base contra 7 esperados pelo §9
+(`KEY ACCOUNT NACIONAL`, com receita zero no período, e `KEY ACCOUNT REGIONAL`,
+sem cliente com faturamento). Nada foi agrupado — saem no relatório de valores
+não reconhecidos. Subcanal fica armazenado na `DIM_CLIENTE` (14 com receita) e
+fora da interface: a devolutiva pediu canal, e subcanal entra quando alguém
+pedir, sem reprocessar nada além do cubo.
+
+## D-20 · O eixo comercial do cubo virou o PERFIL do cliente
+
+**Contexto.** Canal e Projeto precisavam entrar no cubo principal sem explodi-lo.
+
+**Decisão.** O par `(head, gerente)` virou o **perfil**
+`(head, gerente, canal, projeto)` — um índice só por linha.
+
+**O que sustenta.** Medido: **104 perfis** distintos. Guardar os quatro como
+índices separados multiplicaria o cubo por combinações que não existem; guardar
+menos perderia filtros. Custo real: cubo principal de 72.378 → **90.644 linhas**
+(2,47 → 3,13 MB de JSON).
+
+## D-21 · O cubo de SKU ganhou canal e o eixo virou (head, canal)
+
+**Contexto.** Com canal como dimensão primária, a página de SKU ignorá-lo seria
+mentira silenciosa.
+
+**Decisão.** `CUBO_SKU` no grão `ANO_MES × SKU × (HEAD, CANAL) × UF` — 31 pares.
+
+**O que sustenta (medido em JSON real):**
+
+| Alternativa | Linhas | JSON | Perde |
+|---|---:|---:|---|
+| manter só HEAD | 208.716 | 6,4 MB | canal na página de SKU |
+| trocar HEAD por CANAL | 318.235 | ~9,5 MB | head (regressão) |
+| **HEAD + CANAL** | **368.699** | **~11,0 MB** | nada do que já funcionava |
+| HEAD + CANAL + PROJETO | 418.831 | ~12,4 MB | nada, por +1,4 MB |
+
+Escolhida a terceira: preserva tudo e adiciona canal por +4,6 MB. Projeto ficou
+fora do cubo de SKU (a visão de Projetos vive no cubo principal, que é o que a
+devolutiva pede) e entrou na lista de filtros **avisados** quando combinados com
+SKU — junto de gerente e bandeira. O painel foi de 8,94 para **14,28 MB**;
+continua um arquivo só, por duplo clique, sem rede.
+
+## D-22 · Ticket médio = preço médio; o KPI mensal chama o que é
+
+**Contexto.** A devolutiva encerrou o GAP-02: as duas fórmulas do protótipo eram
+métricas diferentes com nomes trocados.
+
+**Decisão.** (a) Ticket médio e preço médio são **a mesma métrica**
+(`Σvalor ÷ Σpeso`), e a interface declara isso no card e na página R$/kg.
+(b) Entrou o card **"Faturamento médio/mês"** (`receita ÷ nº de meses do
+período`), com o rótulo dizendo exatamente o que a fórmula calcula.
+(c) Nenhuma divisão por cliente comprador ou pedido — as contagens não existem
+no modelo.
+
+## D-23 · Maykon - 2600 → Vago - 2600, pelo mecanismo declarado
+
+**Contexto.** O Comercial confirmou a vacância (devolutiva, item 3).
+
+**Decisão.** A troca entrou **no config**, não no código
+(`correcoes_head: {"Maykon - 2600": "Vago - 2600"}`), e sai registrada no log a
+cada execução. Conferido: R$ 466.521.780,95 trocaram de rótulo, total geral
+inalterado em R$ 2.260.853.914,86. O código `2600` fica no rótulo pela
+convenção dos pares (`Izabela - 2650`, `Michel - 1000`).
+
+## D-24 · Quantidade negativa: comportamento confirmado, descrição divergente
+
+**Contexto.** A devolutiva pede: não filtrar, não aplicar ABS, manter o sinal,
+somar antes de dividir — exatamente o que o pipeline já fazia.
+
+**Decisão.** Nenhuma mudança de código. A divergência de **descrição** ficou
+registrada no GAP-04: a devolutiva fala em quantidade negativa na devolução, mas
+o medido é quantidade **nula** em 93,7% das devoluções e **positiva** nas demais
+— `Qtde Faturado` nunca é negativa na base entregue.
+
+## D-25 · Projeto como dimensão de primeira classe, sem de-para novo
+
+**Contexto.** A devolutiva pediu a visão por Projetos e afirmou que o dado já
+existe nas bases.
+
+**Decisão.** Confirmado: coluna `PROJETO` do `DePara_Estrutura_Comercial.xlsx`,
+já carregada na `DIM_CLIENTE` (8 valores — `Projeto L`, `Sem mudança`,
+`TOP ATACADOS`, `Clientes Novos`, `KAR Phase 1/2`, `Varejo PR (temporário)`,
+`White Spaces`). Entrou no perfil do cubo, no filtro global e nas quebras de
+todas as páginas, **convivendo** com os filtros atuais — a própria devolutiva
+responde a questão 3 ("do mesmo modo que Categoria / Canal / Head"). Nenhum
+de-para manual foi criado.

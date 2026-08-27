@@ -72,6 +72,15 @@ fontes:
     # hierarquia, com todo mundo em "NÃO ATRIBUÍDO" e um aviso na tela.
     obrigatorio: false
 
+  # De-para Cliente -> Canal, entregue em 26/08/2026 (resolve o GAP-01).
+  # Cobertura medida na entrega: 100,0000% dos 16.131 clientes e da receita.
+  canais:
+    arquivo: "bases/Canais/Canais.xlsx"
+    aba: "Export"
+    colunas_obrigatorias: ["Cód. cliente", "Canal"]
+    colunas_opcionais: ["Cód. canal", "Subcanal"]
+    obrigatorio: false
+
 # -----------------------------------------------------------------------------
 # CALENDÁRIO
 # -----------------------------------------------------------------------------
@@ -92,8 +101,12 @@ calendario:
 # -----------------------------------------------------------------------------
 dimensoes:
   estrutura_comercial:
-    # ex.: "Maykon - 2600": "Vago - 2600"   <- ver GAP-03, pendente do Comercial
-    correcoes_head: {}
+    # Confirmado pelo Comercial em 26/08/2026 (devolutiva, item 3): a posicao
+    # 2600 esta vaga — Maykon = Vago. A troca sai no log e no relatorio de
+    # qualidade a cada execucao. O codigo fica no rotulo pela mesma convencao
+    # dos pares ("Izabela - 2650", "Michel - 1000").
+    correcoes_head:
+      "Maykon - 2600": "Vago - 2600"
     correcoes_gerente: {}
     correcoes_supervisor: {}
     # Cliente com duas linhas e supervisores diferentes: declare aqui quem vence.
@@ -118,6 +131,9 @@ validacao:
   # pipeline ABORTA. Existe por um erro real do projeto anterior: `Cód. cliente`
   # zero-preenchido faz o join casar com ZERO cliente — e casar em silêncio.
   cobertura_minima_head: 0.95
+  # Mesmo piso para o de-para de canais — o arquivo tambem traz o codigo
+  # zero-preenchido, entao o mesmo join silencioso e possivel.
+  cobertura_minima_canal: 0.95
   # Lista de valores esperados só para CONFERIR (§9 do prompt). O que não estiver
   # aqui vira linha em data/quality/valores_nao_reconhecidos.csv.
   # ISTO NÃO FILTRA, NÃO CORRIGE E NÃO ORDENA NADA. É só o gabarito do relatório.
@@ -126,6 +142,9 @@ validacao:
       ["AMENDOIM", "BALA", "CHOCOLATE", "COMPOUND", "GELATINA", "GOMAS",
        "GRANULADO", "JUBES FRUIT SNACK", "PIRULITO", "REGALIZ"]
     head: ["Ademir", "Izabela", "Michel", "Vago"]
+    canal:
+      ["ATACADO ESPECIALIZADO", "ATACADO GENERALISTA", "VAREJO ESPECIALIZADO",
+       "VAREJO", "CASH & CARRY", "NOVOS CANAIS", "DISTRIBUIDOR"]
 
 # -----------------------------------------------------------------------------
 # DASHBOARD

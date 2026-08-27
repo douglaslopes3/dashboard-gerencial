@@ -18,13 +18,14 @@ SEM_ESTRUTURA = CFG["dimensoes"]["rotulo_sem_estrutura"]
 _COLS_ESTRUTURA = ["HEAD", "GERENTE", "SUPERVISOR", "ATENDIMENTO_PONTA", "PROJETO"]
 
 
-def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame) -> pd.DataFrame:
-    """Cliente + bandeira + UF + estrutura comercial na mesma tabela.
+def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
+                canais: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Cliente + bandeira + UF + estrutura comercial + canal na mesma tabela.
 
     UF e bandeira são ATRIBUTOS do cliente, não dimensões próprias: vêm da mesma
     linha, têm o cliente como única chave e nunca são recortadas sem ele.
-    Head, gerente e supervisor idem — uma tabela separada ligaria na fato pelo
-    cliente de qualquer jeito. Ver `docs/06_MODELO_ESTRELA.md §2.3`.
+    Head, gerente, supervisor, canal e subcanal idem — uma tabela separada
+    ligaria na fato pelo cliente de qualquer jeito. Ver `docs/06 §2.3`.
     """
     # O nome/bandeira/UF MAIS RECENTE vence: cliente renomeado no meio da serie
     # apareceria duas vezes no ranking.
@@ -54,6 +55,27 @@ def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame) -> pd.DataFrame:
     if sem:
         log(f"{sem:,} cliente(s) de sell-in SEM linha no de-para de estrutura — "
             f"entram como '{SEM_ESTRUTURA}' (nao sao descartados)", "aviso")
+
+    # ---- canal (de bases/Canais/Canais.xlsx) -----------------------------
+    # O aceite da devolutiva de 26/08/2026 pede 100% classificado, e quem sobrar
+    # vai para a lista de excecoes (`data/quality/clientes_sem_canal.csv`) —
+    # nunca escondido num "Outros". Medido na entrega: cobertura 100,0000%.
+    if canais is not None and len(canais):
+        antes = len(d)
+        cols = [c for c in ("COD_CLIENTE", "CANAL", "SUBCANAL") if c in canais.columns]
+        d = d.merge(canais[cols], on="COD_CLIENTE", how="left")
+        assert len(d) == antes, "o merge do de-para de canais multiplicou clientes"
+        d["TEM_CANAL"] = d["CANAL"].notna()
+        sem_canal = int((~d["TEM_CANAL"]).sum())
+        if sem_canal:
+            log(f"{sem_canal:,} cliente(s) de sell-in SEM canal no de-para — "
+                "entram como 'SEM CANAL' e saem na lista de excecoes", "aviso")
+    else:
+        d["TEM_CANAL"] = False
+    for c in ("CANAL", "SUBCANAL"):
+        if c not in d.columns:
+            d[c] = pd.Series(pd.NA, index=d.index, dtype="string")
+        d[c] = d[c].fillna("SEM CANAL")
 
     d["BANDEIRA"] = d["BANDEIRA"].fillna("SEM BANDEIRA")
     d["UF"] = d["UF"].fillna("SEM UF")

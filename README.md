@@ -24,9 +24,10 @@ clientes 16.131              SKUs 494               bandeiras 11.296
 reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
 grao                         zero duplicados em 3,08 mi de linhas
 cobertura da estrutura       99,98% da receita
-testes                       24/24 unitarios · 6/6 cenarios ponta a ponta
-pipeline                     107s a frio · 13s com cache · exit 0
-painel                       8,94 MB · zero requisicao de rede
+cobertura de canal           100,00% da receita
+testes                       26/26 unitarios · 6/6 cenarios ponta a ponta
+pipeline                     107s a frio · 19s com cache · exit 0
+painel                       14,28 MB · zero requisicao de rede
 ```
 
 ---
@@ -66,20 +67,18 @@ Meses vs mesmo período do ano anterior. Variação absoluta, variação % e
 participação % em toda tabela.
 
 **Filtros globais** derivados das dimensões: ano fiscal, ano calendário, meses,
-categoria, head, gerente, UF, bandeira e SKU.
+**canal**, categoria, head, gerente, **projeto**, UF, bandeira e SKU.
 
 ---
 
-## O que o painel **não** entrega, e por quê
+## Resolvido na devolutiva de 26/08/2026
 
-| Ausência | Motivo | Dono | Doc |
-|---|---|---|---|
-| **Filtro/quebra por canal** | nenhuma base entregue traz canal ou subcanal | **BI / Cadastro de Clientes** | GAP-01 |
-| **Ticket Médio** | sem definição validada na fonte (não há pedido nem nota no grão) | **Comercial / Controladoria** | GAP-02 |
-
-Nenhum dos dois foi inventado, estimado ou preenchido com "NÃO INFORMADO".
-As opções para resolver o canal, com **o tamanho medido de cada uma**, estão em
-**[docs/04_GAPS_E_RISCOS.md](docs/04_GAPS_E_RISCOS.md)**.
+| Item | Como ficou |
+|---|---|
+| **Canal** | integrado de `bases/Canais/Canais.xlsx` — **100,0000%** dos clientes e da receita, zero órfãos. Filtro e quebra em todas as páginas (D-19) |
+| **Ticket Médio** | **= preço médio** (`Σvalor ÷ Σpeso`) por decisão — não são indicadores distintos. O card "Faturamento médio/mês" (`receita ÷ nº meses`) chama o que a fórmula calcula (D-22) |
+| **Head vago** | `Maykon - 2600` → `Vago - 2600`, declarado no config e registrado no log; total geral inalterado (D-23) |
+| **Projeto** | dimensão de primeira classe (coluna `PROJETO` do de-para de estrutura, 8 valores): filtro + quebra em todas as páginas (D-25) |
 
 ### Três ressalvas que o painel declara na própria tela
 
@@ -89,9 +88,9 @@ As opções para resolver o canal, com **o tamanho medido de cada uma**, estão 
 2. **O ranking de bandeiras é nominal nas 300 maiores** (73,4% do faturamento).
    As outras 10.996 **não somem**: entram agregadas, e todo total continua
    reconciliando com a base.
-3. **A camada de SKU cruza com head e UF, não com gerente nem bandeira.** Quando
-   esses filtros ficam ativos junto com um filtro de SKU, a tela avisa em vez de
-   fingir que aplicou.
+3. **A camada de SKU cruza com head, canal, categoria e UF — não com gerente,
+   bandeira nem projeto.** Quando esses filtros ficam ativos junto com um filtro
+   de SKU, a tela avisa em vez de fingir que aplicou.
 
 ---
 

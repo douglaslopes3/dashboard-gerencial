@@ -159,6 +159,28 @@ def test_sku_fora_do_cadastro_entra_marcado_e_sem_marca():
     assert pd.isna(d.at["9002", "MARCA"])                   # marca NAO e inferida
 
 
+def test_cliente_ganha_canal_e_o_sem_canal_vira_excecao():
+    """O aceite da devolutiva de 26/08: 100% classificado, e quem sobrar vai
+    para a lista de exceções — nunca escondido num 'Outros'."""
+    canais = pd.DataFrame([["1001", "CASH & CARRY", "Atacarejo"]],
+                          columns=["COD_CLIENTE", "CANAL", "SUBCANAL"])
+    d = dimensoes.dim_cliente(_sellin(BASE), pd.DataFrame(
+        columns=["COD_CLIENTE", "HEAD", "GERENTE", "SUPERVISOR"]), canais)
+    d = d.set_index("COD_CLIENTE")
+    assert d.at["1001", "CANAL"] == "CASH & CARRY"
+    assert bool(d.at["1001", "TEM_CANAL"]) is True
+    # O 1002 nao esta no de-para: entra marcado, nao descartado.
+    assert d.at["1002", "CANAL"] == "SEM CANAL"
+    assert bool(d.at["1002", "TEM_CANAL"]) is False
+
+
+def test_sem_base_de_canais_o_pipeline_segue():
+    d = dimensoes.dim_cliente(_sellin(BASE), pd.DataFrame(
+        columns=["COD_CLIENTE", "HEAD", "GERENTE", "SUPERVISOR"]), None)
+    assert (d["CANAL"] == "SEM CANAL").all()
+    assert not d["TEM_CANAL"].any()
+
+
 # =================================================================== fato
 def test_caixas_preserva_nulo_e_receita_preserva_sinal():
     linhas = list(BASE)

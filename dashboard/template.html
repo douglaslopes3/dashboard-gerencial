@@ -161,9 +161,11 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
     <button class="mini" id="mTodos">Todos</button>
     <button class="mini" id="mNenhum">Nenhum</button>
   </div>
+  <div class="frow"><div class="flab">Canal</div><div class="chips" id="fCanal"></div></div>
   <div class="frow"><div class="flab">Categoria</div><div class="chips" id="fCat"></div></div>
   <div class="frow"><div class="flab">Head</div><div class="chips" id="fHead"></div></div>
   <div class="frow"><div class="flab">Gerente</div><div class="chips" id="fGer"></div></div>
+  <div class="frow"><div class="flab">Projeto</div><div class="chips" id="fProj"></div></div>
   <div class="frow"><div class="flab">UF</div><div class="chips uf-wrap" id="fUF"></div></div>
   <div class="frow">
     <div class="flab">Bandeira</div>
@@ -260,9 +262,11 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="preco">
-  <div class="alerta">O seletor global de métrica <b>não altera</b> a definição do
-    preço médio. Aqui ele é sempre <b>R$/kg = soma da receita líquida ÷ soma do peso
-    em kg</b> — razão das somas, nunca média das linhas.</div>
+  <div class="alerta"><b>Ticket médio e preço médio são a mesma métrica neste
+    painel</b> (decisão da devolutiva de 26/08/2026): <b>R$/kg = soma da receita
+    líquida ÷ soma do peso em kg</b> — razão das somas, nunca média das linhas,
+    sempre com guarda contra divisor zero. O seletor global de métrica <b>não
+    altera</b> esta definição.</div>
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Preço médio R$/kg <small>— por:</small>
         <span class="chips" id="dimPreco"></span></h3>
@@ -312,6 +316,7 @@ const F = {
   metrica:"val", base:"fis", gran:"mes",
   fy:null, ano:null, meses:new Set(),
   cat:new Set(), head:new Set(), ger:new Set(), uf:new Set(),
+  can:new Set(), proj:new Set(),
   ban:new Set(), sku:new Set(),
   dimGeral:"cat", dimPreco:"cat",
   topBan:50, topSku:50, aba:"geral"
@@ -458,10 +463,13 @@ function ytdCalendario(ref){
 function passaPrincipal(l, ignorar){
   if(ignorar!=="ban" && F.ban.size && !F.ban.has(l[1])) return false;
   if(ignorar!=="cat" && F.cat.size && !F.cat.has(l[2])) return false;
-  if(F.head.size || F.ger.size){
-    const p = D.par[l[3]];
-    if(ignorar!=="head" && F.head.size && !F.head.has(p[0])) return false;
-    if(ignorar!=="ger"  && F.ger.size  && !F.ger.has(p[1]))  return false;
+  if(F.head.size || F.ger.size || F.can.size || F.proj.size){
+    // O eixo comercial e o PERFIL do cliente: [head, gerente, canal, projeto].
+    const p = D.perfil[l[3]];
+    if(ignorar!=="head"  && F.head.size && !F.head.has(p[0])) return false;
+    if(ignorar!=="ger"   && F.ger.size  && !F.ger.has(p[1]))  return false;
+    if(ignorar!=="canal" && F.can.size  && !F.can.has(p[2]))  return false;
+    if(ignorar!=="proj"  && F.proj.size && !F.proj.has(p[3])) return false;
   }
   if(ignorar!=="uf" && F.uf.size && !F.uf.has(l[4])) return false;
   // O cubo principal nao tem SKU. Com filtro de SKU ativo, a leitura migra para
@@ -470,7 +478,10 @@ function passaPrincipal(l, ignorar){
 }
 function passaSku(l, ignorar){
   if(ignorar!=="sku" && F.sku.size && !F.sku.has(l[1])) return false;
-  if(ignorar!=="head" && F.head.size && !F.head.has(D.head[l[2]])) return false;
+  // No cubo de SKU o eixo comercial e o par [head, canal].
+  const hc = D.hc[l[2]];
+  if(ignorar!=="head"  && F.head.size && !F.head.has(hc[0])) return false;
+  if(ignorar!=="canal" && F.can.size  && !F.can.has(hc[1]))  return false;
   if(ignorar!=="uf" && F.uf.size && !F.uf.has(l[3])) return false;
   if(ignorar!=="cat" && F.cat.size){
     const ic = D.sku[l[1]][2];
@@ -478,10 +489,13 @@ function passaSku(l, ignorar){
   }
   return true;
 }
-// O cubo de SKU nao cruza com gerente nem com bandeira. Quando um desses
-// filtros esta ativo junto com um filtro de SKU, a tela AVISA em vez de mentir.
+// O cubo de SKU cruza com head, canal, categoria e UF — NAO com gerente,
+// bandeira nem projeto. Quando um desses tres esta ativo junto com um filtro
+// de SKU, a tela AVISA em vez de mentir.
 function usaCuboSku(){ return F.sku.size>0; }
-function conflitoSku(){ return F.sku.size>0 && (F.ger.size>0 || F.ban.size>0); }
+function conflitoSku(){
+  return F.sku.size>0 && (F.ger.size>0 || F.ban.size>0 || F.proj.size>0);
+}
 
 /* ------------------------------------------------------------- agregacao */
 const MZERO = ()=>[0,0,0];
@@ -532,18 +546,24 @@ function montarFiltros(){
   montarAno(); montarMeses();
   el("fCat").innerHTML = D.cat.map((c,i)=>
     `<span class="chip${F.cat.has(i)?" on":""}" data-k="${i}">${c}</span>`).join("");
+  el("fCanal").innerHTML = D.canal.map(c=>
+    `<span class="chip${F.can.has(c)?" on":""}" data-k="${c}">${c}</span>`).join("");
   el("fHead").innerHTML = D.head.map(h=>
     `<span class="chip${F.head.has(h)?" on":""}" data-k="${h}">${h}</span>`).join("");
-  const gers = [...new Set(D.par.map(p=>p[1]))].sort();
+  const gers = [...new Set(D.perfil.map(p=>p[1]))].sort();
   el("fGer").innerHTML = gers.map(g=>
     `<span class="chip${F.ger.has(g)?" on":""}" data-k="${g}">${g}</span>`).join("");
+  const projs = [...new Set(D.perfil.map(p=>p[3]))].sort();
+  el("fProj").innerHTML = projs.map(g=>
+    `<span class="chip${F.proj.has(g)?" on":""}" data-k="${g}">${g}</span>`).join("");
   el("fUF").innerHTML = D.uf.map((u,i)=>
     `<span class="chip${F.uf.has(i)?" on":""}" data-k="${i}">${u}</span>`).join("");
   el("topBan").innerHTML = DB.tops.ban.map(n=>
     `<span class="chip${F.topBan===n?" on":""}" data-k="${n}">${n}</span>`).join("");
   el("topSku").innerHTML = DB.tops.sku.map(n=>
     `<span class="chip${F.topSku===n?" on":""}" data-k="${n}">${n===0?"Todos":n}</span>`).join("");
-  const dims = [["cat","Categoria"],["head","Head"],["ger","Gerente"],["uf","UF"]];
+  const dims = [["canal","Canal"],["cat","Categoria"],["head","Head"],
+                ["ger","Gerente"],["proj","Projeto"],["uf","UF"]];
   el("dimGeral").innerHTML = dims.map(([k,r])=>
     `<span class="chip${F.dimGeral===k?" on":""}" data-k="${k}">${r}</span>`).join("");
   el("dimPreco").innerHTML = dims.map(([k,r])=>
@@ -618,18 +638,21 @@ function atualizarEstado(p){
   if(p.atual.length) partes.push(`período: <b>${CAL[p.atual[0]][C_ROT]}–${CAL[p.atual[p.atual.length-1]][C_ROT]}</b> (${p.atual.length} meses)`);
   partes.push(`LY: ${p.ly.length ? `<b>${p.ly.length}</b> de ${p.atual.length} meses cobertos` : "<b>sem base</b>"}`);
   const d=[];
+  if(F.can.size)  d.push(`${F.can.size} canal(is)`);
   if(F.cat.size)  d.push(`${F.cat.size} categoria(s)`);
   if(F.head.size) d.push(`${F.head.size} head(s)`);
   if(F.ger.size)  d.push(`${F.ger.size} gerente(s)`);
+  if(F.proj.size) d.push(`${F.proj.size} projeto(s)`);
   if(F.uf.size)   d.push(`${F.uf.size} UF(s)`);
   if(F.ban.size)  d.push(`${F.ban.size} bandeira(s)`);
   if(F.sku.size)  d.push(`${F.sku.size} SKU(s)`);
   partes.push(d.length ? "filtros: "+d.join(" · ") : "sem filtro de dimensão");
   let h = partes.join(" &nbsp;·&nbsp; ");
   if(conflitoSku())
-    h += `<br><b style="color:var(--bd)">⚠ Filtro de SKU ativo junto com gerente/bandeira:</b>
-          a camada agregada de SKU cruza com head e UF, não com gerente nem bandeira.
-          Esses dois filtros estão sendo <b>ignorados</b> enquanto houver SKU selecionado.`;
+    h += `<br><b style="color:var(--bd)">⚠ Filtro de SKU ativo junto com gerente, bandeira ou projeto:</b>
+          a camada agregada de SKU cruza com head, canal, categoria e UF — não com
+          gerente, bandeira nem projeto. Esses filtros estão sendo <b>ignorados</b>
+          enquanto houver SKU selecionado.`;
   el("estado").innerHTML=h;
   el("sub").textContent =
     `${DB.meta.periodo} · ${DB.meta.meses} meses · ${DB.meta.linhas.toLocaleString("pt-BR")} linhas de origem · atualizado em ${DB.meta.gerado_em}`;
@@ -646,9 +669,17 @@ function renderKPIs(p){
       <div class="val">${abrev(va,mt.un)}</div>
       <div class="cmp">LY ${abrev(p.ly.length?vl:null,mt.un)} &nbsp;·&nbsp; ${fmtPct(pc)}</div></div>`);
   }
+  // "Faturamento médio/mês" — o rótulo diz exatamente o que a fórmula calcula:
+  // receita do período ÷ nº de meses. NÃO é ticket médio (devolutiva 26/08,
+  // item 2): ticket médio = preço médio = Σvalor ÷ Σpeso, no card ao lado.
+  const fmA=razao(receita(a),p.atual.length), fmL=p.ly.length?razao(receita(l),p.ly.length):null;
+  itens.push(`<div class="kpi">
+    <div class="rot">Faturamento médio/mês</div>
+    <div class="val">${abrev(fmA,"R$")}</div>
+    <div class="cmp">LY ${abrev(fmL,"R$")} &nbsp;·&nbsp; ${fmtPct(varPct(fmA,fmL))}</div></div>`);
   const pa=razao(receita(a),pesoKg(a)), pl=razao(receita(l),pesoKg(l));
   itens.push(`<div class="kpi">
-    <div class="rot">Preço médio</div>
+    <div class="rot">Preço médio <small style="font-weight:400;text-transform:none">(= ticket médio)</small></div>
     <div class="val">${fmtPreco(pa)}</div>
     <div class="cmp">LY ${p.ly.length?fmtPreco(pl):'<span class="nd">n/d</span>'} &nbsp;·&nbsp; ${fmtPct(varPct(pa,p.ly.length?pl:null))}</div></div>`);
   el("kpis").innerHTML=itens.join("");
@@ -730,26 +761,25 @@ function renderPeriodo(p){
    O FILTRO DESTA DIMENSAO REMOVIDO — por isso a coluna soma 100% mesmo com a
    dimensao filtrada.                                                          */
 const CHAVES = {
-  cat : (l,sku)=> sku ? D.sku[l[1]][2] : l[2],
-  head: (l,sku)=> sku ? l[2] : null,
-  ger : (l,sku)=> sku ? null : l[3],
-  uf  : (l,sku)=> sku ? l[3] : l[4],
+  cat  : (l,sku)=> sku ? D.sku[l[1]][2] : l[2],
+  head : (l,sku)=> sku ? D.hc[l[2]][0] : D.perfil[l[3]][0],
+  canal: (l,sku)=> sku ? D.hc[l[2]][1] : D.perfil[l[3]][2],
+  // Gerente e projeto so existem no cubo principal (D-09): no cubo de SKU a
+  // quebra devolve null e a tela explica, em vez de agrupar errado.
+  ger  : (l,sku)=> sku ? null : D.perfil[l[3]][1]+"  ·  "+D.perfil[l[3]][0],
+  proj : (l,sku)=> sku ? null : D.perfil[l[3]][3],
+  uf   : (l,sku)=> sku ? l[3] : l[4],
 };
 const ROTULOS = {
-  cat : i=>D.cat[i],
-  head: i=>D.head[i],
-  ger : i=>D.par[i][1]+"  ·  "+D.par[i][0],
-  uf  : i=>D.uf[i]+(DB.nome_uf[D.uf[i]]?" — "+DB.nome_uf[D.uf[i]]:""),
+  cat  : i=>D.cat[i],
+  head : v=>v,
+  canal: v=>v,
+  ger  : v=>v,
+  proj : v=>v,
+  uf   : i=>D.uf[i]+(DB.nome_uf[D.uf[i]]?" — "+DB.nome_uf[D.uf[i]]:""),
 };
 function quebra(p, dim, idTab, idInfo){
   const sku=usaCuboSku();
-  if(dim==="head" && !sku){
-    // no cubo principal o head vem do par head/gerente
-    const a=somar(p.atual,(l)=>D.head.indexOf(D.par[l[3]][0]),"head");
-    const l=somar(p.ly,(x)=>D.head.indexOf(D.par[x[3]][0]),"head");
-    const den=total(p.atual,"head");
-    return desenharQuebra(a,l,den,i=>D.head[i],idTab,p);
-  }
   const fn=CHAVES[dim];
   if(fn(sku?CUBO_SKU[0]:CUBO[0],sku)===null){
     el(idTab).innerHTML=`<tbody><tr><td class="vazio">Esta quebra não existe na camada
@@ -888,16 +918,14 @@ function renderSkus(p){
   const den=[...a.values()].reduce((s,v)=>s+met(v),0);
   tabelaRanking(itens,rot,den,F.topSku,"tabSku");
   el("nSku").innerHTML=`Todos os <b>${D.sku.length}</b> SKUs, sem corte de cobertura.
-    A camada de SKU cruza com <b>categoria, head e UF</b> — <b>não</b> com gerente
-    nem com bandeira. Ordenação dos destaques por <b>variação absoluta</b>.`;
+    A camada de SKU cruza com <b>categoria, head, canal e UF</b> — <b>não</b> com
+    gerente, bandeira nem projeto. Ordenação dos destaques por <b>variação absoluta</b>.`;
 }
 
 /* ------------------------------------------------------------- preço médio */
 function renderPreco(p){
   const dim=F.dimPreco, sku=usaCuboSku();
-  let fn, rot;
-  if(dim==="head" && !sku){ fn=l=>D.head.indexOf(D.par[l[3]][0]); rot=i=>D.head[i]; }
-  else { fn=CHAVES[dim]; rot=ROTULOS[dim]; }
+  const fn=CHAVES[dim], rot=ROTULOS[dim];
   if(!fn || fn(sku?CUBO_SKU[0]:CUBO[0],sku)===null){
     vazio("tabPreco","Esta quebra não existe na camada agregada em uso.");
   } else {
@@ -958,8 +986,10 @@ function ligar(){
   el("mTodos").onclick=()=>{ mesesOferecidos().forEach(i=>F.meses.add(i)); montarMeses(); render(); };
   el("mNenhum").onclick=()=>{ F.meses.clear(); montarMeses(); render(); };
   ligarChips("fCat", k=>{ alterna(F.cat,+k); montarFiltros(); });
+  ligarChips("fCanal", k=>{ alterna(F.can,k); montarFiltros(); });
   ligarChips("fHead", k=>{ alterna(F.head,k); montarFiltros(); });
   ligarChips("fGer", k=>{ alterna(F.ger,k); montarFiltros(); });
+  ligarChips("fProj", k=>{ alterna(F.proj,k); montarFiltros(); });
   ligarChips("fUF", k=>{ alterna(F.uf,+k); montarFiltros(); });
   ligarChips("fBan", k=>{ alterna(F.ban,+k); buscaChips("fBan","bBan",D.ban,F.ban); });
   ligarChips("fSku", k=>{ alterna(F.sku,+k); buscaChips("fSku","bSku",D.sku.map(s=>s[1]),F.sku); });
@@ -970,7 +1000,7 @@ function ligar(){
   ligarChips("topBan", k=>{ F.topBan=+k; montarFiltros(); });
   ligarChips("topSku", k=>{ F.topSku=+k; montarFiltros(); });
   el("limpar").onclick=()=>{
-    ["cat","head","ger","uf","ban","sku"].forEach(k=>F[k].clear());
+    ["cat","head","ger","can","proj","uf","ban","sku"].forEach(k=>F[k].clear());
     preSelecionarMeses(); el("bBan").value=""; el("bSku").value="";
     montarFiltros(); render();
   };

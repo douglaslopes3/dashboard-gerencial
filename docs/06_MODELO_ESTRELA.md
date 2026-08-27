@@ -29,7 +29,7 @@ agrega** e **não desagrega**.
 | Categoria | **sim** | atributo do produto |
 | UF | **sim** | atributo do cliente |
 | Head / Gerente / Supervisor | **sim** | atributo da estrutura comercial, ligada pelo cliente |
-| **Canal** | **não** | não existe na fonte — GAP-01. Não é limitação do grão |
+| **Canal** | **sim** | atributo do cliente desde 26/08/2026 (`bases/Canais/Canais.xlsx`, 100% de cobertura) |
 | Receita, peso, caixas | **sim** | são as três medidas da linha |
 
 **Nenhuma granularidade abaixo do mês existe na fonte** (não há data
@@ -110,7 +110,8 @@ seria falso amanhã. Ver §7 do prompt e o `docs/07_CATALOGO_METRICAS.md`.
 | `UF` | Sell In (`Estado`) | 0 |
 | `HEAD`, `GERENTE`, `SUPERVISOR` | `DePara_Estrutura_Comercial.xlsx` | 71 clientes |
 | `ATENDIMENTO_PONTA`, `PROJETO` | idem | 71 clientes |
-| `NA_ESTRUTURA` | derivado | booleano |
+| `CANAL`, `SUBCANAL` | `bases/Canais/Canais.xlsx` (26/08/2026) | 0 clientes — 100% de cobertura |
+| `NA_ESTRUTURA`, `TEM_CANAL` | derivados | booleanos |
 
 **Justificativa da consolidação (o §2 da Fase 2 do prompt pede):**
 
@@ -127,8 +128,8 @@ seria falso amanhã. Ver §7 do prompt e o `docs/07_CATALOGO_METRICAS.md`.
   `HEAD = "NÃO ATRIBUÍDO"`. Descartá-los faria o total do painel não bater com a
   fonte.
 
-Se um dia chegar a coluna `Subcanal` (GAP-01), ela entra **aqui**, como mais um
-atributo — sem mudar o modelo.
+Foi exatamente assim que canal e subcanal entraram em 26/08/2026: como
+atributos, sem mudar o modelo.
 
 ### 2.4 `DIM_PRODUTO` — SKU, categoria e marca na mesma tabela
 
@@ -150,7 +151,7 @@ junção e nenhum atributo.
 
 | Dimensão candidata | Por quê não |
 |---|---|
-| `DIM_CANAL` | **não há fonte.** GAP-01 |
+| `DIM_CANAL` | canal é **atributo do cliente** (`bases/Canais/Canais.xlsx`, 1 canal por cliente — medido: zero conflitos). Uma tabela separada seria snowflake |
 | `DIM_CATEGORIA` | atributo de `DIM_PRODUTO` (§2.4) |
 | `DIM_UF` / `DIM_GEOGRAFIA` | atributo de `DIM_CLIENTE`. O nome por extenso da UF é **rótulo de apresentação** e vive em `config/geografia.yaml` |
 | `DIM_BANDEIRA` | atributo de `DIM_CLIENTE` — 11.296 valores, 1 por cliente |
@@ -170,4 +171,5 @@ O pipeline **aborta** (exit ≠ 0) se qualquer uma falhar:
 | `FATO.ANO_MES` ⊆ `DIM_CALENDARIO` | 100%, sempre |
 | chave da fato única | zero duplicados no grão |
 | cobertura de `HEAD` | ≥ `validacao.cobertura_minima_head` (padrão 95%) — protege contra o join zero-preenchido de R3 |
+| cobertura de `CANAL` | ≥ `validacao.cobertura_minima_canal` (padrão 95%) — o de-para de canais traz o código no mesmo formato |
 | soma da fato × gabarito da fonte | dentro da tolerância, nas **três** métricas |

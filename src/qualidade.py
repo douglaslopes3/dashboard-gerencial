@@ -34,7 +34,7 @@ def _fmt(x: float, casas: int = 2) -> str:
 
 def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
           dim_produto: pd.DataFrame, dim_cal: pd.DataFrame,
-          meta: dict, cobertura_head: float,
+          meta: dict, cobertura_head: float, cobertura_canal: float,
           pacote_cubo: dict, avisos: list[str]) -> dict:
     PASTA_QUALITY.mkdir(parents=True, exist_ok=True)
     L: list[str] = []
@@ -150,6 +150,10 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
         if not any(str(v).lower().startswith(str(e).lower()) for e in esperados_head):
             n = int((dim_cliente["HEAD"] == v).sum())
             nao_rec.append({"DIMENSAO": "HEAD", "VALOR": v, "SKUS": n})
+    canal_real = set(dim_cliente["CANAL"].dropna()) - {"SEM CANAL"}
+    for v in sorted(canal_real - set(_ESPERADOS.get("canal", []))):
+        n = int((dim_cliente["CANAL"] == v).sum())
+        nao_rec.append({"DIMENSAO": "CANAL", "VALOR": v, "SKUS": n})
     df_nr = pd.DataFrame(nao_rec, columns=["DIMENSAO", "VALOR", "SKUS"])
     _csv(df_nr, "valores_nao_reconhecidos.csv")
     resumo["valores_nao_reconhecidos"] = len(df_nr)
@@ -182,6 +186,17 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     linha(f"- Cobertura da estrutura comercial sobre a receita: "
           f"**{cobertura_head:.2%}**")
 
+    sem_canal = dim_cliente[~dim_cliente["TEM_CANAL"]] \
+        if "TEM_CANAL" in dim_cliente.columns else dim_cliente.iloc[0:0]
+    rec_canal = float(fato.loc[fato["COD_CLIENTE"].isin(set(sem_canal["COD_CLIENTE"])),
+                               "RECEITA"].sum())
+    _csv(sem_canal[["COD_CLIENTE", "NOME_CLIENTE", "BANDEIRA", "UF"]],
+         "clientes_sem_canal.csv")
+    linha(f"- Clientes sem canal no de-para: **{len(sem_canal):,}** de "
+          f"{len(dim_cliente):,} · receita **R$ {_fmt(rec_canal)}** "
+          f"({rec_canal / max(float(fato['RECEITA'].sum()), 1):.2%})")
+    linha(f"- Cobertura de canal sobre a receita: **{cobertura_canal:.2%}**")
+
     sem_cad = dim_produto[dim_produto["FORA_DO_CADASTRO"]]
     rec_sku = float(fato.loc[fato["COD_PRODUTO"].isin(set(sem_cad["COD_PRODUTO"])),
                              "RECEITA"].sum())
@@ -197,6 +212,7 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
           "de bater com o total da fonte.")
     linha()
     resumo["clientes_sem_estrutura"] = len(sem_est)
+    resumo["clientes_sem_canal"] = len(sem_canal)
     resumo["skus_sem_cadastro"] = len(sem_cad)
 
     # ------------------------------------------------------------- 8. cubos

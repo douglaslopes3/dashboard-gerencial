@@ -57,6 +57,8 @@ def main() -> int:
     produtos = cadastros.ler_produtos()
     estrutura, avisos_est = cadastros.ler_estrutura()
     avisos_negocio += avisos_est
+    canais, avisos_can = cadastros.ler_canais()
+    avisos_negocio += avisos_can
 
     # ------------------------------------------------------------ 2. FATO
     titulo("2/6 · FATO — grao e reconciliacao contra a origem")
@@ -69,13 +71,14 @@ def main() -> int:
     dim_cal = calendario.construir(sorted(f["ANO_MES"].unique()))
     log(f"DIM_CALENDARIO: {len(dim_cal)} meses · anos fiscais "
         f"{sorted(dim_cal['ANO_FISCAL_ROTULO'].unique())}")
-    dim_cli = dimensoes.dim_cliente(bruto, estrutura)
+    dim_cli = dimensoes.dim_cliente(bruto, estrutura, canais)
     dim_prod = dimensoes.dim_produto(bruto, produtos)
 
     # ----------------------------------------------------- 4. INTEGRIDADE
     titulo("4/6 · INTEGRIDADE REFERENCIAL")
     fato_mod.conferir_integridade(f, dim_cli, dim_prod, dim_cal)
     cobertura = fato_mod.conferir_cobertura_estrutura(f, dim_cli)
+    cobertura_canal = fato_mod.conferir_cobertura_canal(f, dim_cli)
 
     # -------------------------------------------------------- 5. GRAVAR
     titulo("5/6 · GRAVAR o modelo estrela")
@@ -97,7 +100,8 @@ def main() -> int:
     log(f"cubos.json             {alvo.stat().st_size / 1024:>10,.0f} KB", "ok")
 
     resumo = gerar_qualidade(f, dim_cli, dim_prod, dim_cal, meta, cobertura,
-                             pacote, avisos_negocio + L.avisos())
+                             cobertura_canal, pacote,
+                             avisos_negocio + L.avisos())
 
     # Resumo enxuto para o painel. Existe para que `run_dashboard.py` nao precise
     # reabrir os 3 milhoes de linhas da fato so para escrever o rodape.
@@ -115,6 +119,7 @@ def main() -> int:
         "clientes": len(dim_cli),
         "skus": len(dim_prod),
         "cobertura_estrutura": cobertura,
+        "cobertura_canal": cobertura_canal,
         "avisos": len(L.avisos()),
     }, ensure_ascii=False, indent=1), encoding="utf-8")
 
@@ -129,6 +134,7 @@ def main() -> int:
     log(f"clientes ............... {len(dim_cli):,}")
     log(f"SKUs ................... {len(dim_prod):,}")
     log(f"cobertura da estrutura . {cobertura:.2%}")
+    log(f"cobertura de canal ..... {cobertura_canal:.2%}")
     log(f"avisos ................. {len(L.avisos())}")
     log("")
     log(f"tempo total: {time.time() - t0:.1f}s")

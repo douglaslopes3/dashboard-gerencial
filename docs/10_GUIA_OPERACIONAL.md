@@ -85,7 +85,7 @@ O log completo de cada execução fica em `logs\pipeline_<execução>.log`
 
 | Quero... | Onde |
 |---|---|
-| Aceitar uma coluna nova da extração (ex.: **`Subcanal`**) | `fontes.sellin.colunas_opcionais` — já está declarada; basta o BI entregar |
+| Trocar o arquivo do de-para de canais | `fontes.canais.arquivo` (hoje `bases/Canais/Canais.xlsx`) |
 | Mudar o mês de início do ano fiscal | `calendario.fiscal_mes_inicio` (9 = setembro; 1 iguala fiscal e calendário) |
 | Corrigir o rótulo de um head/gerente/supervisor | `dimensoes.estrutura_comercial.correcoes_head` (e as irmãs). A troca **sai registrada** no log e no relatório |
 | Desempatar um cliente com dois supervisores | `dimensoes.estrutura_comercial.desempate_cliente` |
@@ -111,15 +111,18 @@ comparação (YTD Fiscal / YTD Calendário / Meses vs LY) e granularidade
 ativo: métrica, base, período, **quantos meses do ano anterior estão cobertos** e
 quais filtros de dimensão estão ligados.
 
-**Quatro coisas que o painel declara de propósito** (rodapé):
+**Cinco coisas que o painel declara de propósito** (rodapé):
 
 1. **Caixas é métrica bruta.** Valor e Volume são líquidos de devolução; Caixas
    não. Desvio medido: 0,28%.
-2. **Não há filtro de canal.** Nenhuma base entregue traz canal ou subcanal. O
-   eixo comercial disponível é head → gerente.
-3. **Não há Ticket Médio.** Sem definição validada na fonte.
+2. **Canal** vem de `bases/Canais/Canais.xlsx` (100,00% da receita classificada);
+   quem ficar sem canal sai em `data/quality/clientes_sem_canal.csv`.
+3. **Ticket médio = preço médio** (`Σvalor ÷ Σpeso`). O card "Faturamento
+   médio/mês" é `receita ÷ nº de meses` — o rótulo diz o que a fórmula calcula.
 4. **O ranking de bandeiras é nominal nas 300 maiores** (73,4% do faturamento);
    as demais entram agregadas — **o total continua fechando**.
+5. **A camada de SKU cruza com head, canal, categoria e UF** — não com gerente,
+   bandeira nem projeto; a tela avisa quando esses filtros ficam juntos.
 
 **`n/d`** aparece onde não há base para a conta (LY zero, nulo ou ausente).
 Nunca aparece `∞`, `NaN` nem erro técnico.
@@ -132,7 +135,7 @@ sinal (+/−).
 ## Rodar os testes
 
 ```bash
-python tests/test_regras.py      # 24 testes de regra critica
+python tests/test_regras.py      # 26 testes de regra critica
 python tests/cenarios.py         # 6 cenarios de ponta a ponta (roda o pipeline)
 ```
 

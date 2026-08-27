@@ -19,6 +19,7 @@ from . import cache
 
 _PROD = CFG["fontes"]["produtos"]
 _EST = CFG["fontes"]["estrutura_comercial"]
+_CAN = CFG["fontes"]["canais"]
 _DIMCFG = CFG["dimensoes"]["estrutura_comercial"]
 
 
@@ -58,6 +59,70 @@ def ler_produtos() -> pd.DataFrame:
         log("cadastro de produtos sem coluna/valor de marca — MARCA fica vazia "
             "(nao e inferida da descricao)", "aviso")
     return d
+
+
+# ------------------------------------------------------------------ CANAIS
+def _ler_canais(arq: Path) -> tuple[pd.DataFrame, dict]:
+    """De-para Cliente -> Canal (`bases/Canais/Canais.xlsx`).
+
+    Duas coisas que este arquivo tem em comum com as outras fontes, e que
+    precisam do mesmo tratamento:
+
+      - o `Cód. cliente` vem ZERO-PREENCHIDO (`0001000027`) — sem `digitos()`
+        o join casa com zero cliente, em silêncio;
+      - há um RODAPÉ de `Filtros aplicados` (linhas com o canal nulo) que não é
+        dado. O texto do filtro vai para o `extra`, como no sell-in.
+    """
+    df = pd.read_excel(arq, sheet_name=_CAN["aba"], engine="calamine", dtype=str)
+    df.columns = [str(c).strip() for c in df.columns]
+    _validar(df, _CAN["colunas_obrigatorias"], arq)
+
+    extra: dict = {}
+    rodape = df[df["Canal"].isna()]
+    filtros = rodape["Cód. cliente"].dropna()
+    if len(filtros):
+        extra["filtro"] = "\n".join(str(x).strip() for x in filtros)
+    df = df[df["Canal"].notna()]
+
+    out = pd.DataFrame(index=df.index)
+    out["COD_CLIENTE"] = digitos(df["Cód. cliente"])
+    out["CANAL"] = texto(df["Canal"])
+    for origem, destino in (("Cód. canal", "COD_CANAL"), ("Subcanal", "SUBCANAL")):
+        if origem in df.columns:
+            out[destino] = texto(df[origem], maiuscula=False)
+    out = out.dropna(subset=["COD_CLIENTE"])
+
+    # Cliente com dois canais tornaria o join ambíguo — hoje são zero (medido),
+    # e se aparecer um, o caso vira aviso e vale a 1a linha.
+    conflito = out.groupby("COD_CLIENTE")["CANAL"].nunique()
+    n_conf = int((conflito > 1).sum())
+    if n_conf:
+        extra["conflitos"] = n_conf
+    out = out.drop_duplicates("COD_CLIENTE", keep="first")
+    return out.reset_index(drop=True), extra
+
+
+def ler_canais() -> tuple[pd.DataFrame, list[str]]:
+    """Devolve (canais, avisos). Ausência do arquivo NÃO derruba o pipeline —
+    o painel roda sem o eixo de canal, com o aviso registrado."""
+    avisos: list[str] = []
+    arq = caminho(_CAN["arquivo"])
+    if not arq.exists():
+        msg = (f"de-para de canais ausente ({arq}) — o painel fica sem o eixo "
+               "de canal")
+        if _CAN.get("obrigatorio"):
+            abortar(msg)
+        log(msg, "aviso")
+        return pd.DataFrame(columns=["COD_CLIENTE", "CANAL", "SUBCANAL"]), [msg]
+
+    can, extra = cache.ler(arq, _ler_canais)
+    if extra.get("conflitos"):
+        msg = (f"{extra['conflitos']} cliente(s) com DOIS canais no de-para — "
+               "vale a 1a linha; confira o arquivo")
+        log(msg, "aviso")
+        avisos.append(msg)
+    log(f"canais: {len(can):,} clientes · {can['CANAL'].nunique()} canais")
+    return can, avisos
 
 
 # ------------------------------------------------------- ESTRUTURA COMERCIAL

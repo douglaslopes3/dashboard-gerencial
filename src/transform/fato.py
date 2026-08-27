@@ -118,29 +118,47 @@ def reconciliar_origem(f: pd.DataFrame, meta: dict) -> list[str]:
     return []
 
 
-def conferir_cobertura_estrutura(f: pd.DataFrame,
-                                 dim_cliente: pd.DataFrame) -> float:
-    """Piso de cobertura da estrutura comercial sobre a RECEITA.
+def _cobertura(f: pd.DataFrame, dim_cliente: pd.DataFrame, flag: str,
+               piso_chave: str, rotulo: str) -> float:
+    """Piso de cobertura de um atributo do cliente sobre a RECEITA.
 
     Existe por um erro real: `Cód. cliente` zero-preenchido faz o join casar com
-    ZERO cliente — e casar em silêncio, com o painel inteiro em 'NÃO ATRIBUÍDO'.
+    ZERO cliente — e casar em silêncio, com o painel inteiro num balde de
+    "não atribuído". Vale tanto para a estrutura comercial quanto para o
+    de-para de canais, que traz o código no mesmo formato.
     """
-    na = dim_cliente.set_index("COD_CLIENTE")["NA_ESTRUTURA"]
+    tem = dim_cliente.set_index("COD_CLIENTE")[flag]
     receita_total = float(f["RECEITA"].sum())
     if receita_total == 0:
         return 0.0
-    com = float(f.loc[f["COD_CLIENTE"].map(na).fillna(False), "RECEITA"].sum())
+    com = float(f.loc[f["COD_CLIENTE"].map(tem).fillna(False), "RECEITA"].sum())
     cobertura = com / receita_total
 
-    piso = float(_TOL["cobertura_minima_head"])
+    piso = float(_TOL[piso_chave])
     if cobertura < piso:
         abortar(
-            f"cobertura da estrutura comercial sobre a receita: {cobertura:.2%} "
+            f"cobertura de {rotulo} sobre a receita: {cobertura:.2%} "
             f"(piso: {piso:.0%}).\n"
             "  Isto quase sempre significa que a chave de cliente nao esta\n"
             "  casando — o de-para traz o codigo zero-preenchido e o sell-in\n"
             "  traz o numero puro. Confira `src/utils/texto.py: digitos()`.\n"
-            "  Se a queda for real, ajuste `validacao.cobertura_minima_head`.")
-    log(f"cobertura da estrutura sobre a receita: {cobertura:.2%} "
+            f"  Se a queda for real, ajuste `validacao.{piso_chave}`.")
+    log(f"cobertura de {rotulo} sobre a receita: {cobertura:.2%} "
         f"(piso {piso:.0%})", "ok")
     return cobertura
+
+
+def conferir_cobertura_estrutura(f: pd.DataFrame,
+                                 dim_cliente: pd.DataFrame) -> float:
+    return _cobertura(f, dim_cliente, "NA_ESTRUTURA",
+                      "cobertura_minima_head", "estrutura comercial")
+
+
+def conferir_cobertura_canal(f: pd.DataFrame,
+                             dim_cliente: pd.DataFrame) -> float:
+    if "TEM_CANAL" not in dim_cliente.columns or not dim_cliente["TEM_CANAL"].any():
+        log("de-para de canais indisponivel — cobertura de canal nao conferida",
+            "aviso")
+        return 0.0
+    return _cobertura(f, dim_cliente, "TEM_CANAL",
+                      "cobertura_minima_canal", "canal")

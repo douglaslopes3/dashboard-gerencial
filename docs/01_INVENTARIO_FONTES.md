@@ -33,8 +33,8 @@
 | 12 | `Comissão Faturada Líquida` | float | fora do escopo do MVP | 0 |
 
 **Não existe coluna de canal, head, gerente, supervisor, CNPJ, cidade ou data
-transacional.** A estrutura comercial vem do de-para (§2.2); o canal não vem
-de lugar nenhum (**GAP-01**).
+transacional.** A estrutura comercial vem do de-para (§2.2) e o canal do
+de-para de canais (§2.3, entregue em 26/08/2026).
 
 ### 1.2 Rodapé — dois blocos que precisam sair antes de qualquer conta
 
@@ -182,7 +182,27 @@ Outros eixos disponíveis no mesmo arquivo: `Novo Gerente` (12 valores),
 > `Maykon - 2600` é a posição hoje **vaga** (o protótipo já a rotula `Vago`).
 > O rótulo **não é corrigido em silêncio** — ver GAP-03.
 
-### 2.3 Demais arquivos de dimensão — fora do escopo deste MVP
+### 2.3 `bases/Canais/Canais.xlsx` — de-para Cliente → Canal (26/08/2026)
+
+Aba `Export` · 43.073 clientes · colunas `Cód. cliente` (zero-preenchido),
+`Cód. canal`, `Canal` (9 valores), `Subcanal` (43 valores). Traz rodapé de
+`Filtros aplicados`, como o sell-in.
+
+```
+cobertura sobre o sell-in    16.131 de 16.131 clientes (100,0000%)
+receita classificada         R$ 2.260.853.914,86 (100,0000%)
+clientes orfaos              0
+clientes com >1 canal        0
+```
+
+Canais com receita: CASH & CARRY (22,25%) · DISTRIBUIDOR (20,46%) ·
+ATACADO ESPECIALIZADO (17,27%) · VAREJO ESPECIALIZADO (15,44%) ·
+ATACADO GENERALISTA (14,00%) · VAREJO (10,45%) · NOVOS CANAIS (0,13%) ·
+KEY ACCOUNT NACIONAL (0,00%). `KEY ACCOUNT REGIONAL` existe no de-para sem
+cliente faturado. Os dois `KEY ACCOUNT` não estão na lista do §9 e saem no
+relatório de valores não reconhecidos.
+
+### 2.4 Demais arquivos de dimensão — fora do escopo deste MVP
 
 | Arquivo | Por que fica fora |
 |---|---|
@@ -242,7 +262,8 @@ Esperado `Ademir, Izabela, Michel, Vago`; encontrado `Ademir`, `Izabela - 2650`,
 parte do valor de origem**. `Vago` ↔ `Maykon - 2600` é a única correspondência que
 exige decisão de negócio (GAP-03).
 
-### 4.4 Canais — nenhum dos 7 existe em qualquer base
+### 4.4 Canais — resolvido em 26/08/2026
 
-Ver **GAP-01** em `docs/04_GAPS_E_RISCOS.md`. É o único bloqueio material desta
-entrega.
+Na primeira entrega, nenhum dos 7 canais existia em base alguma (era o GAP-01).
+A base `bases/Canais/Canais.xlsx` chegou com a devolutiva e cobre 100,0000% dos
+clientes e da receita — ver §2.3 e o GAP-01 em `docs/04_GAPS_E_RISCOS.md`.

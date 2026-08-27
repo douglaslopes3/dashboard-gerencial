@@ -7,11 +7,12 @@ foi estimado. Onde a saída é longa, o comando que a produz está indicado.
 
 | Bateria | Comando | Resultado |
 |---|---|---|
-| Regras críticas (unitário) | `python tests/test_regras.py` | **24 de 24** |
+| Regras críticas (unitário) | `python tests/test_regras.py` | **26 de 26** |
 | Cenários de ponta a ponta | `python tests/cenarios.py` | **6 de 6** |
 | Reconciliação painel × fato | ver T-04 | **bate até o centavo** |
 | Interface (filtros, LY, YTD, métrica) | ver T-11 a T-13 | **ok** |
 | Independência e ausência de IA | ver T-14 e T-15 | **ok** |
+| Segunda onda (canal, projeto, Vago, ticket) | ver T-16 a T-21 | **ok** |
 
 ---
 
@@ -298,7 +299,101 @@ nenhuma API.
 
 | Item | Motivo |
 |---|---|
-| Ticket Médio | **não implementado** — não há definição validada (GAP-02) |
-| Filtro e quebra por canal | **não implementado** — não há fonte (GAP-01) |
 | Volume acima de ~20 mi de linhas | a base tem 3,08 mi; o teste seria com dado sintético, e dado sintético não entra aqui |
-| Cruzar SKU com gerente ou bandeira | fora da camada agregada por decisão medida (D-09); a tela **avisa** quando esses filtros ficam ativos junto com SKU |
+| Cruzar SKU com gerente, bandeira ou projeto | fora da camada agregada por decisão medida (D-21); a tela **avisa** quando esses filtros ficam ativos junto com SKU |
+
+> Ticket Médio e canal saíram desta lista na segunda onda: o primeiro foi
+> unificado ao preço médio (D-22) e o segundo foi integrado e testado (T-17/T-18).
+
+
+---
+
+# Reteste da segunda onda — devolutiva de 26/08/2026
+
+Após integrar canal, projeto, a correção do head vago e a nomenclatura do
+ticket médio. Tudo executado de novo em 26/08/2026.
+
+## T-16 · Suites completas
+
+```
+python tests/test_regras.py    26 de 26 passaram  (2 novos: canal na dimensao)
+python tests/cenarios.py       6 de 6 cenarios    (pipeline final exit 0)
+python run_pipeline.py         exit 0 · 19,1s com cache
+python run_dashboard.py        exit 0 · painel 14,28 MB
+```
+
+## T-17 · Canal — cobertura e reconciliação
+
+```
+clientes com canal        16.131 de 16.131 (100,0000%)   orfaos: 0
+receita classificada      R$ 2.260.853.914,86 (100,0000%)
+piso de cobertura         95% (validacao.cobertura_minima_canal) — passou
+```
+
+Receita por canal no painel × fato (24 meses) — diferença máxima de **7
+centavos** em R$ 503 mi (resíduo do escalonamento em centavos, rel. 1,4e-10):
+
+```
+CASH & CARRY          503.065.420,40  ×  503.065.420,47
+DISTRIBUIDOR          462.582.450,00  ×  462.582.450,10
+ATACADO ESPECIALIZADO 390.470.285,71  ×  390.470.285,75
+VAREJO ESPECIALIZADO  349.103.886,16  ×  349.103.886,13
+ATACADO GENERALISTA   316.508.716,55  ×  316.508.716,36
+VAREJO                236.192.052,79  ×  236.192.052,70
+NOVOS CANAIS            2.931.103,36  ×    2.931.103,35
+KEY ACCOUNT NACIONAL            0,00  ×            0,00
+```
+
+Soma por canal = soma por projeto = total geral = R$ 2.260.853.914,97 no motor
+do painel (mesmo denominador, três caminhos).
+
+## T-18 · Filtro de canal nas duas camadas agregadas
+
+Filtro `CASH & CARRY`, FY2026:
+
+```
+cubo principal   R$ 242.860.922,34
+cubo de SKU      R$ 242.860.922,34   <- identicos ao centavo
+```
+
+Quebra por head dentro do canal: Vago - 2600 R$ 133,5 mi · Izabela R$ 93,6 mi ·
+Ademir R$ 10,7 mi · Michel R$ 4,9 mi · NÃO ATRIBUÍDO R$ 178 mil.
+
+## T-19 · Quebras novas
+
+* **Por canal** (Visão Geral, dimensão "Canal"): 8 linhas, participação somando
+  **100,0%**, `KEY ACCOUNT NACIONAL` exibido com R$ 0,00 e `Δ% = n/d` — não some.
+* **Por projeto**: 8 valores; dentro de um canal filtrado a participação continua
+  somando 100% (denominador remove o filtro da própria dimensão).
+
+## T-20 · Maykon → Vago (aceite do item 3)
+
+```
+log do pipeline:  785 linha(s) tiveram HEAD corrigido por
+                  `dimensoes.estrutura_comercial.correcoes_head`:
+                  {'Maykon - 2600': 'Vago - 2600'}
+receita Vago - 2600   R$ 466.521.780,95   (os 466,5 mi esperados)
+total geral           R$ 2.260.853.914,86 (inalterado)
+heads na dimensao     Ademir · Izabela - 2650 · Michel - 1000 ·
+                      Vago - 2600 · NÃO ATRIBUÍDO   (sem codigo orfao)
+```
+
+## T-21 · KPIs após a unificação de nomenclatura
+
+```
+FATURAMENTO MÉDIO/MÊS      R$ 93,94 mi   LY R$ 94,47 mi  ▼ −0,6%
+PREÇO MÉDIO (= ticket médio) R$ 14,78/kg LY R$ 13,33/kg  ▲ +10,9%
+```
+
+`R$ 93,94 mi = 1.127.251.765,81 ÷ 12` ✓. A página R$/kg declara a equivalência
+e mantém `Σvalor ÷ Σpeso` com guarda `n/d` para divisor zero (T-13b continua
+valendo).
+
+## Critérios de aceite gerais da devolutiva
+
+| Critério | Resultado |
+|---|---|
+| Total geral em R$ 2,26 bi em todas as visões | **ok** — canal, projeto, head e o total batem no mesmo denominador |
+| Nenhuma categoria em branco em Canal, Subcanal, Vendedor ou Projeto | **ok** — canal/subcanal 100%; head e projeto têm o rótulo explícito `NÃO ATRIBUÍDO` para os 71 clientes fora do de-para de estrutura (R$ 421 mil, 0,02%, listados em `data/quality/clientes_sem_estrutura.csv` — exceção declarada, não em branco) |
+| Preço médio conferido em 3+ recortes | **ok** — total (14,78), por canal, por categoria e por período; razão das somas em todos |
+| Rótulos dos KPIs = o que a fórmula calcula | **ok** — "Faturamento médio/mês" e "Preço médio (= ticket médio)" |
