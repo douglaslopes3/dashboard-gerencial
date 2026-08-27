@@ -262,11 +262,9 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="preco">
-  <div class="alerta"><b>Ticket médio e preço médio são a mesma métrica neste
-    painel</b> (decisão da devolutiva de 26/08/2026): <b>R$/kg = soma da receita
-    líquida ÷ soma do peso em kg</b> — razão das somas, nunca média das linhas,
-    sempre com guarda contra divisor zero. O seletor global de métrica <b>não
-    altera</b> esta definição.</div>
+  <div class="alerta"><b>R$/kg = soma da receita líquida ÷ soma do peso em kg</b>
+    — razão das somas, nunca média das linhas, sempre com guarda contra divisor
+    zero. O seletor global de métrica <b>não altera</b> esta definição.</div>
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Preço médio R$/kg <small>— por:</small>
         <span class="chips" id="dimPreco"></span></h3>
@@ -670,8 +668,8 @@ function renderKPIs(p){
       <div class="cmp">LY ${abrev(p.ly.length?vl:null,mt.un)} &nbsp;·&nbsp; ${fmtPct(pc)}</div></div>`);
   }
   // "Faturamento médio/mês" — o rótulo diz exatamente o que a fórmula calcula:
-  // receita do período ÷ nº de meses. NÃO é ticket médio (devolutiva 26/08,
-  // item 2): ticket médio = preço médio = Σvalor ÷ Σpeso, no card ao lado.
+  // receita do período ÷ nº de meses. (Ticket médio não existe como indicador
+  // separado: é o preço médio, no card ao lado — decisão D-22, só nas docs.)
   const fmA=razao(receita(a),p.atual.length), fmL=p.ly.length?razao(receita(l),p.ly.length):null;
   itens.push(`<div class="kpi">
     <div class="rot">Faturamento médio/mês</div>
@@ -679,7 +677,7 @@ function renderKPIs(p){
     <div class="cmp">LY ${abrev(fmL,"R$")} &nbsp;·&nbsp; ${fmtPct(varPct(fmA,fmL))}</div></div>`);
   const pa=razao(receita(a),pesoKg(a)), pl=razao(receita(l),pesoKg(l));
   itens.push(`<div class="kpi">
-    <div class="rot">Preço médio <small style="font-weight:400;text-transform:none">(= ticket médio)</small></div>
+    <div class="rot">Preço médio</div>
     <div class="val">${fmtPreco(pa)}</div>
     <div class="cmp">LY ${p.ly.length?fmtPreco(pl):'<span class="nd">n/d</span>'} &nbsp;·&nbsp; ${fmtPct(varPct(pa,p.ly.length?pl:null))}</div></div>`);
   el("kpis").innerHTML=itens.join("");

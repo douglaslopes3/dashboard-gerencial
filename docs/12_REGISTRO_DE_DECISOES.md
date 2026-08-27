@@ -359,6 +359,10 @@ continua um arquivo só, por duplo clique, sem rede.
 
 ## D-22 · Ticket médio = preço médio; o KPI mensal chama o que é
 
+> **Adendo 26/08 (2ª devolutiva):** a pedido do Douglas, a descrição da decisão
+> **saiu da interface** — o card voltou a chamar-se só "Preço médio" e a nota da
+> página R$/kg ficou apenas com a definição técnica. A decisão vive aqui.
+
 **Contexto.** A devolutiva encerrou o GAP-02: as duas fórmulas do protótipo eram
 métricas diferentes com nomes trocados.
 
@@ -401,3 +405,38 @@ já carregada na `DIM_CLIENTE` (8 valores — `Projeto L`, `Sem mudança`,
 todas as páginas, **convivendo** com os filtros atuais — a própria devolutiva
 responde a questão 3 ("do mesmo modo que Categoria / Canal / Head"). Nenhum
 de-para manual foi criado.
+
+## D-26 · Os 71 "NÃO ATRIBUÍDO" são do Vago — correção vai para a ORIGEM
+
+**Contexto.** 2ª devolutiva de 26/08: os 71 clientes sem linha no de-para de
+estrutura (R$ 421.421,67) também pertencem ao Vago.
+
+**Decisão.** A correção é **na origem**, não no ETL: os 71 códigos precisam
+entrar no `DePara_Estrutura_Comercial.xlsx`. Foi gerado
+`data/quality/incluir_no_DePara_estrutura.xlsx` com as 71 linhas **no layout
+exato do de-para**, `Novo Head` já preenchido com `Vago - 2600` e
+gerente/supervisor em branco para o Comercial completar (aba de contexto traz
+nome, bandeira, canal, UF e receita de cada um). Coladas as linhas, o pipeline
+absorve sozinho na execução seguinte — o cache invalida pelo mtime do arquivo.
+
+**Por que não corrigir no ETL:** o de-para tem dono (Comercial). Uma emenda
+local que não voltasse ao arquivo-mestre seria desfeita em silêncio na próxima
+atualização dele — o painel regrediria sem ninguém perceber.
+
+## D-27 · KEY ACCOUNT NACIONAL/REGIONAL não são canais de cliente — origem
+
+**Contexto.** 2ª devolutiva: o Douglas apontou que os dois não são canais dos
+clientes. A verificação confirmou a leitura dele:
+
+* os valores vêm da própria coluna `Canal` do `Canais.xlsx` (88 linhas `KA`,
+  2 linhas `KR`);
+* as 2 linhas `KR` são **construções de P&L**, não clientes — os "subcanais"
+  delas são literalmente `Orçado KR` e `Rateio P&L KR`;
+* dos 88 `KA`, só **3** tocam o sell-in — MAKRO LJ 36 e duas razões WMS
+  (Walmart) — todos com **R$ 0,00** líquidos no período (classificação legada).
+
+**Decisão.** Impacto no painel: uma linha zerada. A correção é **na origem**
+(BI reclassificar/remover os códigos no arquivo de canais) — a lista dos 3 está
+em `data/quality/clientes_canal_key_account.csv`. Nada foi reclassificado no
+ETL: mapear os 3 por palpite seria regra inventada, e o custo de esperar a
+origem é zero real.
