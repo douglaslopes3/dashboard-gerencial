@@ -218,7 +218,8 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
       <div class="scroll"><table id="tabDet"></table></div>
       <div class="note">Participação % calculada sobre o total do recorte com o
         filtro desta dimensão removido — por isso a coluna soma 100%. Na quebra
-        por <b>Categoria</b>, clique numa linha para abrir os SKUs dela.</div></div>
+        por <b>Categoria</b>, clique numa linha para abrir os SKUs dela; na
+        quebra por <b>Head</b>, para abrir os gerentes dele.</div></div>
   </div>
   <div class="grid" style="grid-template-columns:1fr" id="drillWrap" hidden>
     <div class="card"><h3><button class="mini" id="drillVoltar">← voltar ao agregado</button>
@@ -330,7 +331,7 @@ const F = {
   cat:new Set(), head:new Set(), ger:new Set(), uf:new Set(),
   can:new Set(), proj:new Set(),
   ban:new Set(), sku:new Set(),
-  dimGeral:"cat", dimPreco:"cat", drillCat:null,
+  dimGeral:"cat", dimPreco:"cat", drill:null,   // {tipo:"cat"|"head", k}
   topBan:50, topSku:50, aba:"geral"
 };
 
@@ -608,8 +609,10 @@ function render(){
   }
   renderKPIs(p); renderEvolucao(p); renderYTD(p); renderPeriodo(p); renderDet(p);
   renderGeo(p); renderBandeiras(p); renderSkus(p); renderPreco(p);
-  if(F.drillCat!==null){
-    if(D.cat[F.drillCat]===undefined) fecharDrill(); else renderDrill();
+  if(F.drill){
+    const some = F.drill.tipo==="cat" ? D.cat[F.drill.k]===undefined
+                                      : !D.head.includes(F.drill.k);
+    if(some) fecharDrill(); else renderDrill();
   }
 }
 
@@ -777,9 +780,11 @@ function quebra(p, dim, idTab, idInfo){
     return;
   }
   const a=somar(p.atual,fn,dim), l=somar(p.ly,fn,dim), den=total(p.atual,dim);
-  desenharQuebra(a,l,den,ROTULOS[dim],idTab,p, dim==="cat" && idTab==="tabDet");
+  // No Detalhamento, Categoria e Head abrem o nivel de baixo (SKUs / gerentes).
+  const drillTipo = idTab==="tabDet" && (dim==="cat"||dim==="head") ? dim : null;
+  desenharQuebra(a,l,den,ROTULOS[dim],idTab,p, drillTipo);
 }
-function desenharQuebra(mapA,mapL,den,rot,idTab,p,clicavel){
+function desenharQuebra(mapA,mapL,den,rot,idTab,p,drillTipo){
   const denV=met(den);
   const itens=[...mapA.entries()].map(([k,v])=>({k,a:met(v),l:mapL.has(k)?met(mapL.get(k)):null}));
   mapL.forEach((v,k)=>{ if(!mapA.has(k)) itens.push({k,a:0,l:met(v)}); });
@@ -794,8 +799,8 @@ function desenharQuebra(mapA,mapL,den,rot,idTab,p,clicavel){
     const ly = (p.ly.length && i.l!==null) ? i.l : null;
     raw.push([rot(i.k),nr(i.a),nr(ly),ly===null?null:nr(i.a-ly),
               nr(pctNum(varPct(i.a,ly))),part===null?null:nr(part*100)]);
-    const nome = clicavel
-      ? `<span class="drill" data-dk="${i.k}" title="ver os SKUs desta categoria">${rot(i.k)} ▸</span>`
+    const nome = drillTipo
+      ? `<span class="drill" data-dk="${i.k}" title="${drillTipo==="head"?"ver os gerentes deste head":"ver os SKUs desta categoria"}">${rot(i.k)} ▸</span>`
       : rot(i.k);
     return [nome, fmtMetrica(i.a),
       ly===null?'<span class="nd">n/d</span>':fmtMetrica(ly),
@@ -810,8 +815,9 @@ function desenharQuebra(mapA,mapL,den,rot,idTab,p,clicavel){
      temLy?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(ta,tl):null),
      denV?fmtParte(ta/denV):"—"]);
   registrarExport(idTab,["Dimensão","Atual","LY","Δ","Δ%","Part. %"],raw);
-  el(idTab).onclick = clicavel
-    ? (e)=>{const s=e.target.closest(".drill"); if(s) abrirDrill(+s.dataset.dk);}
+  el(idTab).onclick = drillTipo
+    ? (e)=>{const s=e.target.closest(".drill"); if(!s) return;
+        abrirDrill(drillTipo, drillTipo==="cat" ? +s.dataset.dk : s.dataset.dk);}
     : null;
 }
 function renderDet(p){
@@ -991,7 +997,9 @@ const RAW={};
 const NOME_TAB={tabPer:"periodo",tabYTD:"ytd",tabDet:()=>"detalhe-"+F.dimGeral,
   tabUF:"uf",tabUFper:"uf-periodo",tabBan:"bandeiras",tabSku:"sku",
   tabPreco:()=>"preco-"+F.dimPreco,tabPrecoPer:"preco-periodo",
-  tabDrill:()=>"sku-"+slug(D.cat[F.drillCat]??"categoria")};
+  tabDrill:()=> F.drill && F.drill.tipo==="head"
+    ? "gerentes-"+slug(F.drill.k)
+    : "sku-"+slug(D.cat[F.drill?.k]??"categoria")};
 function nr(v,c=2){ if(v===null||v===undefined||!isFinite(v)) return null;
   const f=Math.pow(10,c); return Math.round(v*f)/f; }
 function pctNum(v){ return (v===null||v===undefined||!isFinite(v))?null:v*100; }
@@ -1111,21 +1119,100 @@ function exportarTabela(id,fmt){
    e um recorte, nao uma tela nova. Ordenado pela MAIOR QUEDA, porque o caso de
    uso e achar quem derrubou o agregado. Os demais drill-downs (canal/projeto ->
    cliente) estao BLOQUEADOS por definicao externa (B1-B3 da Solicitacao 02). */
-function abrirDrill(catIdx){
-  F.drillCat=catIdx; renderDrill();
+function abrirDrill(tipo, k){
+  F.drill={tipo, k}; renderDrill();
   el("drillWrap").hidden=false;
   el("drillWrap").scrollIntoView({behavior:"smooth",block:"start"});
 }
-function fecharDrill(){ F.drillCat=null; el("drillWrap").hidden=true; }
+function fecharDrill(){ F.drill=null; el("drillWrap").hidden=true; }
 function renderDrill(){
-  if(F.drillCat===null||F.drillCat===undefined) return;
+  if(!F.drill) return;
+  if(F.drill.tipo==="head") return renderDrillHead();
+  return renderDrillCat();
+}
+
+/* Head -> Gerente (B2 liberado em 26/08/2026): a hierarquia NAO e inferida —
+   cada cliente carrega head E gerente no de-para de estrutura, e o par viaja
+   no PERFIL do cubo principal. O drill fixa o head clicado e quebra por
+   gerente, respeitando canal, categoria, projeto, bandeira e UF. Ignora o
+   filtro de head (o escopo e o head clicado) e o de gerente (esconderia quem
+   derrubou o resultado). */
+function renderDrillHead(){
+  const head=F.drill.k, p=periodo();
+  el("drillTitulo").textContent="Gerentes de "+head;
+  el("sDrill").textContent=" · "+METRICAS[F.metrica].rot+" · ordenado pela maior queda";
+  if(usaCuboSku()){
+    vazio("tabDrill","Com filtro de SKU ativo este detalhe não existe — a camada de SKU não tem gerente. Remova o filtro de SKU.");
+    el("nDrill").textContent="";
+    return;
+  }
+  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM);
+  p.atual.forEach(i=>alvo[i]=1); p.ly.forEach(i=>alvoL[i]=1);
+  const passa=l=>{
+    const pf=D.perfil[l[3]];
+    if(pf[0]!==head) return false;
+    if(F.can.size && !F.can.has(pf[2])) return false;
+    if(F.proj.size && !F.proj.has(pf[3])) return false;
+    if(F.ban.size && !F.ban.has(l[1])) return false;
+    if(F.cat.size && !F.cat.has(l[2])) return false;
+    if(F.uf.size && !F.uf.has(l[4])) return false;
+    return true;
+  };
+  const A=new Map(), L=new Map();
+  for(const l of CUBO){
+    const m=alvo[l[0]]?A:(alvoL[l[0]]?L:null); if(!m) continue;
+    if(!passa(l)) continue;
+    const g=D.perfil[l[3]][1];
+    let v=m.get(g); if(!v){v=MZERO(); m.set(g,v);}
+    v[0]+=l[5]; v[1]+=l[6]; v[2]+=l[7];
+  }
+  const temLy=p.ly.length>0;
+  const itens=[...new Set([...A.keys(),...L.keys()])].map(k=>{
+    const a=A.has(k)?met(A.get(k)):0;
+    const l=temLy?(L.has(k)?met(L.get(k)):0):null;
+    return {k,a,l,d:l===null?null:a-l,novo:temLy&&!L.has(k),sumiu:!A.has(k)};
+  }).sort((x,y)=>(x.d??0)-(y.d??0));
+  const raw=[]; let sa=0, sl=0;
+  const linhas=itens.map(i=>{
+    sa+=i.a; sl+=i.l||0;
+    raw.push([i.k,nr(i.a),nr(i.l),i.d===null?null:nr(i.d),
+              nr(pctNum(varPct(i.a,i.novo?null:i.l)))]);
+    return [i.k
+      +(i.novo?' <small style="color:var(--gd)">novo</small>':"")
+      +(i.sumiu?' <small style="color:var(--bd)">sem faturamento</small>':""),
+      fmtMetrica(i.a),
+      i.l===null?'<span class="nd">n/d</span>':fmtMetrica(i.l),
+      i.d===null?'<span class="nd">n/d</span>':fmtDelta(i.d),
+      fmtPct(varPct(i.a,i.novo?null:i.l))];
+  });
+  if(!linhas.length){ vazio("tabDrill","Nenhum gerente deste head no recorte."); }
+  else{
+    el("tabDrill").innerHTML=tabela(["Gerente","Atual","LY","Δ","Δ%"],linhas,
+      ["<b>Total do head</b>",fmtMetrica(sa),
+       temLy?fmtMetrica(sl):'<span class="nd">n/d</span>',
+       temLy?fmtDelta(sa-sl):'<span class="nd">n/d</span>',
+       fmtPct(temLy?varPct(sa,sl):null)]);
+    raw.push(["Total",nr(sa),temLy?nr(sl):null,temLy?nr(sa-sl):null,
+              nr(pctNum(temLy?varPct(sa,sl):null))]);
+    registrarExport("tabDrill",["Gerente","Atual","LY","Δ","Δ%"],raw);
+  }
+  const ign=[];
+  if(F.head.size)ign.push("o filtro de head (o escopo é o head clicado)");
+  if(F.ger.size)ign.push("o filtro de gerente");
+  el("nDrill").innerHTML="Mesmo período, mesma base e mesmos filtros da tela"
+    +" (canal, categoria, projeto, bandeira, UF). A hierarquia vem do de-para"
+    +" de estrutura, não é inferida."
+    +(ign.length?" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".":"");
+}
+
+function renderDrillCat(){
   const p=periodo();
-  el("drillTitulo").textContent="SKUs de "+(D.cat[F.drillCat]??"?");
+  el("drillTitulo").textContent="SKUs de "+(D.cat[F.drill.k]??"?");
   el("sDrill").textContent=" · "+METRICAS[F.metrica].rot+" · ordenado pela maior queda";
   const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM);
   p.atual.forEach(i=>alvo[i]=1); p.ly.forEach(i=>alvoL[i]=1);
   const passa=l=>{
-    if(D.sku[l[1]][2]!==F.drillCat) return false;
+    if(D.sku[l[1]][2]!==F.drill.k) return false;
     const hc=D.hc[l[2]];
     if(F.head.size&&!F.head.has(hc[0])) return false;
     if(F.can.size&&!F.can.has(hc[1])) return false;

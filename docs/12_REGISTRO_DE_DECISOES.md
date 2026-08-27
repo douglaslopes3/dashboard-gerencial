@@ -496,3 +496,28 @@ precisa de dado novo, só da liberação de B2; **(b)** para Cliente, o grão
 a alternativa é um arquivo de detalhe ao lado do painel, carregado sob demanda,
 o que quebra o "um arquivo só, duplo clique". É exatamente a decisão B3, e ela
 é de quem coordena.
+
+## D-31 · Drill Head → Gerente (B2 liberado em 26/08/2026)
+
+**Contexto.** O Douglas liberou o B2: "a hierarquia já vem do de-para".
+
+**Decisão.** Na quebra por Head do Detalhamento, a linha abre os **gerentes do
+head clicado** — mesmo mecanismo do drill de categoria, generalizado
+(`F.drill = {tipo, k}`). A hierarquia **não é inferida**: cada cliente carrega
+head E gerente no `DePara_Estrutura_Comercial.xlsx`, e o par viaja no PERFIL do
+cubo principal.
+
+**Regras do recorte:** respeita canal, categoria, projeto, bandeira e UF (é o
+cubo principal — aqui todos existem); ignora o filtro de head (o escopo é o head
+clicado) e o de gerente (esconderia quem derrubou o resultado), declarando os
+ignorados na nota. Com filtro de SKU ativo o detalhe diz que não existe (a
+camada de SKU não tem gerente), em vez de fingir.
+
+**Conferido no aceite:** gerentes de Ademir somam **R$ 440,02 mi** = linha
+agregada; ordenado pela maior queda (Gerente Sul/CO, −R$ 14,85 mi, primeiro);
+com CASH & CARRY filtrado o total vai a **R$ 10,66 mi** — o mesmo valor
+Ademir × CC medido na fato na integração do canal. Exportação própria
+(`gerentes-ademir_ytd-fiscal_2026-08.xlsx`).
+
+**Seguem bloqueados:** Canal → Cliente e Projeto → Cliente (B1/B3 — cliente não
+é dimensão de cubo nenhum).

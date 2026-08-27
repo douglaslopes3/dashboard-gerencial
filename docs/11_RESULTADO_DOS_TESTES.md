@@ -441,3 +441,20 @@ console                             zero erros
 
 Drill-downs Canal → Cliente, Projeto → Cliente e Head → Gerente **não
 implementados** — bloqueios B1–B3 da Solicitação 02 (ver D-30).
+
+## T-25 · Drill Head → Gerente (B2 liberado)
+
+```
+linhas clicaveis na quebra por head   5
+Gerentes de Ademir                    4 · ordenado pela maior queda
+  Gerente Sul/CO                      R$ 127,02 mi · −R$ 14,85 mi · −10,5%
+  Gerente NENO                        R$ 105,03 mi · −R$ 8,77 mi
+  Gerente SP / MG-ES-RJ               −2,2% / −1,3%
+total do head = linha agregada        R$ 440,02 mi  (identicos)
+com CASH & CARRY filtrado             R$ 10,66 mi — bate com o Ademir x CC
+                                      medido na fato (10.660.870,83)
+exportacao                            gerentes-ademir_ytd-fiscal_2026-08
+                                      · dado cru: [127016771.38, ...]
+drill de categoria                    continua funcionando apos o novo
+console                               zero erros
+```
