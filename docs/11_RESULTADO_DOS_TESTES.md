@@ -397,3 +397,47 @@ valendo).
 | Nenhuma categoria em branco em Canal, Subcanal, Vendedor ou Projeto | **ok** — canal/subcanal 100%; head e projeto têm o rótulo explícito `NÃO ATRIBUÍDO` para os 71 clientes fora do de-para de estrutura (R$ 421 mil, 0,02%, listados em `data/quality/clientes_sem_estrutura.csv` — exceção declarada, não em branco) |
 | Preço médio conferido em 3+ recortes | **ok** — total (14,78), por canal, por categoria e por período; razão das somas em todos |
 | Rótulos dos KPIs = o que a fórmula calcula | **ok** — "Faturamento médio/mês" e "Preço médio (= ticket médio)" |
+
+
+---
+
+# Reteste da Solicitação 02 — 26/08/2026
+
+## T-22 · Base de comparação com dois estados (item 1)
+
+```
+BASES no motor                      ["fis","cal"]  (chips: 2)
+referencias residuais a F.base==="mes"   0  — branch removido, nao comentado
+3 meses marcados (set-nov/25)       atual = 2025-09..11 · LY = 2024-09..11
+                                    R$ 316.151.022,64 × R$ 302.072.461,81
+selecao cheia do FY2026             R$ 1.127.251.765,81  (inalterado)
+YTD Calendario                      oferece 8 meses (jan-ago/26), LY 8 de 8
+```
+
+## T-23 · Exportação (item 2)
+
+```
+tabelas com botao CSV/XLSX          9 + drill = 10
+dado registrado e CRU               ["set/25", 103472787.73, 111231519.49,
+                                     -7758731.76, -6.98]  <- numeros, nao texto
+nome do arquivo                     sku-amendoim_ytd-fiscal_2026-08.xlsx
+XLSX validado FORA do navegador     zipfile.testzip() OK · openpyxl le
+                                    14 linhas x 6 colunas · valores float
+tabela vazia                        limpa o registro; nao exporta dado velho
+```
+
+## T-24 · Drill Categoria → SKU (item 3)
+
+```
+linhas clicaveis na quebra por categoria   12 (as 12 categorias)
+AMENDOIM aberto                     135 SKUs · 1a linha = maior queda
+                                    (JAPONES 40X90G, −R$ 17,55 mi, −46,2%)
+total do detalhe = linha agregada   R$ 394,25 mi  (identicos)
+filtro aplicado com o drill aberto  CASH & CARRY -> detalhe re-renderiza
+                                    (AMENDOIM no canal: R$ 50,61 mi, −14,9%)
+voltar                              fecha e preserva o agregado
+console                             zero erros
+```
+
+Drill-downs Canal → Cliente, Projeto → Cliente e Head → Gerente **não
+implementados** — bloqueios B1–B3 da Solicitação 02 (ver D-30).

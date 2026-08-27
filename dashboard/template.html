@@ -126,6 +126,12 @@ tfoot td:first-child{background:#f0f3f7}
 .rank .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .rank .vl{font-weight:600;white-space:nowrap}
 
+/* ------------------------------------------------------ exportacao / drill */
+.expbtns{margin-left:auto;display:flex;gap:4px}
+.expbtns .mini{padding:2px 7px;font-size:10.5px}
+.drill{cursor:pointer;color:var(--azul);border-bottom:1px dotted var(--azul)}
+.drill:hover{color:#003a70;border-bottom-style:solid}
+
 canvas{max-height:280px}
 .vazio{padding:26px;text-align:center;color:var(--txt2);font-size:12.5px}
 .alerta{background:#fff8e6;border-left:3px solid var(--acento);border-radius:4px;
@@ -211,7 +217,14 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
         <span class="chips" id="dimGeral"></span><small id="sDet"></small></h3>
       <div class="scroll"><table id="tabDet"></table></div>
       <div class="note">Participação % calculada sobre o total do recorte com o
-        filtro desta dimensão removido — por isso a coluna soma 100%.</div></div>
+        filtro desta dimensão removido — por isso a coluna soma 100%. Na quebra
+        por <b>Categoria</b>, clique numa linha para abrir os SKUs dela.</div></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr" id="drillWrap" hidden>
+    <div class="card"><h3><button class="mini" id="drillVoltar">← voltar ao agregado</button>
+        <span id="drillTitulo"></span><small id="sDrill"></small></h3>
+      <div class="scroll"><table id="tabDrill"></table></div>
+      <div class="note" id="nDrill"></div></div>
   </div>
 </div>
 
@@ -304,9 +317,10 @@ const METRICAS = {
   vol: {rot:"Volume (t)", col:6, esc:ESC.P*1000, un:"t"},
   cx : {rot:"Caixas",     col:7, esc:ESC.C, un:"cx"}
 };
+// Dois estados, de propósito (Solicitação 02, item 1): a comparação contra o
+// mesmo período do ano anterior está EMBUTIDA — não é um modo à parte.
 const BASES = {
-  fis:{rot:"YTD Fiscal (set→)"}, cal:{rot:"YTD Calendário (jan→)"},
-  mes:{rot:"Meses vs mesmo período LY"}
+  fis:{rot:"YTD Fiscal (set→)"}, cal:{rot:"YTD Calendário (jan→)"}
 };
 const GRANS = {mes:"Mês", tri:"Trimestre", sem:"Semestre"};
 
@@ -316,7 +330,7 @@ const F = {
   cat:new Set(), head:new Set(), ger:new Set(), uf:new Set(),
   can:new Set(), proj:new Set(),
   ban:new Set(), sku:new Set(),
-  dimGeral:"cat", dimPreco:"cat",
+  dimGeral:"cat", dimPreco:"cat", drillCat:null,
   topBan:50, topSku:50, aba:"geral"
 };
 
@@ -385,9 +399,7 @@ function mesesDoAno(ano){
 }
 // Meses que os chips oferecem, conforme a base escolhida.
 function mesesOferecidos(){
-  if(F.base==="fis") return mesesDoFY(F.fy);
-  if(F.base==="cal") return mesesDoAno(F.ano);
-  return Array.from({length:NM},(_,i)=>i);
+  return F.base==="fis" ? mesesDoFY(F.fy) : mesesDoAno(F.ano);
 }
 function selecionados(){
   // Sem fallback de propósito: selecao vazia é selecao vazia, e a tela diz isso.
@@ -395,52 +407,25 @@ function selecionados(){
   // "Todos" e o leitor nao teria como saber qual periodo esta vendo.
   return mesesOferecidos().filter(i=>F.meses.has(i));
 }
-/* Pre-selecao do periodo, aplicada ao abrir e a cada troca de base/ano.
-   Em "Meses vs LY" NAO se seleciona a serie inteira: com 24 meses de base, o
-   atual teria 24 meses e o LY so 12 — uma comparacao de dois anos contra um,
-   exibida como se fosse valida. O padrao e o ultimo ano fiscal, que tem LY
-   completo. Marcar os 24 continua possivel, e a linha de estado avisa quantos
-   meses do LY estao cobertos.                                                */
+/* Pre-selecao: todos os meses do ano (fiscal ou calendario) escolhido. O
+   universo oferecido e sempre UM ano, entao o LY nunca fica com metade da
+   cobertura do atual por acidente — e a linha de estado continua dizendo
+   quantos meses do LY existem. */
 function preSelecionarMeses(){
   F.meses.clear();
-  if(F.base==="mes"){
-    const ultimoFY = CAL[NM-1][C_FYROT];
-    mesesDoFY(ultimoFY).forEach(i=>F.meses.add(i));
-    if(!F.meses.size) mesesOferecidos().forEach(i=>F.meses.add(i));
-  } else {
-    mesesOferecidos().forEach(i=>F.meses.add(i));
-  }
+  mesesOferecidos().forEach(i=>F.meses.add(i));
 }
-/* Define o par (atual, LY) conforme a base de comparacao.
-   fis -> acumulado fiscal ate o mes de referencia, contra o mesmo intervalo do FY anterior
-   cal -> acumulado calendario, contra o mesmo intervalo do ano anterior
-   mes -> os meses escolhidos, contra os mesmos meses do ano anterior          */
+/* O par (atual, anterior): o periodo e EXATAMENTE o que esta selecionado, e o
+   anterior sao os MESMOS meses do ano anterior, mapeados por ANO_MES_LY —
+   juncao explicita, nunca deslocamento. Selecionar 3 meses compara esses 3
+   contra os mesmos 3 do LY. A base (fiscal/calendario) decide qual ano emoldura
+   a lista de meses e como o YTD do comparativo acumula; nao muda esta conta. */
 function periodo(){
   const sel = selecionados();
   if(!sel.length) return {atual:[], ly:[], ref:null};
   const ref = sel[sel.length-1];
-  if(F.base==="mes"){
-    const ly = sel.map(i=>CAL[i][C_LY]).filter(i=>i>=0);
-    return {atual:sel, ly, ref};
-  }
-  if(F.base==="fis"){
-    const fy=CAL[ref][C_FY], mf=CAL[ref][C_MFIS];
-    const a=[],l=[];
-    for(let i=0;i<NM;i++){
-      if(CAL[i][C_MFIS]>mf) continue;
-      if(CAL[i][C_FY]===fy)   a.push(i);
-      if(CAL[i][C_FY]===fy-1) l.push(i);
-    }
-    return {atual:a, ly:l, ref};
-  }
-  const ano=CAL[ref][C_ANO], mes=CAL[ref][C_MES];
-  const a=[],l=[];
-  for(let i=0;i<NM;i++){
-    if(CAL[i][C_MES]>mes) continue;
-    if(CAL[i][C_ANO]===ano)   a.push(i);
-    if(CAL[i][C_ANO]===ano-1) l.push(i);
-  }
-  return {atual:a, ly:l, ref};
+  const ly = sel.map(i=>CAL[i][C_LY]).filter(i=>i>=0);
+  return {atual:sel, ly, ref};
 }
 function ytdFiscal(ref){
   const fy=CAL[ref][C_FY], mf=CAL[ref][C_MFIS]; const a=[],l=[];
@@ -576,13 +561,9 @@ function montarAno(){
   if(F.base==="fis")
     h = fys.map(f=>`<span class="chip${F.fy===f?" on":""}" data-t="fy" data-k="${f}">${f}</span>`).join("")
       + `<span style="align-self:center;color:var(--txt2);font-size:11px;margin-left:8px">o período segue o ano fiscal</span>`;
-  else if(F.base==="cal")
+  else
     h = anos.map(a=>`<span class="chip${F.ano===a?" on":""}" data-t="ano" data-k="${a}">${a}</span>`).join("")
       + `<span style="align-self:center;color:var(--txt2);font-size:11px;margin-left:8px">o período segue o ano calendário</span>`;
-  else
-    h = fys.map(f=>`<span class="chip off">${f}</span>`).join("")
-      + anos.map(a=>`<span class="chip off">${a}</span>`).join("")
-      + `<span style="align-self:center;color:var(--txt2);font-size:11px;margin-left:8px">em “Meses vs LY” quem manda é a seleção de meses</span>`;
   el("fAno").innerHTML=h;
 }
 function montarMeses(){
@@ -610,6 +591,7 @@ function tabela(cabec, linhas, rodape){
   return h;
 }
 function vazio(id, msg){
+  delete RAW[id];   // tabela vazia nao exporta dado velho
   el(id).innerHTML = `<tbody><tr><td class="vazio" colspan="9">${msg||"Sem dados para este recorte."}</td></tr></tbody>`;
 }
 
@@ -626,6 +608,9 @@ function render(){
   }
   renderKPIs(p); renderEvolucao(p); renderYTD(p); renderPeriodo(p); renderDet(p);
   renderGeo(p); renderBandeiras(p); renderSkus(p); renderPreco(p);
+  if(F.drillCat!==null){
+    if(D.cat[F.drillCat]===undefined) fecharDrill(); else renderDrill();
+  }
 }
 
 function atualizarEstado(p){
@@ -723,15 +708,18 @@ function renderEvolucao(p){
 function renderYTD(p){
   if(p.ref===null) return vazio("tabYTD");
   const [fa,fl]=ytdFiscal(p.ref), [ca,cl]=ytdCalendario(p.ref);
-  const linhas=[];
+  const linhas=[], rawYTD=[];
   for(const [rot,ma,ml] of [["YTD Fiscal",fa,fl],["YTD Calendário",ca,cl]]){
     const a=met(total(ma)), l=ml.length?met(total(ml)):null;
+    rawYTD.push([rot+" "+CAL[ma[0]][C_ROT]+"-"+CAL[ma[ma.length-1]][C_ROT],
+                 nr(a),nr(l),l===null?null:nr(a-l),nr(pctNum(varPct(a,l)))]);
     linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]}–${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]}–${CAL[ml[ml.length-1]][C_ROT]}`:""}</small>`,
       fmtMetrica(a), l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
       l===null?'<span class="nd">n/d</span>':fmtDelta(a-l), fmtPct(varPct(a,l))]);
   }
   el("sYTD").textContent="· referência "+CAL[p.ref][C_ROT];
   el("tabYTD").innerHTML=tabela(["Acumulado","Atual","Anterior","Δ","Δ%"],linhas);
+  registrarExport("tabYTD",["Acumulado","Atual","Anterior","Δ","Δ%"],rawYTD);
 }
 
 function renderPeriodo(p){
@@ -742,17 +730,21 @@ function renderPeriodo(p){
     grupos.get(g)[0].push(i);
     const ly=CAL[i][C_LY]; if(ly>=0) grupos.get(g)[1].push(ly);
   });
-  const linhas=[]; let ta=0, tl=0, temLy=false;
+  const linhas=[], raw=[]; let ta=0, tl=0, temLy=false;
   for(const [g,[ms,ls]] of grupos){
     const a=met(total(ms)), l=ls.length?met(total(ls)):null;
     ta+=a; if(l!==null){ tl+=l; temLy=true; }
+    raw.push([g,nr(a),nr(l),l===null?null:nr(a-l),nr(pctNum(varPct(a,l)))]);
     linhas.push([g,fmtMetrica(a),l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
                  l===null?'<span class="nd">n/d</span>':fmtDelta(a-l),fmtPct(varPct(a,l))]);
   }
+  raw.push(["Total",nr(ta),temLy?nr(tl):null,temLy?nr(ta-tl):null,
+            nr(pctNum(temLy?varPct(ta,tl):null))]);
   el("sPer").textContent="· "+GRANS[F.gran]+" · "+METRICAS[F.metrica].rot;
   el("tabPer").innerHTML=tabela(["Período","Atual","LY","Δ","Δ%"],linhas,
     ["<b>Total</b>",fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
      temLy?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(ta,tl):null)]);
+  registrarExport("tabPer",["Período","Atual","LY","Δ","Δ%"],raw);
 }
 
 /* Quebra por dimensao. O denominador da participacao % e o total do recorte COM
@@ -785,30 +777,42 @@ function quebra(p, dim, idTab, idInfo){
     return;
   }
   const a=somar(p.atual,fn,dim), l=somar(p.ly,fn,dim), den=total(p.atual,dim);
-  desenharQuebra(a,l,den,ROTULOS[dim],idTab,p);
+  desenharQuebra(a,l,den,ROTULOS[dim],idTab,p, dim==="cat" && idTab==="tabDet");
 }
-function desenharQuebra(mapA,mapL,den,rot,idTab,p){
+function desenharQuebra(mapA,mapL,den,rot,idTab,p,clicavel){
   const denV=met(den);
   const itens=[...mapA.entries()].map(([k,v])=>({k,a:met(v),l:mapL.has(k)?met(mapL.get(k)):null}));
   mapL.forEach((v,k)=>{ if(!mapA.has(k)) itens.push({k,a:0,l:met(v)}); });
   itens.sort((x,y)=>y.a-x.a);
   const maxA=Math.max(...itens.map(i=>Math.abs(i.a)),1);
   let ta=0,tl=0,temLy=false;
+  const raw=[];
   const linhas=itens.map(i=>{
     ta+=i.a; if(i.l!==null&&p.ly.length){ tl+=i.l; temLy=true; }
     const part=razao(i.a,denV);
     const larg=Math.max(1,Math.round(Math.abs(i.a)/maxA*54));
     const ly = (p.ly.length && i.l!==null) ? i.l : null;
-    return [rot(i.k), fmtMetrica(i.a),
+    raw.push([rot(i.k),nr(i.a),nr(ly),ly===null?null:nr(i.a-ly),
+              nr(pctNum(varPct(i.a,ly))),part===null?null:nr(part*100)]);
+    const nome = clicavel
+      ? `<span class="drill" data-dk="${i.k}" title="ver os SKUs desta categoria">${rot(i.k)} ▸</span>`
+      : rot(i.k);
+    return [nome, fmtMetrica(i.a),
       ly===null?'<span class="nd">n/d</span>':fmtMetrica(ly),
       ly===null?'<span class="nd">n/d</span>':fmtDelta(i.a-ly),
       fmtPct(varPct(i.a,ly)),
       `<span class="barra" style="width:${larg}px"></span>${fmtParte(part)}`];
   });
+  raw.push(["Total",nr(ta),temLy?nr(tl):null,temLy?nr(ta-tl):null,
+            nr(pctNum(temLy?varPct(ta,tl):null)),denV?nr(ta/denV*100):null]);
   el(idTab).innerHTML=tabela(["Dimensão","Atual","LY","Δ","Δ%","Part. %"],linhas,
     ["<b>Total</b>",fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
      temLy?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(ta,tl):null),
      denV?fmtParte(ta/denV):"—"]);
+  registrarExport(idTab,["Dimensão","Atual","LY","Δ","Δ%","Part. %"],raw);
+  el(idTab).onclick = clicavel
+    ? (e)=>{const s=e.target.closest(".drill"); if(s) abrirDrill(+s.dataset.dk);}
+    : null;
 }
 function renderDet(p){
   el("sDet").textContent="· "+METRICAS[F.metrica].rot;
@@ -837,6 +841,9 @@ function renderGeo(p){
   el("sUFper").textContent="· "+GRANS[F.gran]+" · "+METRICAS[F.metrica].rot;
   el("tabUFper").innerHTML=tabela(["UF"].concat(cols).concat(["Total"]),linhas,
     ["<b>Total</b>"].concat(tot.map(v=>fmtMetrica(v))).concat([`<b>${fmtMetrica(tot.reduce((a,b)=>a+b,0))}</b>`]));
+  const rawM=ordem.map(r=>[D.uf[r.k]].concat(cols.map(c=>nr(r.o[c]||0))).concat([nr(r.t)]));
+  rawM.push(["Total"].concat(tot.map(v=>nr(v))).concat([nr(tot.reduce((a,b)=>a+b,0))]));
+  registrarExport("tabUFper",["UF"].concat(cols).concat(["Total"]),rawM);
 }
 
 /* ------------------------------------------------------ rankings genericos */
@@ -866,6 +873,12 @@ function tabelaRanking(itens,rot,den,n,idTab){
   el(idTab).innerHTML=tabela(["Item","Atual","LY","Δ","Δ%","Part. %"],linhas,
     [`<b>Exibidos (${corte.length} de ${lista.length})</b>`,fmtMetrica(sa),fmtMetrica(sl),
      fmtDelta(sa-sl),fmtPct(varPct(sa,sl)),den?fmtParte(sa/den):"—"]);
+  const rawR=corte.map(i=>[rot(i.k),nr(i.a),i.novo?null:nr(i.l),
+    i.novo?null:nr(i.d),nr(pctNum(varPct(i.a,i.novo?null:i.l))),
+    razao(i.a,den)===null?null:nr(i.a/den*100)]);
+  rawR.push(["Exibidos ("+corte.length+" de "+lista.length+")",nr(sa),nr(sl),
+    nr(sa-sl),nr(pctNum(varPct(sa,sl))),den?nr(sa/den*100):null]);
+  registrarExport(idTab,["Item","Atual","LY","Δ","Δ%","Part. %"],rawR);
 }
 function renderBandeiras(p){
   if(usaCuboSku()){
@@ -941,6 +954,12 @@ function renderPreco(p){
       ["<b>Total</b>",fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
        (pa===null||pl===null)?'<span class="nd">n/d</span>':nbsp((pa-pl>=0?"+":"−")+"R$ "+fmtNum(Math.abs(pa-pl),2)),
        fmtPct(varPct(pa,pl))]);
+    const rawP=itens.map(i=>[rot(i.k),nr(i.pa,4),p.ly.length?nr(i.pl,4):null,
+      (i.pl===null||i.pa===null||!p.ly.length)?null:nr(i.pa-i.pl,4),
+      nr(pctNum(varPct(i.pa,p.ly.length?i.pl:null)))]);
+    rawP.push(["Total",nr(pa,4),nr(pl,4),
+      (pa===null||pl===null)?null:nr(pa-pl,4),nr(pctNum(varPct(pa,pl)))]);
+    registrarExport("tabPreco",["Dimensão","R$/kg atual","R$/kg LY","Δ","Δ%"],rawP);
   }
   // preco por periodo
   const grupos=new Map();
@@ -948,16 +967,214 @@ function renderPreco(p){
     if(!grupos.has(g)) grupos.set(g,[[],[]]);
     grupos.get(g)[0].push(i);
     const ly=CAL[i][C_LY]; if(ly>=0) grupos.get(g)[1].push(ly); });
-  const linhas=[];
+  const linhas=[], rawPP=[];
   for(const [g,[ms,ls]] of grupos){
     const va=total(ms), vl=ls.length?total(ls):null;
     const pa=razao(receita(va),pesoKg(va));
     const pl=vl?razao(receita(vl),pesoKg(vl)):null;
+    rawPP.push([g,nr(pa,4),nr(pl,4),nr(pctNum(varPct(pa,pl)))]);
     linhas.push([g,fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
       fmtPct(varPct(pa,pl))]);
   }
   el("sPrecoPer").textContent="· "+GRANS[F.gran];
   el("tabPrecoPer").innerHTML=tabela(["Período","R$/kg atual","R$/kg LY","Δ%"],linhas);
+  registrarExport("tabPrecoPer",["Período","R$/kg atual","R$/kg LY","Δ%"],rawPP);
+}
+
+/* ==================================================== exportacao (CSV/XLSX)
+   Uma funcao generica para TODAS as tabelas (Solicitacao 02, item 2). Cada
+   render registra a versao CRUA dos dados (numero e numero, sem "R$", sem
+   milhar, decimal com ponto); a formatacao pt-BR fica so na tela. O XLSX e um
+   zip "stored" minimo escrito a mao — sem biblioteca externa, porque o painel
+   nao pode depender de rede.                                                */
+const RAW={};
+const NOME_TAB={tabPer:"periodo",tabYTD:"ytd",tabDet:()=>"detalhe-"+F.dimGeral,
+  tabUF:"uf",tabUFper:"uf-periodo",tabBan:"bandeiras",tabSku:"sku",
+  tabPreco:()=>"preco-"+F.dimPreco,tabPrecoPer:"preco-periodo",
+  tabDrill:()=>"sku-"+slug(D.cat[F.drillCat]??"categoria")};
+function nr(v,c=2){ if(v===null||v===undefined||!isFinite(v)) return null;
+  const f=Math.pow(10,c); return Math.round(v*f)/f; }
+function pctNum(v){ return (v===null||v===undefined||!isFinite(v))?null:v*100; }
+function slug(s){ return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40); }
+function nomeArquivo(id){
+  const base = typeof NOME_TAB[id]==="function"?NOME_TAB[id]():(NOME_TAB[id]||id);
+  const partes=[base];
+  if(F.cat.size&&F.cat.size<=2) partes.push([...F.cat].map(i=>slug(D.cat[i])).join("+"));
+  if(F.can.size&&F.can.size<=2) partes.push([...F.can].map(slug).join("+"));
+  if(F.head.size&&F.head.size<=2) partes.push([...F.head].map(slug).join("+"));
+  if(F.proj.size&&F.proj.size<=2) partes.push([...F.proj].map(slug).join("+"));
+  partes.push(F.base==="fis"?"ytd-fiscal":"ytd-calendario");
+  const sel=selecionados();
+  if(sel.length) partes.push(CAL[sel[sel.length-1]][C_AM]);
+  return partes.filter(x=>x).join("_");
+}
+function registrarExport(id, cols, rows){
+  RAW[id]={cols,rows};
+  const tab=el(id); if(!tab) return;
+  const card=tab.closest(".card"); if(!card) return;
+  const h3=card.querySelector("h3");
+  if(!h3||h3.querySelector(".expbtns")) return;
+  const sp=document.createElement("span"); sp.className="expbtns";
+  sp.innerHTML='<button class="mini" data-exp="csv">⬇ CSV</button>'
+              +'<button class="mini" data-exp="xlsx">⬇ XLSX</button>';
+  sp.addEventListener("click",e=>{const b=e.target.closest("[data-exp]");
+    if(b) exportarTabela(id,b.dataset.exp);});
+  h3.appendChild(sp);
+}
+function _semHtml(s){ return String(s).replace(/<[^>]*>/g,""); }
+function csvBlob(cols,rows){
+  const esc=v=>{ if(v===null||v===undefined) return "";
+    if(typeof v==="number") return String(v);
+    const s=_semHtml(v);
+    return /[",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const txt="\ufeff"+[cols.map(esc).join(",")]
+    .concat(rows.map(r=>r.map(esc).join(","))).join("\r\n");
+  return new Blob([txt],{type:"text/csv;charset=utf-8"});
+}
+function crc32(u8){ if(!crc32.T){crc32.T=new Int32Array(256);
+  for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);crc32.T[n]=c;}}
+  let c=-1; for(let i=0;i<u8.length;i++) c=crc32.T[(c^u8[i])&255]^(c>>>8);
+  return (c^-1)>>>0; }
+function zipStore(files){
+  const partes=[], cd=[]; let off=0;
+  for(const f of files){
+    const nome=new TextEncoder().encode(f.nome), crc=crc32(f.u8), n=f.u8.length;
+    const lf=new DataView(new ArrayBuffer(30));
+    lf.setUint32(0,0x04034b50,true); lf.setUint16(4,20,true); lf.setUint16(6,0x0800,true);
+    lf.setUint32(14,crc,true); lf.setUint32(18,n,true); lf.setUint32(22,n,true);
+    lf.setUint16(26,nome.length,true);
+    partes.push(new Uint8Array(lf.buffer),nome,f.u8);
+    const ce=new DataView(new ArrayBuffer(46));
+    ce.setUint32(0,0x02014b50,true); ce.setUint16(4,20,true); ce.setUint16(6,20,true);
+    ce.setUint16(8,0x0800,true);
+    ce.setUint32(16,crc,true); ce.setUint32(20,n,true); ce.setUint32(24,n,true);
+    ce.setUint16(28,nome.length,true); ce.setUint32(42,off,true);
+    cd.push(new Uint8Array(ce.buffer),nome);
+    off+=30+nome.length+n;
+  }
+  const cdLen=cd.reduce((s,u)=>s+u.length,0);
+  const fim=new DataView(new ArrayBuffer(22));
+  fim.setUint32(0,0x06054b50,true);
+  fim.setUint16(8,files.length,true); fim.setUint16(10,files.length,true);
+  fim.setUint32(12,cdLen,true); fim.setUint32(16,off,true);
+  return new Blob([...partes,...cd,new Uint8Array(fim.buffer)],
+    {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function _xml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function xlsxBlob(cols,rows){
+  const enc=new TextEncoder();
+  const cel=v=>(typeof v==="number")?("<c><v>"+v+"</v></c>")
+    :('<c t="inlineStr"><is><t xml:space="preserve">'
+      +_xml(v===null||v===undefined?"":_semHtml(v))+"</t></is></c>");
+  const linha=r=>"<row>"+r.map(cel).join("")+"</row>";
+  const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'
+    +linha(cols)+rows.map(linha).join("")+"</sheetData></worksheet>";
+  const wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+    +'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+    +'<sheets><sheet name="dados" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  const wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
+  const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+    +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+    +'<Default Extension="xml" ContentType="application/xml"/>'
+    +'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+    +'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
+  return zipStore([
+    {nome:"[Content_Types].xml",u8:enc.encode(ct)},
+    {nome:"_rels/.rels",u8:enc.encode(rels)},
+    {nome:"xl/workbook.xml",u8:enc.encode(wb)},
+    {nome:"xl/_rels/workbook.xml.rels",u8:enc.encode(wbRels)},
+    {nome:"xl/worksheets/sheet1.xml",u8:enc.encode(sheet)},
+  ]);
+}
+function exportarTabela(id,fmt){
+  const d=RAW[id]; if(!d) return;
+  const blob=fmt==="xlsx"?xlsxBlob(d.cols,d.rows):csvBlob(d.cols,d.rows);
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=nomeArquivo(id)+"."+fmt;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
+}
+
+/* ============================================= drill-down Categoria -> SKU
+   (Solicitacao 02, item 3). O detalhe mantem periodo, base e filtros da tela —
+   e um recorte, nao uma tela nova. Ordenado pela MAIOR QUEDA, porque o caso de
+   uso e achar quem derrubou o agregado. Os demais drill-downs (canal/projeto ->
+   cliente) estao BLOQUEADOS por definicao externa (B1-B3 da Solicitacao 02). */
+function abrirDrill(catIdx){
+  F.drillCat=catIdx; renderDrill();
+  el("drillWrap").hidden=false;
+  el("drillWrap").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function fecharDrill(){ F.drillCat=null; el("drillWrap").hidden=true; }
+function renderDrill(){
+  if(F.drillCat===null||F.drillCat===undefined) return;
+  const p=periodo();
+  el("drillTitulo").textContent="SKUs de "+(D.cat[F.drillCat]??"?");
+  el("sDrill").textContent=" · "+METRICAS[F.metrica].rot+" · ordenado pela maior queda";
+  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM);
+  p.atual.forEach(i=>alvo[i]=1); p.ly.forEach(i=>alvoL[i]=1);
+  const passa=l=>{
+    if(D.sku[l[1]][2]!==F.drillCat) return false;
+    const hc=D.hc[l[2]];
+    if(F.head.size&&!F.head.has(hc[0])) return false;
+    if(F.can.size&&!F.can.has(hc[1])) return false;
+    if(F.uf.size&&!F.uf.has(l[3])) return false;
+    return true;
+  };
+  const A=new Map(), L=new Map();
+  for(const l of CUBO_SKU){
+    const m=alvo[l[0]]?A:(alvoL[l[0]]?L:null); if(!m) continue;
+    if(!passa(l)) continue;
+    let v=m.get(l[1]); if(!v){v=MZERO(); m.set(l[1],v);}
+    v[0]+=l[4]; v[1]+=l[5]; v[2]+=l[6];
+  }
+  const temLy=p.ly.length>0;
+  const itens=[...new Set([...A.keys(),...L.keys()])].map(k=>{
+    const a=A.has(k)?met(A.get(k)):0;
+    const l=temLy?(L.has(k)?met(L.get(k)):0):null;
+    return {k,a,l,d:l===null?null:a-l,novo:temLy&&!L.has(k),sumiu:!A.has(k)};
+  }).sort((x,y)=>(x.d??0)-(y.d??0));
+  const raw=[]; let sa=0, sl=0;
+  const linhas=itens.map(i=>{
+    sa+=i.a; sl+=i.l||0;
+    raw.push([D.sku[i.k][0]+" "+D.sku[i.k][1],nr(i.a),nr(i.l),
+              i.d===null?null:nr(i.d),nr(pctNum(varPct(i.a,i.novo?null:i.l)))]);
+    return [D.sku[i.k][1]
+      +(i.novo?' <small style="color:var(--gd)">novo</small>':"")
+      +(i.sumiu?' <small style="color:var(--bd)">sem faturamento</small>':""),
+      fmtMetrica(i.a),
+      i.l===null?'<span class="nd">n/d</span>':fmtMetrica(i.l),
+      i.d===null?'<span class="nd">n/d</span>':fmtDelta(i.d),
+      fmtPct(varPct(i.a,i.novo?null:i.l))];
+  });
+  if(!linhas.length){ vazio("tabDrill","Nenhum SKU desta categoria no recorte."); }
+  else{
+    el("tabDrill").innerHTML=tabela(["SKU","Atual","LY","Δ","Δ%"],linhas,
+      ["<b>Total da categoria</b>",fmtMetrica(sa),
+       temLy?fmtMetrica(sl):'<span class="nd">n/d</span>',
+       temLy?fmtDelta(sa-sl):'<span class="nd">n/d</span>',
+       fmtPct(temLy?varPct(sa,sl):null)]);
+    raw.push(["Total",nr(sa),temLy?nr(sl):null,temLy?nr(sa-sl):null,
+              nr(pctNum(temLy?varPct(sa,sl):null))]);
+    registrarExport("tabDrill",["SKU","Atual","LY","Δ","Δ%"],raw);
+  }
+  const ign=[];
+  if(F.ger.size)ign.push("gerente"); if(F.ban.size)ign.push("bandeira");
+  if(F.proj.size)ign.push("projeto"); if(F.sku.size)ign.push("o filtro de SKU");
+  el("nDrill").innerHTML="Mesmo período, mesma base de comparação e mesmos filtros"
+    +" da tela. Vem da camada de SKU (head, canal, categoria, UF)."
+    +(ign.length?" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".":"");
 }
 
 /* ================================================================ eventos */
@@ -997,6 +1214,7 @@ function ligar(){
   ligarChips("dimPreco", k=>{ F.dimPreco=k; montarFiltros(); });
   ligarChips("topBan", k=>{ F.topBan=+k; montarFiltros(); });
   ligarChips("topSku", k=>{ F.topSku=+k; montarFiltros(); });
+  el("drillVoltar").onclick=fecharDrill;
   el("limpar").onclick=()=>{
     ["cat","head","ger","can","proj","uf","ban","sku"].forEach(k=>F[k].clear());
     preSelecionarMeses(); el("bBan").value=""; el("bSku").value="";

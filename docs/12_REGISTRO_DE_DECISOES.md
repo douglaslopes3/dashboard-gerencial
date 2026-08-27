@@ -440,3 +440,59 @@ clientes. A verificação confirmou a leitura dele:
 em `data/quality/clientes_canal_key_account.csv`. Nada foi reclassificado no
 ETL: mapear os 3 por palpite seria regra inventada, e o custo de esperar a
 origem é zero real.
+
+---
+
+# Solicitação 02 (26/08/2026) — funcionalidades
+
+## D-28 · A base de comparação tem DOIS estados; o LY está embutido
+
+**Contexto.** O botão "Meses vs mesmo período LY" era redundante (Solicitação
+02, item 1).
+
+**Decisão.** `BASES` ficou com `fis` e `cal`. O período passa a ser **exatamente
+os meses selecionados**, e o anterior são **os mesmos meses do ano anterior**
+(pareados por `ANO_MES_LY`, junção — nunca deslocamento). O botão decide qual
+ano emoldura a lista de meses e como o card de YTD acumula; não muda a conta.
+
+**O que isso corrigiu de quebra:** antes, em YTD Fiscal com 3 meses marcados, as
+tabelas mostravam o acumulado fiscal inteiro — a seleção parcial era ignorada.
+Agora 3 meses selecionados comparam com os mesmos 3 do LY (aceite conferido:
+set–nov/25 R$ 316,15 mi × set–nov/24 R$ 302,07 mi), e a seleção cheia devolve o
+mesmo total de sempre (R$ 1.127.251.765,81). Os branches do terceiro estado
+foram **removidos**, não comentados.
+
+## D-29 · Exportação CSV/XLSX genérica, com dado CRU
+
+**Decisão.** Todas as 9 tabelas (mais o drill) exportam por **uma função
+genérica**: cada render registra a versão **crua** dos dados (número é número —
+sem "R$", sem separador de milhar, decimal com ponto; % em pontos percentuais),
+e a formatação pt-BR fica só na tela. O nome do arquivo carrega tabela, recorte,
+base e último mês (`sku-amendoim_ytd-fiscal_2026-08.xlsx`). Exporta **o que está
+na tela** — todos os filtros ativos valem.
+
+**Como o XLSX nasce sem biblioteca:** o painel não pode depender de rede, então
+o `.xlsx` é um zip *stored* mínimo escrito à mão (5 arquivos XML, CRC32
+próprio). Validado fora do navegador: `zipfile.testzip()` OK e `openpyxl` lê
+com os valores tipados como `float`. Tabela vazia limpa o registro — não
+exporta dado velho.
+
+## D-30 · Drill-down Categoria → SKU; os demais ficam bloqueados
+
+**Decisão.** Na quebra por Categoria do Detalhamento, a linha vira clicável e
+abre os SKUs da categoria: mesmo período, mesma base, mesmos filtros (head,
+canal, UF — os que a camada de SKU conhece), **ordenado pela maior queda**,
+com "← voltar" e exportação própria. O detalhe re-renderiza quando um filtro
+muda — é um recorte, não uma tela nova.
+
+**O que NÃO foi feito, por instrução expressa (B1–B3):** Canal → Cliente,
+Projeto → Cliente e Head → Gerente. Cliente não é dimensão de nenhum cubo, e a
+Solicitação 02 proíbe assumir origem, chave ou estratégia de carga. Registro
+para a decisão futura, medido: **(a)** a hierarquia head → gerente **já existe
+no cubo principal** como dado do de-para (o par viaja no PERFIL — a quebra
+"Gerente" mostra `gerente · head` hoje), então o drill Head → Gerente não
+precisa de dado novo, só da liberação de B2; **(b)** para Cliente, o grão
+`mês × cliente` tem ~16 mil clientes × 24 meses — embutir multiplicaria o HTML;
+a alternativa é um arquivo de detalhe ao lado do painel, carregado sob demanda,
+o que quebra o "um arquivo só, duplo clique". É exatamente a decisão B3, e ela
+é de quem coordena.
