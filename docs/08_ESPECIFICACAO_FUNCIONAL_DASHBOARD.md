@@ -59,8 +59,10 @@ ninguém consegue explicar depois.
   (`receita ÷ nº de meses`) · Preço Médio R$/kg (**= ticket médio**, D-22).
   Cada um com o valor do período, o LY, a variação absoluta e a **variação % com
   sinal e seta**.
-* **Evolução mensal:** linha do período atual + linha do mesmo período LY, no eixo
-  da métrica selecionada, com tooltip trazendo os dois valores e a variação.
+* **Evolução mensal:** barras do período atual + barras do mesmo período LY
+  (28/08/2026 — era linha), com **rótulo de dados** sobre cada barra (desenhado
+  à mão no `afterDatasetsDraw`, sem plugin externo — zero rede) e tooltip com
+  os dois valores. Período sem par no LY fica **sem a barra clara**, nunca zero.
 * **Comparativo YTD:** YTD Fiscal atual × anterior e YTD Calendário atual ×
   anterior, cada um com Δ absoluto e Δ %. **Os dois aparecem sempre**, independente
   da base selecionada — é a comparação que o §11 pede.
@@ -106,7 +108,7 @@ ninguém consegue explicar depois.
 | Denominador zero no preço médio | **`n/d`** |
 | Recorte sem nenhuma linha | *"Sem dados para este recorte"* no lugar do gráfico/tabela |
 | Métrica Caixas sem informação na fonte | soma ignora nulos + nota de rodapé com o nº de linhas afetadas |
-| Meses do LY parcialmente cobertos | **comparativo pareado (D-32)**: LY, Δ e Δ% usam só os meses com par; a linha de estado declara *"N de M meses"* e os totais afetados levam `*` com tooltip |
+| Meses do LY parcialmente cobertos | **comparativo desligado (D-35)**: LY, Δ e Δ% do agregado viram `n/d`; a linha de estado diz *"só N de M meses têm par — selecione apenas esses meses"*. As linhas por mês/período continuam comparando cada grupo com par completo (D-32), e o total parcial leva `*` com tooltip |
 
 **Nunca** aparece `∞`, `NaN`, `#DIV/0!`, `undefined` ou célula em branco sem
 explicação.

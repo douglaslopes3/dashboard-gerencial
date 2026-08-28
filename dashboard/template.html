@@ -37,6 +37,10 @@
   --zebra:#fafbfc;
 }
 *{box-sizing:border-box}
+/* O atributo `hidden` perde para qualquer display de classe (ex.: .grid) —
+   sem esta regra o card do drill ficava VISIVEL depois do "voltar ao
+   agregado", com o conteudo velho (bug relatado em 28/08). */
+[hidden]{display:none !important}
 body{margin:0;padding:18px 22px 40px;background:var(--bg);color:var(--txt);
   font:13px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
 h1{font-size:20px;margin:0 0 2px;letter-spacing:-.2px}
@@ -50,31 +54,39 @@ h1 span{color:var(--azul)}
 .grid{display:grid;gap:12px;margin-bottom:12px}
 .note{color:var(--txt2);font-size:11px;margin-top:8px;line-height:1.4}
 
-/* ---------------------------------------------------------------- filtros */
-.filters{background:var(--card);border:1px solid var(--linha);border-radius:8px;
-  padding:10px 12px;margin-bottom:12px}
-.frow{display:flex;align-items:flex-start;gap:8px;padding:4px 0;flex-wrap:wrap}
-.flab{min-width:78px;font-size:11px;font-weight:600;color:var(--txt2);
+/* ---------------------------------------------------------------- filtros
+   (28/08: "menos branco" — painel com fundo azulado, rotulo em azul, chip
+   com tinta leve e divisoria discreta entre as linhas)                      */
+.filters{background:linear-gradient(180deg,#e9f1fa,#eef3f8);
+  border:1px solid #cddcec;border-radius:10px;
+  padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(16,48,80,.06)}
+.frow{display:flex;align-items:flex-start;gap:8px;padding:5px 0;flex-wrap:wrap;
+  border-bottom:1px dashed #d3e0ee}
+.frow:last-of-type{border-bottom:0}
+.flab{min-width:78px;font-size:11px;font-weight:700;color:var(--azul);
   text-transform:uppercase;letter-spacing:.4px;padding-top:5px}
 .chips{display:flex;gap:5px;flex-wrap:wrap;flex:1}
-.chip{border:1px solid var(--linha);background:#fff;border-radius:20px;
+.chip{border:1px solid #bfd3e6;background:#f7fafd;border-radius:20px;
   padding:3px 11px;font-size:12px;cursor:pointer;user-select:none;
-  transition:background .12s,border-color .12s;white-space:nowrap}
-.chip:hover{border-color:var(--azul)}
-.chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
+  transition:background .12s,border-color .12s,box-shadow .12s;white-space:nowrap}
+.chip:hover{border-color:var(--azul);background:#fff}
+.chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600;
+  box-shadow:0 1px 3px rgba(0,83,159,.28)}
 .chip.vazio{opacity:.38}
 .chip.off{opacity:.5;cursor:not-allowed}
 .mon-wrap,.uf-wrap{max-height:78px;overflow:auto}
-.mini{border:1px solid var(--linha);background:#fff;border-radius:5px;
+.mini{border:1px solid #bfd3e6;background:#f7fafd;border-radius:5px;
   padding:3px 9px;font-size:11px;cursor:pointer;color:var(--txt2)}
-.mini:hover{border-color:var(--azul);color:var(--azul)}
+.mini:hover{border-color:var(--azul);color:var(--azul);background:#fff}
 .reset{border:1px solid var(--bd);background:#fff;color:var(--bd);border-radius:5px;
   padding:4px 12px;font-size:12px;cursor:pointer;font-weight:600}
 .reset:hover{background:var(--bdbg)}
-.busca{border:1px solid var(--linha);border-radius:5px;padding:4px 9px;
-  font-size:12px;min-width:190px;font-family:inherit}
-.estado{background:var(--azul2);border-left:3px solid var(--azul);border-radius:4px;
-  padding:6px 10px;font-size:11.5px;color:var(--txt);margin-top:6px}
+.busca{border:1px solid #bfd3e6;border-radius:5px;padding:4px 9px;
+  font-size:12px;min-width:190px;font-family:inherit;background:#f7fafd}
+.busca:focus{background:#fff;outline:1px solid var(--azul)}
+.estado{background:#fff;border-left:3px solid var(--azul);border:1px solid #cddcec;
+  border-left-width:3px;border-left-color:var(--azul);border-radius:4px;
+  padding:6px 10px;font-size:11.5px;color:var(--txt);margin-top:8px}
 
 /* ------------------------------------------------------------------- abas */
 .tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:2px solid var(--linha);
@@ -438,15 +450,21 @@ function preSelecionarMeses(){
    a lista de meses e como o YTD do comparativo acumula; nao muda esta conta. */
 function periodo(){
   const sel = selecionados();
-  if(!sel.length) return {atual:[], pareado:[], ly:[], ref:null};
+  if(!sel.length) return {atual:[], pareado:[], ly:[], ref:null, mesesComPar:0};
   const ref = sel[sel.length-1];
-  // COMPARATIVO PAREADO (decisao D-32, 27/08/2026): a comparacao com o ano
-  // anterior usa SOMENTE os meses que tem o mesmo mes no LY. `pareado` e o
-  // subconjunto do periodo atual com par; `ly` sao exatamente esses pares.
-  // ago/25 sem ago/24 na serie fica FORA do comparativo — o "Atual" exibido
-  // continua sendo o periodo inteiro, mas LY, Δ e Δ% comparam par com par.
-  const pareado = sel.filter(i=>CAL[i][C_LY]>=0);
-  return {atual:sel, pareado, ly:pareado.map(i=>CAL[i][C_LY]), ref};
+  // COMPARATIVO TUDO-OU-NADA (D-35, 28/08/2026, substitui o pareamento
+  // parcial da D-32 no AGREGADO): o comparativo com o ano anterior so existe
+  // quando TODOS os meses selecionados tem o mesmo mes no LY. Mostrar
+  // "Atual R$ 1,17 bi (12 meses) vs LY R$ 375 mi (4 meses)" — mesmo com o Δ
+  // pareado — le-se como comparacao de 12 contra 4. Com par incompleto, LY,
+  // Δ e Δ% viram n/d e a linha de estado explica; quem quiser comparar par a
+  // par seleciona exatamente os meses pareados. As quebras POR MES/PERIODO
+  // continuam comparando cada grupo que tem par completo (regra da D-32).
+  const comPar = sel.filter(i=>CAL[i][C_LY]>=0);
+  const completo = comPar.length===sel.length && comPar.length>0;
+  const pareado = completo ? comPar : [];
+  return {atual:sel, pareado, ly:pareado.map(i=>CAL[i][C_LY]), ref,
+          mesesComPar:comPar.length};
 }
 // true quando HA comparativo mas nem todo mes selecionado tem par no LY
 function parcialLy(p){ return p.ly.length>0 && p.pareado.length<p.atual.length; }
@@ -454,19 +472,23 @@ function parcialLy(p){ return p.ly.length>0 && p.pareado.length<p.atual.length; 
    comparativo usa so os meses PAREADOS. Antes, "YTD Calendario 2025" somava
    os 12 meses de 2025 e comparava com os 4 meses de 2024 que existem na
    serie: crescimento falso. Devolve [meses, pareados, pares_no_LY]. */
+// D-35: mesmo tudo-ou-nada do periodo() — acumulado com par incompleto no LY
+// fica SEM comparativo (o 4o item devolve quantos meses teriam par, p/ a nota).
 function ytdFiscal(ref){
   const fy=CAL[ref][C_FY], mf=CAL[ref][C_MFIS]; const a=[];
   for(let i=0;i<NM;i++)
     if(CAL[i][C_FY]===fy && CAL[i][C_MFIS]<=mf) a.push(i);
-  const aP=a.filter(i=>CAL[i][C_LY]>=0);
-  return [a, aP, aP.map(i=>CAL[i][C_LY])];
+  const comPar=a.filter(i=>CAL[i][C_LY]>=0);
+  const aP=comPar.length===a.length?comPar:[];
+  return [a, aP, aP.map(i=>CAL[i][C_LY]), comPar.length];
 }
 function ytdCalendario(ref){
   const an=CAL[ref][C_ANO], me=CAL[ref][C_MES]; const a=[];
   for(let i=0;i<NM;i++)
     if(CAL[i][C_ANO]===an && CAL[i][C_MES]<=me) a.push(i);
-  const aP=a.filter(i=>CAL[i][C_LY]>=0);
-  return [a, aP, aP.map(i=>CAL[i][C_LY])];
+  const comPar=a.filter(i=>CAL[i][C_LY]>=0);
+  const aP=comPar.length===a.length?comPar:[];
+  return [a, aP, aP.map(i=>CAL[i][C_LY]), comPar.length];
 }
 
 /* --------------------------------------------------------------- filtros
@@ -680,8 +702,10 @@ function atualizarEstado(p){
   partes.push(BASES[F.base].rot);
   if(p.atual.length) partes.push(`período: <b>${CAL[p.atual[0]][C_ROT]}–${CAL[p.atual[p.atual.length-1]][C_ROT]}</b> (${p.atual.length} meses)`);
   partes.push(`LY: ${p.ly.length ? `<b>${p.ly.length}</b> de ${p.atual.length} meses cobertos` : "<b>sem base</b>"}`);
-  if(parcialLy(p))
-    partes.push(`<b>comparativo pareado</b>: LY, Δ e Δ% usam só os ${p.pareado.length} meses com par no ano anterior (D-32)`);
+  // D-35: par incompleto = comparativo agregado DESLIGADO, com o caminho para
+  // religa-lo dito na propria tela.
+  if(!p.ly.length && p.mesesComPar>0)
+    partes.push(`<b>comparativo desligado</b>: só ${p.mesesComPar} de ${p.atual.length} meses têm par no ano anterior — para comparar par a par, selecione apenas esses meses (D-35)`);
   const d=[];
   if(F.can.size)  d.push(`${F.can.size} canal(is)`);
   if(F.cat.size)  d.push(`${F.cat.size} categoria(s)`);
@@ -705,10 +729,11 @@ function atualizarEstado(p){
 
 function renderKPIs(p){
   const a=total(p.atual), l=total(p.ly);
-  // D-32: o lado "atual" do comparativo e o subconjunto PAREADO.
-  const aP=parcialLy(p)?total(p.pareado):a;
-  const sufP=parcialLy(p)
-    ? ` <small title="só os meses com par no ano anterior entram no comparativo">(${p.pareado.length}/${p.atual.length} meses)</small>` : "";
+  // D-35: com par completo aP === a; com par incompleto p.ly esta vazio e o
+  // comparativo inteiro vira n/d — o sufixo diz o porquê.
+  const aP=a;
+  const sufP=(!p.ly.length && p.mesesComPar>0)
+    ? ` <small title="só ${p.mesesComPar} de ${p.atual.length} meses têm par no ano anterior — comparativo desligado (D-35); selecione apenas os meses pareados para comparar">(par incompleto)</small>` : "";
   const itens=[];
   for(const [k,mt] of Object.entries(METRICAS)){
     const va=a[mt.col-5]/mt.esc, vl=l[mt.col-5]/mt.esc, vaP=aP[mt.col-5]/mt.esc;
@@ -766,35 +791,65 @@ function renderEvolucao(p){
   }
   const m=METRICAS[F.metrica];
   el("tEvo").textContent=`Evolução — ${m.rot} · ${GRANS[F.gran]}`;
-  el("nEvo").innerHTML=`Linha cheia = período selecionado. Linha tracejada = mesmo período do ano anterior.
-    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior aparecem interrompidos</b> — não são exibidos como zero.":""}`;
+  el("nEvo").innerHTML=`Barra escura = período selecionado. Barra clara = mesmo período do ano anterior.
+    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara</b> — não são exibidos como zero.":""}`;
   const ctx=el("cEvo").getContext("2d");
   if(chart) chart.destroy();
-  chart=new Chart(ctx,{type:"line",data:{labels:rotulos,datasets:[
-      {label:"Atual",data:atual,borderColor:"#00539f",backgroundColor:"rgba(0,83,159,.08)",
-       fill:true,tension:.25,pointRadius:3,spanGaps:false},
-      {label:"Ano anterior",data:anterior,borderColor:"#8fa3b8",borderDash:[6,4],
-       fill:false,tension:.25,pointRadius:2,spanGaps:false}]},
+  // Rotulo de dados desenhado a mao (afterDatasetsDraw): o bundle embutido e
+  // so o Chart.js — sem plugin externo, que violaria o "zero rede" do painel.
+  const rotCurto=v=>{
+    const s=v<0?"−":"", a=Math.abs(v);
+    if(a>=1e9) return s+fmtNum(a/1e9,2)+" bi";
+    if(a>=1e6) return s+fmtNum(a/1e6,1)+" mi";
+    if(a>=1e3) return s+fmtNum(a/1e3,1)+" mil";
+    return s+fmtNum(a,0);
+  };
+  const rotuloBarras={id:"rotuloBarras",afterDatasetsDraw(c){
+    const g=c.ctx; g.save();
+    g.textAlign="center";
+    c.data.datasets.forEach((ds,di)=>{
+      const meta=c.getDatasetMeta(di);
+      if(meta.hidden) return;
+      g.font=(di===0?"600 ":"")+"9.5px 'Segoe UI',Arial";
+      g.fillStyle=di===0?"#003a70":"#7d8fa1";
+      meta.data.forEach((elb,i)=>{
+        const v=ds.data[i];
+        if(v===null||v===undefined) return;
+        g.textBaseline=v<0?"top":"bottom";
+        g.fillText(rotCurto(v), elb.x, v<0?elb.y+3:elb.y-3);
+      });
+    });
+    g.restore();
+  }};
+  chart=new Chart(ctx,{type:"bar",data:{labels:rotulos,datasets:[
+      {label:"Atual",data:atual,backgroundColor:"#00539f",borderRadius:3,
+       maxBarThickness:46},
+      {label:"Ano anterior",data:anterior,backgroundColor:"#c2cfdc",borderRadius:3,
+       maxBarThickness:46}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      layout:{padding:{top:16}},
       plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},
         tooltip:{callbacks:{label:c=>c.dataset.label+": "+(c.parsed.y===null?"n/d":abrev(c.parsed.y,m.un))}}},
-      scales:{y:{beginAtZero:false,ticks:{callback:v=>abrev(v,m.un),font:{size:10}}},
-              x:{ticks:{font:{size:10}}}}}});
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>abrev(v,m.un),font:{size:10}}},
+              x:{ticks:{font:{size:10}}}}},
+    plugins:[rotuloBarras]});
 }
 
 function renderYTD(p){
   if(p.ref===null) return vazio("tabYTD");
-  const [fa,faP,fl]=ytdFiscal(p.ref), [ca,caP,cl]=ytdCalendario(p.ref);
+  const [fa,faP,fl,fn]=ytdFiscal(p.ref), [ca,caP,cl,cn]=ytdCalendario(p.ref);
   const linhas=[], rawYTD=[];
-  for(const [rot,ma,maP,ml] of [["YTD Fiscal",fa,faP,fl],["YTD Calendário",ca,caP,cl]]){
+  for(const [rot,ma,maP,ml,nPar] of [["YTD Fiscal",fa,faP,fl,fn],
+                                     ["YTD Calendário",ca,caP,cl,cn]]){
     const a=met(total(ma));
-    const aP=ml.length?(maP.length===ma.length?a:met(total(maP))):null;
+    const aP=ml.length?a:null;
     const l=ml.length?met(total(ml)):null;
-    const par=ml.length&&maP.length<ma.length
-      ? ` · comparativo sobre ${maP.length} de ${ma.length} meses (pareados)` : "";
+    // D-35: par incompleto = sem comparativo; a nota diz o porquê.
+    const par=!ml.length&&nPar>0
+      ? ` · sem comparativo: o ano anterior cobre só ${nPar} de ${ma.length} meses (D-35)` : "";
     rawYTD.push([rot+" "+CAL[ma[0]][C_ROT]+"-"+CAL[ma[ma.length-1]][C_ROT]+par,
                  nr(a),nr(l),l===null?null:nr(aP-l),nr(pctNum(varPct(aP,l)))]);
-    linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]}–${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]}–${CAL[ml[ml.length-1]][C_ROT]}${par}`:""}</small>`,
+    linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]}–${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]}–${CAL[ml[ml.length-1]][C_ROT]}`:par}</small>`,
       fmtMetrica(a), l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
       l===null?'<span class="nd">n/d</span>':fmtDelta(aP-l), fmtPct(varPct(aP,l))]);
   }
@@ -822,15 +877,17 @@ function renderPeriodo(p){
     linhas.push([g,fmtMetrica(a),l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
                  l===null?'<span class="nd">n/d</span>':fmtDelta(a-l),fmtPct(varPct(a,l))]);
   }
-  const par=temLy && taP!==ta;
-  raw.push([par?"Total (LY/Δ/Δ% sobre os períodos pareados)":"Total",
-            nr(ta),temLy?nr(tl):null,temLy?nr(taP-tl):null,
-            nr(pctNum(temLy?varPct(taP,tl):null))]);
+  // D-35: o TOTAL so compara quando TODOS os periodos exibidos tem par —
+  // as linhas continuam comparando cada grupo com par completo.
+  const totalCompara=temLy && taP===ta;
+  raw.push(["Total",nr(ta),totalCompara?nr(tl):null,
+            totalCompara?nr(ta-tl):null,
+            nr(pctNum(totalCompara?varPct(ta,tl):null))]);
   el("sPer").textContent="· "+GRANS[F.gran]+" · "+METRICAS[F.metrica].rot;
   el("tabPer").innerHTML=tabela(["Período","Atual","LY","Δ","Δ%"],linhas,
-    ["<b>Total</b>"+(par?' <small title="LY, Δ e Δ% do total somam só os períodos com par no ano anterior">*</small>':""),
-     fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
-     temLy?fmtDelta(taP-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(taP,tl):null)]);
+    ["<b>Total</b>"+(temLy&&!totalCompara?' <small title="o total não compara: nem todo período exibido tem par no ano anterior (D-35)">*</small>':""),
+     fmtMetrica(ta),totalCompara?fmtMetrica(tl):'<span class="nd">n/d</span>',
+     totalCompara?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(totalCompara?varPct(ta,tl):null)]);
   registrarExport("tabPer",["Período","Atual","LY","Δ","Δ%"],raw);
 }
 
@@ -959,7 +1016,7 @@ function ranking(mapA,mapAP,mapL,rot,n,temLy){
     return {k,a,aP,l,d:temLy?aP-l:null,novo:temLy&&!mapL.has(k),sumiu:!mapA.has(k)};
   });
   if(!temLy){
-    const msg='<div class="vazio">Sem base no ano anterior para este período — não há como medir ganho ou queda.</div>';
+    const msg='<div class="vazio">Sem base completa no ano anterior para este período (D-35) — não há como medir ganho ou queda.</div>';
     return [msg,msg,itens];
   }
   const ganhos=itens.filter(i=>i.d>0).sort((x,y)=>y.d-x.d).slice(0,n);
@@ -1254,7 +1311,13 @@ function abrirDrill(tipo, k){
   el("drillWrap").hidden=false;
   el("drillWrap").scrollIntoView({behavior:"smooth",block:"start"});
 }
-function fecharDrill(){ F.drill=null; el("drillWrap").hidden=true; }
+function fecharDrill(){
+  F.drill=null; el("drillWrap").hidden=true;
+  // Sem isto o card some mas a pagina fica parada la embaixo — parecia que o
+  // botao nao funcionava. Volta a vista para a tabela agregada.
+  const card=el("tabDet").closest(".card");
+  if(card) card.scrollIntoView({behavior:"smooth",block:"start"});
+}
 function renderDrill(){
   if(!F.drill) return;
   if(F.drill.tipo==="head") return renderDrillHead();

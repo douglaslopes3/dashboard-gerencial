@@ -188,8 +188,11 @@ cobertura de HEAD sobre o sell-in (oficial + complemento)
 Heads: `20 - ATACADO - ADEMIR TAVARES` (R$ 912,5 mi) · `10 - DISTRIBUICAO -
 MICHEL MEIRA` (R$ 543,4 mi) · `30 - KA Nacional - [VAGO]` (R$ 466,5 mi) ·
 `40 - KA REGIONAL - IZABELA SANTOS` (R$ 338,0 mi). Gerentes: 13 ·
-Supervisores: 55 · `PROJETO`: 7 valores. `Atendimento Ponta` **não existe
-mais** (a coluna saiu da DIM_CLIENTE; nunca chegava ao painel).
+Supervisores: 55 · `PROJETO`: 6 valores (só os da base oficial: o complemento
+tem `PROJETO` **em branco por decisão**, 28/08 — seus 2.612 clientes ficam
+`NÃO ATRIBUÍDO` no recorte de projeto até o Comercial classificar).
+`Atendimento Ponta` **não existe mais** (a coluna saiu da DIM_CLIENTE; nunca
+chegava ao painel).
 
 > A base grafa o mesmo posto vago ora `[VAGO]`, ora `[Vago]`, e o gerente
 > 33000 aparece com e sem nome — padronizados por **correção declarada** no

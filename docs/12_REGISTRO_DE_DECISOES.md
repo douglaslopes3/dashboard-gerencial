@@ -522,7 +522,7 @@ Ademir × CC medido na fato na integração do canal. Exportação própria
 **Seguem bloqueados:** Canal → Cliente e Projeto → Cliente (B1/B3 — cliente não
 é dimensão de cubo nenhum).
 
-## D-32 · Comparativo LY pareado mês a mês (27/08/2026)
+## D-32 · Comparativo LY pareado mês a mês (27/08/2026) — agregado endurecido pela D-35
 
 **Contexto.** Com a série começando em set/24, todo período que inclui meses
 sem par no ano anterior comparava o acumulado inteiro contra só os meses de LY
@@ -614,5 +614,52 @@ estrutura anterior (Vago 466,5 mi idêntico; demais com migrações pequenas);
 
 **Consequência declarada.** A história inteira (24 meses) passa a ser lida
 pela hierarquia nova — mesma regra do A8 ("carteira atual olhada para trás"),
-que segue aberto. O eixo PROJETO agora mistura os valores da base nova com os
-herdados da anterior nos clientes do complemento (`Clientes Novos` etc.).
+que segue aberto.
+
+**Complemento sem PROJETO (Douglas, 28/08/2026, mesma data).** O primeiro
+complemento herdava o PROJETO da base anterior, o que trazia de volta rótulos
+que a base nova abandonou (`Clientes Novos`, 2.422 clientes). Decidido: o
+complemento vai com `PROJETO` **em branco** — o eixo do painel mostra só os
+6 projetos da hierarquia oficial, e os 2.612 clientes ficam `NÃO ATRIBUÍDO`
+no recorte de projeto até o Comercial classificar (o valor antigo segue
+visível na coluna de apoio do arquivo). Head/gerente/supervisor continuam
+mapeados. O pipeline **não depende da base anterior**: ela foi usada uma
+única vez, offline, para gerar o complemento (e já foi apagada da pasta).
+
+## D-35 · Comparativo LY tudo-ou-nada no agregado + retoques de interface (28/08/2026)
+
+**Contexto.** Mesmo com o pareamento da D-32 (Δ e Δ% sempre par a par), a
+tela de "ano calendário 2025" mostrava **Atual R$ 1,17 bi (12 meses) ao lado
+de LY R$ 375,82 mi (4 meses)** — matematicamente pareado, visualmente uma
+comparação de 12 contra 4. O Douglas: *"não adianta comparar 2025 completo
+com 2024 sendo que em 2024 só tivemos alguns meses de saldo"*.
+
+**Decisão.** O comparativo **agregado** (KPIs, Comparativo YTD, totais de
+tabela, rankings de ganho/queda, totais de drill) passa a ser
+**tudo-ou-nada**: só existe quando TODOS os meses selecionados têm par no ano
+anterior. Com par incompleto, LY/Δ/Δ% viram `n/d` e a linha de estado diz
+o porquê e o caminho ("selecione apenas os N meses pareados"). As **quebras
+por mês/período continuam comparando cada grupo com par completo** (regra da
+D-32, mantida) — a linha de nov/25 compara com nov/24 mesmo quando o total
+não compara. Implementação: `periodo()` e `ytdFiscal/ytdCalendario` devolvem
+o par vazio quando incompleto; todo o resto da tela já lia esses campos.
+
+**Junto, no mesmo turno (pedidos da mesma conversa):**
+
+1. **Evolução vira gráfico de BARRAS com rótulo de dados** (era linha).
+   Rótulo desenhado à mão no `afterDatasetsDraw` — o painel continua sem
+   plugin externo e sem rede. Período sem par fica sem a barra clara.
+2. **Bloco de filtros reestilizado** ("está tudo muito branco"): painel com
+   fundo azulado em degradê, rótulos das linhas em azul, chips com tinta
+   leve, divisórias tracejadas entre as linhas.
+3. **Bug real do "voltar ao agregado" corrigido**: o atributo `hidden` perde
+   para o `display:grid` da classe `.grid`, então o card do drill **nunca
+   sumia** — ficava visível com o conteúdo velho. Corrigido com
+   `[hidden]{display:none !important}`; o fechar também rola a vista de
+   volta à tabela agregada.
+
+**Validação.** Reproduzido e conferido no navegador: cal/2025 → KPIs `n/d
+(par incompleto)` + estado explicando; só set–dez/25 selecionados → KPI
+compara R$ 103,47 mi × 111,23 mi (−7,0%); linhas mensais mantêm LY
+individual; drill abre e fecha de verdade; FY2026 segue idêntico (12/12
+pareados, nada mudou nos números).

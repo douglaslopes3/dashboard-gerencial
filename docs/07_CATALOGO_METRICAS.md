@@ -96,15 +96,17 @@ comparação contra o ano anterior está **embutida** (Solicitação 02 / D-28):
 | **Papel da base** | decide qual ano emoldura a lista de meses (fiscal set→ago ou calendário jan→dez) e como o card "Comparativo YTD" acumula |
 
 O intervalo LY é montado mapeando cada `ANO_MES` do período atual pelo seu
-`ANO_MES_LY`. **Comparativo pareado (D-32, 27/08/2026):** mês do período atual
-sem par no ano anterior fica **fora do comparativo** — não só do denominador.
-O "Atual" exibido continua sendo o período inteiro, mas LY, Δ e Δ% comparam
-exclusivamente os meses pareados, nos dois lados. Exemplo: ago/25 não tem
-ago/24 na série, então não entra em nenhuma comparação; "ano calendário 2025"
-mostra os 12 meses no Atual e compara set–dez/25 × set–dez/24. Nas visões por
-período (mês/trimestre/semestre), um grupo só tem comparativo quando **todos**
-os seus meses têm par. A linha de estado e os totais marcados com `*` declaram
-quando o pareamento é parcial.
+`ANO_MES_LY`. **Comparativo tudo-ou-nada (D-35, 28/08/2026, endurece a
+D-32):** o comparativo **agregado** (KPIs, YTD, totais, rankings, drills) só
+existe quando **todos** os meses selecionados têm par no ano anterior. Com
+par incompleto, LY, Δ e Δ% viram `n/d` e a linha de estado explica
+("comparativo desligado: só N de M meses têm par — selecione apenas esses
+meses"). Exemplo: "ano calendário 2025" mostra R$ do ano inteiro e **nenhum**
+comparativo (2024 só tem set–dez na série); quem quiser comparar seleciona
+set–dez/25 e compara par a par. Nas visões por período
+(mês/trimestre/semestre), cada grupo continua comparando quando **todos** os
+seus meses têm par (regra da D-32) — por isso as linhas de mês podem ter LY
+enquanto o total mostra `n/d` com `*`.
 
 ### 4.1 Variação absoluta
 
