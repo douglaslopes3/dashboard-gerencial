@@ -106,7 +106,7 @@ ninguém consegue explicar depois.
 | Denominador zero no preço médio | **`n/d`** |
 | Recorte sem nenhuma linha | *"Sem dados para este recorte"* no lugar do gráfico/tabela |
 | Métrica Caixas sem informação na fonte | soma ignora nulos + nota de rodapé com o nº de linhas afetadas |
-| Meses do LY parcialmente cobertos | nota: *"LY cobre N de M meses"* |
+| Meses do LY parcialmente cobertos | **comparativo pareado (D-32)**: LY, Δ e Δ% usam só os meses com par; a linha de estado declara *"N de M meses"* e os totais afetados levam `*` com tooltip |
 
 **Nunca** aparece `∞`, `NaN`, `#DIV/0!`, `undefined` ou célula em branco sem
 explicação.

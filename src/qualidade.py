@@ -17,10 +17,25 @@ from datetime import datetime
 
 import pandas as pd
 
+from .transform import fato as fato_mod
 from .utils.config import CFG, PASTA_QUALITY
 from .utils.log import EXECUCAO_ID, log
 
 _ESPERADOS = CFG["validacao"]["valores_esperados"]
+# C2 (auditoria): os rotulos de ausencia vem do config — as MESMAS strings que
+# as dimensoes gravam, nunca uma copia local.
+_SEM_CANAL = CFG["dimensoes"]["rotulo_sem_canal"]
+_SEM_BANDEIRA = CFG["dimensoes"]["rotulo_sem_bandeira"]
+
+
+def _nome_base(v) -> str:
+    """O nome antes do codigo: 'Izabela - 2650' -> 'izabela'.
+
+    C6 (auditoria): a comparacao por prefixo reconheceria um head novo
+    'Izabelania' sem ele constar da lista esperada. Igualdade no trecho antes
+    de ' - ' nao tem esse furo.
+    """
+    return str(v).split(" - ")[0].strip().casefold()
 
 
 def _csv(df: pd.DataFrame, nome: str) -> None:
@@ -114,8 +129,9 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # -------------------------------------------------------- 4. duplicidade
     linha("## 4. Chaves e duplicidade")
     linha()
-    dup = int(fato.duplicated(["ANO_MES", "COD_CLIENTE", "COD_PRODUTO"]).sum())
-    linha(f"- Duplicados no grão `ANO_MES × COD_CLIENTE × COD_PRODUTO`: "
+    # C5 (auditoria): o grao e o do fato.py — nao uma copia local da chave.
+    dup = int(fato.duplicated(fato_mod.GRAO).sum())
+    linha(f"- Duplicados no grão `{' × '.join(fato_mod.GRAO)}`: "
           f"**{dup:,}** de {len(fato):,}")
     for c in ("ANO_MES", "COD_CLIENTE", "COD_PRODUTO"):
         linha(f"- Chaves nulas em `{c}`: **{int(fato[c].isna().sum()):,}**")
@@ -127,7 +143,8 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     for coluna, dim, nome in (("COD_PRODUTO", dim_produto, "DIM_PRODUTO"),
                               ("COD_CLIENTE", dim_cliente, "DIM_CLIENTE"),
                               ("ANO_MES", dim_cal, "DIM_CALENDARIO")):
-        orfaos = int((~fato[coluna].isin(set(dim[coluna]))).sum())
+        # C5: a mesma funcao que o passo de integridade usa para abortar.
+        orfaos = fato_mod.contar_orfaos(fato, dim, coluna)
         linha(f"- `{coluna}` → {nome}: **{orfaos:,}** órfã(s)")
     linha()
 
@@ -144,13 +161,14 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
         n = int((dim_produto["CATEGORIA"] == v).sum())
         nao_rec.append({"DIMENSAO": "CATEGORIA", "VALOR": v, "SKUS": n})
     head_real = set(dim_cliente["HEAD"].dropna())
-    esperados_head = set(_ESPERADOS.get("head", []))
+    esperados_head = {str(e).casefold() for e in _ESPERADOS.get("head", [])}
     for v in sorted(head_real):
-        # comparacao por prefixo: "Izabela - 2650" reconhece "Izabela"
-        if not any(str(v).lower().startswith(str(e).lower()) for e in esperados_head):
+        # C6: "Izabela - 2650" e reconhecido porque o nome-base ("izabela") e
+        # IGUAL a um esperado — prefixo reconheceria "Izabelania" por engano.
+        if _nome_base(v) not in esperados_head:
             n = int((dim_cliente["HEAD"] == v).sum())
             nao_rec.append({"DIMENSAO": "HEAD", "VALOR": v, "SKUS": n})
-    canal_real = set(dim_cliente["CANAL"].dropna()) - {"SEM CANAL"}
+    canal_real = set(dim_cliente["CANAL"].dropna()) - {_SEM_CANAL}
     for v in sorted(canal_real - set(_ESPERADOS.get("canal", []))):
         n = int((dim_cliente["CANAL"] == v).sum())
         nao_rec.append({"DIMENSAO": "CANAL", "VALOR": v, "SKUS": n})
@@ -206,7 +224,7 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
           f"{len(dim_produto)} · receita **R$ {_fmt(rec_sku)}** "
           f"({rec_sku / max(float(fato['RECEITA'].sum()), 1):.2%})")
     linha(f"- Clientes sem bandeira: "
-          f"**{int((dim_cliente['BANDEIRA'] == 'SEM BANDEIRA').sum()):,}**")
+          f"**{int((dim_cliente['BANDEIRA'] == _SEM_BANDEIRA).sum()):,}**")
     linha()
     linha("> Nenhum deles é descartado. Descartar faria o total do painel deixar "
           "de bater com o total da fonte.")

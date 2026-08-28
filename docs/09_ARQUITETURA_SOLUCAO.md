@@ -84,12 +84,16 @@ Tudo isso está no `.gitignore`. O repositório guarda **código, config e docs*
 
 | # | Passo | O que faz | Aborta se |
 |---:|---|---|---|
-| 1 | `extrair` | acha os arquivos, valida formato e colunas obrigatórias, tira o rodapé, guarda o gabarito e o texto do filtro | pasta vazia · coluna obrigatória faltando · arquivo ilegível |
-| 2 | `reconciliar_origem` | soma × linha `Total` da fonte, por arquivo, nas **três** métricas | diferença > tolerância |
-| 3 | `dimensoes` | `DIM_CALENDARIO`, `DIM_PRODUTO`, `DIM_CLIENTE` | cobertura de head abaixo do piso |
-| 4 | `fato` | `FATO_SELLIN`, checagem de grão e de integridade referencial | duplicidade no grão · FK órfã |
-| 5 | `qualidade` | as 14 checagens do §14 do prompt → `data/quality/` | — (só reporta) |
-| 6 | `agregar` | os dois cubos que o painel consome + reconciliação **cubo × fato** | cubo não bate com a fato |
+| 1 | `extrair` | acha os arquivos, valida formato, colunas obrigatórias e `Ano mês`, tira o rodapé, guarda o gabarito e o texto do filtro | pasta vazia · coluna obrigatória faltando · arquivo ilegível · `Ano mês` não reconhecido · mês partido com recorte idêntico (cópia duplicada) |
+| 2 | `fato` | monta a fato, confere o **grão** e **reconcilia** contra a linha `Total` de cada arquivo, nas três métricas | duplicidade no grão · diferença > tolerância |
+| 3 | `dimensoes` | `DIM_CALENDARIO`, `DIM_PRODUTO`, `DIM_CLIENTE` | — |
+| 4 | `integridade` | FKs 100% + pisos de cobertura (estrutura ≥95%, canal ≥95%) | FK órfã · cobertura abaixo do piso |
+| 5 | `agregar` | os dois cubos que o painel consome + reconciliação **cubo × fato** — **antes de qualquer gravação** (auditoria A6) | cubo não bate com a fato |
+| 6 | `gravar + relatar` | o modelo estrela em Parquet, `cubos.json`/`resumo.json` **atômicos** (`.tmp` + replace) e carimbados com a execução, e o relatório de qualidade | falha de escrita (mensagem diz o estado real dos artefatos) |
+
+> **Desde 27/08/2026 (auditoria A6):** nada é gravado antes de todas as
+> validações; os JSONs são trocados atomicamente e `run_dashboard.py` confere
+> que `cubos.json` e `resumo.json` vêm da mesma execução antes de publicar.
 
 Saída: `exit 0` com o resumo, ou `exit 1` com a causa. **Reprocessamento
 completo** a cada execução — não há carga incremental, porque não há chave de

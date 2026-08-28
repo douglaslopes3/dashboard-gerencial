@@ -413,7 +413,7 @@ estrutura (R$ 421.421,67) também pertencem ao Vago.
 
 **Decisão.** A correção é **na origem**, não no ETL: os 71 códigos precisam
 entrar no `DePara_Estrutura_Comercial.xlsx`. Foi gerado
-`data/quality/incluir_no_DePara_estrutura.xlsx` com as 71 linhas **no layout
+`docs/pedidos/incluir_no_DePara_estrutura.xlsx` com as 71 linhas **no layout
 exato do de-para**, `Novo Head` já preenchido com `Vago - 2600` e
 gerente/supervisor em branco para o Comercial completar (aba de contexto traz
 nome, bandeira, canal, UF e receita de cada um). Coladas as linhas, o pipeline
@@ -437,7 +437,7 @@ clientes. A verificação confirmou a leitura dele:
 
 **Decisão.** Impacto no painel: uma linha zerada. A correção é **na origem**
 (BI reclassificar/remover os códigos no arquivo de canais) — a lista dos 3 está
-em `data/quality/clientes_canal_key_account.csv`. Nada foi reclassificado no
+em `docs/pedidos/clientes_canal_key_account.csv`. Nada foi reclassificado no
 ETL: mapear os 3 por palpite seria regra inventada, e o custo de esperar a
 origem é zero real.
 
@@ -521,3 +521,33 @@ Ademir × CC medido na fato na integração do canal. Exportação própria
 
 **Seguem bloqueados:** Canal → Cliente e Projeto → Cliente (B1/B3 — cliente não
 é dimensão de cubo nenhum).
+
+## D-32 · Comparativo LY pareado mês a mês (27/08/2026)
+
+**Contexto.** Com a série começando em set/24, todo período que inclui meses
+sem par no ano anterior comparava o acumulado inteiro contra só os meses de LY
+existentes: "YTD Calendário 2025" somava jan–dez/25 (12 meses) contra
+set–dez/24 (4 meses) — crescimento falso; os rankings e KPIs herdavam o mesmo
+viés. O Douglas definiu a regra: **só entra na comparação o mês que tem o
+mesmo mês no ano anterior** (ago/25 sem ago/24 na série fica sem comparativo).
+
+**Decisão.** Em todas as visões (KPIs, Comparativo YTD, tabelas, quebras,
+rankings, preço médio e drills): a coluna/valor **Atual** continua sendo o
+período selecionado inteiro; **LY, Δ e Δ%** são calculados exclusivamente
+sobre os meses **pareados** por `ANO_MES_LY`, nos dois lados da conta. Nas
+visões por período (mês/trimestre/semestre), o grupo só tem comparativo
+quando **todos** os seus meses têm par — comparar um trimestre com 1/3 dele
+seria comparação falsa. Quando o pareamento é parcial, a linha de estado
+declara ("comparativo pareado: N meses") e os totais levam `*` com tooltip;
+a exportação nomeia a linha de total ("Δ sobre os meses/períodos pareados").
+
+**O que isso corrigiu de quebra.** Os drills (Head → Gerente e Categoria →
+SKU) acumulavam atual e LY num "ou" exclusivo por mês: quando um mês estava
+no período atual E era o LY de outro mês selecionado (ex.: "Todos" com 24
+meses), o lado LY do drill perdia esses meses. Os acumuladores passaram a
+somar de forma independente.
+
+**Consequência declarada.** Quando o pareamento é parcial, o Δ exibido não é
+`Atual − LY` das colunas visíveis (o Atual é cheio; o Δ é pareado) — por isso
+o `*` e o tooltip. Com cobertura total (ex.: FY2026), nada muda: todos os
+números ficam idênticos aos de antes.

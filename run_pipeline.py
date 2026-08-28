@@ -16,6 +16,7 @@ Sai com `exit 0` em caso de sucesso e `exit 1` em qualquer falha de validação.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -35,6 +36,14 @@ from src.transform import calendario, dimensoes, fato as fato_mod
 from src.utils import log as L
 from src.utils.config import CFG, PASTA_CURATED, preparar_pastas
 from src.utils.log import EXECUCAO_ID, abortar, log, titulo
+
+
+def _gravar_json(alvo, conteudo: str) -> None:
+    """Escrita atômica (A6): grava em `.tmp` e troca com `os.replace`. Um
+    aborto no meio nunca deixa um JSON pela metade no lugar do anterior."""
+    tmp = alvo.with_suffix(alvo.suffix + ".tmp")
+    tmp.write_text(conteudo, encoding="utf-8")
+    os.replace(tmp, alvo)
 
 
 def main() -> int:
@@ -73,6 +82,7 @@ def main() -> int:
         f"{sorted(dim_cal['ANO_FISCAL_ROTULO'].unique())}")
     dim_cli = dimensoes.dim_cliente(bruto, estrutura, canais)
     dim_prod = dimensoes.dim_produto(bruto, produtos)
+    del bruto    # B4: 692 MB que ninguem mais le — fora do pico de memoria
 
     # ----------------------------------------------------- 4. INTEGRIDADE
     titulo("4/6 · INTEGRIDADE REFERENCIAL")
@@ -80,23 +90,29 @@ def main() -> int:
     cobertura = fato_mod.conferir_cobertura_estrutura(f, dim_cli)
     cobertura_canal = fato_mod.conferir_cobertura_canal(f, dim_cli)
 
-    # -------------------------------------------------------- 5. GRAVAR
-    titulo("5/6 · GRAVAR o modelo estrela")
+    # ------------------------------------------------ 5. AGREGAR e VALIDAR
+    titulo("5/6 · AGREGAR — cubos montados e validados ANTES de gravar")
+    # A6: o passo de agregacao roda ANTES de qualquer gravacao. Antes, um
+    # aborto na validacao dos cubos deixava parquet novo em data/curated com
+    # cubos.json/resumo.json velhos — e `run_dashboard.py` publicava painel da
+    # execucao anterior com cara de valido.
+    pacote = cubos.construir(f, dim_cli, dim_prod, dim_cal)
+    cubos.reconciliar(pacote, f)
+    pacote["execucao"] = EXECUCAO_ID     # conferido por run_dashboard.py (A6)
+
+    # ------------------------------------------------ 6. GRAVAR e RELATAR
+    titulo("6/6 · GRAVAR o modelo estrela e RELATAR")
     parquet.salvar(dim_cal, "DIM_CALENDARIO")
     parquet.salvar(dim_cli, "DIM_CLIENTE")
     parquet.salvar(dim_prod, "DIM_PRODUTO")
     f_part = f.copy()
     f_part["ANO"] = f_part["ANO_MES"].str.slice(0, 4)
     parquet.salvar_particionado(f_part, "FATO_SELLIN", "ANO")
-
-    # ------------------------------------------- 6. AGREGAR + QUALIDADE
-    titulo("6/6 · AGREGAR e RELATAR")
-    pacote = cubos.construir(f, dim_cli, dim_prod, dim_cal)
-    cubos.reconciliar(pacote, f)
+    del f_part   # B4: ~460 MB fora do pico
 
     alvo = PASTA_CURATED / "cubos.json"
-    alvo.write_text(json.dumps(pacote, ensure_ascii=False, separators=(",", ":")),
-                    encoding="utf-8")
+    _gravar_json(alvo, json.dumps(pacote, ensure_ascii=False,
+                                  separators=(",", ":")))
     log(f"cubos.json             {alvo.stat().st_size / 1024:>10,.0f} KB", "ok")
 
     resumo = gerar_qualidade(f, dim_cli, dim_prod, dim_cal, meta, cobertura,
@@ -105,7 +121,9 @@ def main() -> int:
 
     # Resumo enxuto para o painel. Existe para que `run_dashboard.py` nao precise
     # reabrir os 3 milhoes de linhas da fato so para escrever o rodape.
-    (PASTA_CURATED / "resumo.json").write_text(json.dumps({
+    # E o ULTIMO write, de proposito: funciona como "commit" da execucao —
+    # run_dashboard confere `execucao` do cubos.json x resumo.json (A6).
+    _gravar_json(PASTA_CURATED / "resumo.json", json.dumps({
         "execucao": EXECUCAO_ID,
         "gerado_em": time.strftime("%d/%m/%Y %H:%M"),
         "arquivos": len(meta["arquivos"]),
@@ -121,7 +139,7 @@ def main() -> int:
         "cobertura_estrutura": cobertura,
         "cobertura_canal": cobertura_canal,
         "avisos": len(L.avisos()),
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
+    }, ensure_ascii=False, indent=1))
 
     # ------------------------------------------------------------ RESUMO
     titulo("RESUMO")

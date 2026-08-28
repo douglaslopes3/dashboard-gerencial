@@ -19,6 +19,17 @@ Checagem que não roda é pior do que checagem que não existe, porque dá a sen
 de proteção.
 
 v1 (26/08/2026) — versão inicial deste projeto.
+v3 (27/08/2026) — leitores mudaram de novo: o texto do filtro do sell-in
+   passa a ser capturado a partir da linha "Filtros aplicados" (C8) e o
+   descarte de linha sem cliente/material passou a ser contado (C7). O `extra`
+   de um cache v2 teria o filtro no formato antigo.
+v2 (27/08/2026) — a chave passa a incluir o CAMINHO RELATIVO e um hash rápido
+   do conteúdo (primeiros + últimos 64 KB). Motivo (auditoria, A11): um restore
+   de versão pelo histórico do OneDrive — ou um `robocopy /COPY:DAT` — que
+   preserve nome, tamanho e carimbo servia o Parquet ANTIGO como se fosse o
+   dado novo, com o log dizendo "(cache)". A versão também sobe porque os
+   leitores mudaram: `ano_mes()` ficou estrito (A9) e `numero()` decide o
+   decimal pelo último separador (A10).
 """
 from __future__ import annotations
 
@@ -28,15 +39,34 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..utils.config import PASTA_STAGING
+from ..utils.config import PASTA_STAGING, RAIZ
 from ..utils.log import log
 
-VERSAO_CACHE = 1
+VERSAO_CACHE = 3
+
+_KB64 = 65536
+
+
+def _hash_rapido(arq: Path, tamanho: int) -> str:
+    """Hash dos primeiros e últimos 64 KB — barato (2 leituras) e suficiente
+    para pegar conteúdo trocado com tamanho+mtime preservados."""
+    h = hashlib.md5()
+    with open(arq, "rb") as f:
+        h.update(f.read(_KB64))
+        if tamanho > _KB64:
+            f.seek(max(tamanho - _KB64, 0))
+            h.update(f.read(_KB64))
+    return h.hexdigest()[:8]
 
 
 def _chave(arq: Path) -> str:
     st = arq.stat()
-    crua = f"v{VERSAO_CACHE}|{arq.name}|{st.st_size}|{int(st.st_mtime)}"
+    try:
+        rel = arq.resolve().relative_to(RAIZ)
+    except ValueError:                       # fora da raiz do projeto
+        rel = arq.resolve()
+    crua = (f"v{VERSAO_CACHE}|{rel.as_posix()}|{st.st_size}|{int(st.st_mtime)}"
+            f"|{_hash_rapido(arq, st.st_size)}")
     return hashlib.md5(crua.encode()).hexdigest()[:10]
 
 

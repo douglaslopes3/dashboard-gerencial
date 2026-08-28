@@ -47,6 +47,18 @@ DESTINO = {
 }
 
 
+def _num_rodape(v) -> float | None:
+    """Número da linha `Total`, com a mesma tolerância de `numero()`.
+
+    Auditoria, A5: o `float()` cru estourava traceback em texto pt-BR e deixava
+    célula vazia virar NaN — e `abs(nan) > tol` é False, ou seja, a checagem
+    mais importante do pipeline passava DE MÃO VAZIA. Vazio/ilegível agora vira
+    None, que a reconciliação trata como "gabarito ausente" COM AVISO.
+    """
+    n = numero(pd.Series([v]))
+    return float(n.iloc[0]) if pd.notna(n.iloc[0]) else None
+
+
 def arquivos() -> list[Path]:
     """Todos os arquivos de entrada, das duas pastas declaradas no config."""
     achados: list[Path] = []
@@ -99,16 +111,26 @@ def _ler_um(arq: Path) -> tuple[pd.DataFrame, dict]:
         if len(tot):
             t = tot.iloc[0]
             extra["gabarito"] = {
-                "receita": float(t["Receita Líquida"]),
-                "peso_kg": float(t["Peso Líquido"]),
-                "caixas": (float(t["Qtde Faturado"])
-                           if pd.notna(t["Qtde Faturado"]) else None),
+                "receita": _num_rodape(t["Receita Líquida"]),
+                "peso_kg": _num_rodape(t["Peso Líquido"]),
+                "caixas": _num_rodape(t["Qtde Faturado"]),
             }
 
-    filtro = df.loc[df["Ano mês"].isna() & ano_txt.notna()
+    # C8 (auditoria): o texto do filtro comeca na linha "Filtros aplicados".
+    # Capturar QUALQUER linha de rodape faria um rotulo de Total desconhecido
+    # (ex.: "Total geral") virar "filtro" — e todo mes novo acusaria falso
+    # recorte divergente, o aviso que sempre aparece e ninguem le mais.
+    rodape = df.loc[df["Ano mês"].isna() & ano_txt.notna()
                     & (ano_txt.str.casefold() != rotulo), "Ano"]
-    if len(filtro):
-        extra["filtro"] = "\n".join(str(x).strip() for x in filtro)
+    txts = [str(x).strip() for x in rodape]
+    ini = next((i for i, tx in enumerate(txts)
+                if tx.casefold().startswith("filtros aplicados")), None)
+    if ini is not None:
+        extra["filtro"] = "\n".join(txts[ini:])
+    elif txts:
+        log(f"{arq.name}: rodape sem a linha 'Filtros aplicados' — "
+            f"{len(txts)} linha(s) de rodape ignoradas (1a: {txts[0][:60]})",
+            "aviso")
 
     # Fica só o corpo: linha sem `Ano mês` é rodapé.
     corpo = df[df["Ano mês"].notna() & (ano_txt.str.casefold() != rotulo)]
@@ -119,6 +141,26 @@ def _ler_um(arq: Path) -> tuple[pd.DataFrame, dict]:
             out[destino] = conv(corpo[origem])
 
     out["ARQUIVO_ORIGEM"] = arq.name
+
+    # A9: linha de DADO com `Ano mês` não reconhecido não pode sumir no dropna
+    # — mês errado ou formato novo entraria (ou sumiria) em silêncio.
+    mal = out["ANO_MES"].isna()
+    if mal.any():
+        exemplos = sorted(set(corpo.loc[mal, "Ano mês"].astype(str)))[:5]
+        abortar(f"arquivo REJEITADO: {arq.name}\n"
+                f"  {int(mal.sum())} linha(s) com 'Ano mês' nao reconhecido. "
+                f"Exemplos: {exemplos}\n"
+                "  Formatos aceitos: AAAA/MM, AAAA-MM e AAAA/MMM (ex.: 2026/08).\n"
+                "  Se a extracao mudou de formato, peca a reextracao no layout "
+                "padrao — o pipeline nao adivinha mes.")
+    # C7 (auditoria): descarte de linha de dado nao pode ser mudo — celula
+    # mesclada em Cod. cliente/material sumiria sem contagem, e com receita
+    # nula nem o gabarito reclamaria.
+    perdidas = out["COD_CLIENTE"].isna() | out["COD_PRODUTO"].isna()
+    if perdidas.any():
+        log(f"{arq.name}: {int(perdidas.sum())} linha(s) de dado sem "
+            f"Cod. cliente/material, descartadas — receita descartada "
+            f"R$ {out.loc[perdidas, 'RECEITA'].sum():,.2f}", "aviso")
     out = out.dropna(subset=["ANO_MES", "COD_CLIENTE", "COD_PRODUTO"])
     return out.reset_index(drop=True), extra
 
@@ -144,6 +186,17 @@ def ler() -> tuple[pd.DataFrame, dict]:
     log(f"{len(arqs)} arquivo(s) de Sell In encontrado(s)")
 
     partes, gabaritos, filtros, meses_por_arq = [], {}, {}, {}
+    declaradas = FONTE.get("colunas_opcionais") or []
+    # C4 (auditoria): opcional declarada no config sem destino no leitor era
+    # documentacao mentindo — parecia ingerida e nao era.
+    sem_destino = [c for c in declaradas if c not in DESTINO]
+    if sem_destino:
+        log(f"coluna(s) opcionais declaradas no config SEM destino no leitor — "
+            f"NAO serao ingeridas: {sem_destino}. Ajuste "
+            "`fontes.sellin.colunas_opcionais` ou o DESTINO em sellin.py",
+            "aviso")
+    opcionais = [(c, DESTINO[c][0]) for c in declaradas if c in DESTINO]
+    presenca: dict[str, list[bool]] = {origem: [] for origem, _ in opcionais}
     for a in arqs:
         d, extra = cache.ler(a, _ler_um)
         partes.append(d)
@@ -152,6 +205,25 @@ def ler() -> tuple[pd.DataFrame, dict]:
         if extra.get("gabarito"):
             gabaritos[a.name] = extra["gabarito"]
         meses_por_arq[a.name] = sorted(d["ANO_MES"].dropna().unique())
+        for origem, destino in opcionais:
+            presenca[origem].append(destino in d.columns)
+
+    # A12: opcional que some da extração nova derruba um eixo do painel de um
+    # mês para o outro — isso não pode acontecer em silêncio absoluto.
+    for origem, _ in opcionais:
+        n_com = sum(presenca[origem])
+        if n_com == 0:
+            log(f"coluna opcional '{origem}': ausente nos {len(arqs)} arquivos "
+                "(segue fora do modelo)")
+        elif n_com == len(arqs):
+            log(f"coluna opcional '{origem}': presente nos {len(arqs)} arquivos", "ok")
+        else:
+            sem = [a.name for a, tem in zip(arqs, presenca[origem]) if not tem]
+            log(f"coluna opcional '{origem}': presente em {n_com} de {len(arqs)} "
+                f"arquivo(s) — AUSENTE em {', '.join(sem[:5])}"
+                + (f" (+{len(sem) - 5})" if len(sem) > 5 else "")
+                + ". Se a extracao mudou, esse eixo some do painel nesses meses.",
+                "aviso")
 
     df = pd.concat(partes, ignore_index=True)
 
@@ -211,6 +283,29 @@ def conferir_filtro_extracao(meta: dict) -> list[str]:
                 f"{ass[:180]}", "aviso")
     elif assinaturas:
         log(f"recorte de extracao identico nos {len(inteiros)} meses inteiros", "ok")
+
+    # A3: partes complementares têm filtros DIFERENTES por construção (cada
+    # uma exclui um conjunto de gerentes). Duas partes do mesmo mês com o MESMO
+    # recorte são quase sempre uma cópia duplicada — a cópia de conflito do
+    # OneDrive (`... - Copia.xlsx`, `...-DESKTOP-XYZ.xlsx`) é o caso real. Cada
+    # cópia carrega o próprio gabarito, então a reconciliação por arquivo FECHA
+    # e a receita do mês DOBRARIA no painel. Abortar é a única resposta.
+    for mes, arqs_mes in sorted(partidos.items()):
+        por_assinatura: dict[str, list[str]] = {}
+        for arq in arqs_mes:
+            if arq in filtros:
+                por_assinatura.setdefault(
+                    _assinatura_filtro(filtros[arq]), []).append(arq)
+        for iguais in por_assinatura.values():
+            if len(iguais) > 1:
+                abortar(
+                    f"o mes {mes} esta partido em {len(arqs_mes)} arquivo(s) e "
+                    f"{len(iguais)} deles tem o MESMO recorte de extracao:\n"
+                    + "\n".join(f"    {a}" for a in sorted(iguais)) + "\n"
+                    "  Partes complementares tem filtros diferentes por "
+                    "construcao. Recorte identico e copia duplicada — ex.: "
+                    "copia de conflito do OneDrive, ou o mesmo arquivo nas "
+                    "duas pastas de entrada. Apague a copia e rode de novo.")
 
     if partidos:
         log(f"{len(partidos)} mes(es) partidos em mais de um arquivo "

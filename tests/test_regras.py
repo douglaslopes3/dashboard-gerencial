@@ -53,6 +53,25 @@ def test_ano_mes_normaliza_os_tres_formatos():
     assert pd.isna(r[3])
 
 
+def test_ano_mes_estrito_rejeita_mes_invalido_e_formato_colado():
+    """A9: `202512` fatiado virava `2025-02` (mes errado, em silencio) e
+    `2025/13` passava. Formato nao reconhecido tem de virar NA — e o leitor
+    de sell-in aborta quando isso acontece numa linha de dado."""
+    r = ano_mes(pd.Series(["202512", "2025/13", "2025/00", "07/2025",
+                           "2025/XYZ", "2025-1"]))
+    assert r.isna()[:5].all()
+    assert r[5] == "2025-01"          # mes sem zero a esquerda continua valendo
+
+
+def test_numero_decide_o_decimal_pelo_ultimo_separador():
+    """A10: o `.replace(".", "")` rodava antes de olhar a virgula — `"1234.56"`
+    virava 123456.0 (100x) e `"1,234.56"` virava 1.23456."""
+    s = pd.Series(["1234.56", "1,234.56", "1.234,56",
+                   "1.234.567", "1,234,567", "1,23", "-1.234,5"])
+    assert list(numero(s)) == [1234.56, 1234.56, 1234.56,
+                               1234567.0, 1234567.0, 1.23, -1234.5]
+
+
 # ================================================== divisao por zero / LY
 def test_pct_base_zero_ou_nula_devolve_none():
     assert pct(100, 0) is None
@@ -74,6 +93,27 @@ def test_pct_normal():
 def test_div_denominador_zero_devolve_none():
     assert div(10, 0) is None
     assert div(10, 2) == 5.0
+
+
+def test_paridade_formulas_com_o_template():
+    """C10: pct/div sao o espelho de varPct/razao do dashboard/template.html.
+    Esta tabela reproduz os casos-limite do JS; se um lado mudar sem o outro,
+    este teste e o alarme."""
+    casos_pct = [((110, 100), 0.1),     # normal
+                 ((100, 0), None),      # base zero -> n/d, nunca infinito
+                 ((100, None), None),   # base nula
+                 ((None, 100), None),   # atual nulo (A2) — era o furo do JS
+                 ((100, -50), 3.0),     # base negativa: modulo no denominador
+                 ((0, 100), -1.0)]      # -100%
+    for (a, b), esperado in casos_pct:
+        r = pct(a, b)
+        assert (r is None and esperado is None) or round(r, 10) == esperado, \
+            f"pct{(a, b)} = {r}, esperado {esperado}"
+    casos_div = [((9, 3), 3.0), ((10, 0), None), ((10, None), None)]
+    for (a, b), esperado in casos_div:
+        r = div(a, b)
+        assert (r is None and esperado is None) or r == esperado, \
+            f"div{(a, b)} = {r}, esperado {esperado}"
 
 
 # ============================================================== calendario

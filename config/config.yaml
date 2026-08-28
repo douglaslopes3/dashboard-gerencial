@@ -49,11 +49,13 @@ fontes:
       - "Receita Líquida"
       - "Peso Líquido"
       - "Qtde Faturado"
-    # Colunas opcionais: se aparecerem, são lidas; se não, o pipeline segue.
+    # Colunas opcionais: se aparecerem, são lidas; se não, o pipeline segue
+    # (o leitor avisa quando uma declarada aqui não tiver destino — C4).
     # `Subcanal` está aqui à espera do BI — ver GAP-01. Basta a extração passar
     # a trazê-la que ela entra na DIM_CLIENTE sem tocar em código.
+    # `Comissão Faturada Líquida` existe na fonte e NÃO é ingerida — fora do
+    # escopo do MVP (auditoria, C4: antes estava listada como se fosse lida).
     colunas_opcionais:
-      - "Comissão Faturada Líquida"
       - "Subcanal"
       - "Representante"
 
@@ -113,9 +115,15 @@ dimensoes:
     # Sem declaração, vence a 1a linha COM AVISO.
     # ex.: "1010846": "Supervisor SP Interior"
     desempate_cliente: {}
-  # Rótulo usado para quem não tem linha no de-para. Não é um valor de negócio
-  # inventado: é a marca explícita de ausência.
+  # Rótulos usados para quem não tem linha num de-para. Não são valores de
+  # negócio inventados: são a marca explícita de ausência — e moram AQUI para
+  # o relatório de qualidade e as dimensões lerem a MESMA string (auditoria,
+  # C2: os três de baixo estavam duplicados em dois módulos).
   rotulo_sem_estrutura: "NÃO ATRIBUÍDO"
+  rotulo_sem_canal: "SEM CANAL"
+  rotulo_sem_bandeira: "SEM BANDEIRA"
+  rotulo_sem_uf: "SEM UF"
+  rotulo_sem_categoria: "NAO INFORMADO"
 
 # -----------------------------------------------------------------------------
 # VALIDAÇÃO

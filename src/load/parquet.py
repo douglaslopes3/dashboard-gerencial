@@ -14,7 +14,10 @@ from ..utils.log import abortar, log
 def salvar(df: pd.DataFrame, nome: str) -> Path:
     PASTA_CURATED.mkdir(parents=True, exist_ok=True)
     alvo = PASTA_CURATED / f"{nome}.parquet"
-    df.to_parquet(alvo, index=False, compression="snappy")
+    # B7 (auditoria): zstd le igual e grava ~15% menor que snappy (medido);
+    # row groups de 1 Mi evitam a fragmentacao de 110 grupos na fato.
+    df.to_parquet(alvo, index=False, compression="zstd",
+                  row_group_size=1_000_000)
     log(f"{nome:<22} {len(df):>10,} linhas x {len(df.columns):>2} col  ->  "
         f"{alvo.name} ({alvo.stat().st_size / 1024:,.0f} KB)", "ok")
     return alvo
@@ -39,9 +42,16 @@ def _limpar_parquets(pasta: Path) -> None:
                 break
             except PermissionError:
                 if tentativa == 3:
+                    # A6: aqui a mensagem padrao ("nenhum Parquet foi
+                    # atualizado") seria FALSA — a fato pode ter ficado pela
+                    # metade e as dimensoes ja foram regravadas.
                     abortar(f"nao foi possivel apagar {arq}.\n"
                             "  O OneDrive costuma segurar o arquivo durante a "
-                            "sincronizacao. Pause a sincronizacao e rode de novo.")
+                            "sincronizacao. Pause a sincronizacao e rode de novo.",
+                            situacao="a FATO pode ter ficado PARCIALMENTE "
+                            "apagada e as dimensoes ja foram regravadas. "
+                            "Rode `python run_pipeline.py` de novo (pausando o "
+                            "OneDrive) — o reprocessamento completo regrava tudo.")
                 time.sleep(0.5)
 
 
@@ -55,7 +65,8 @@ def salvar_particionado(df: pd.DataFrame, nome: str, por: str) -> Path:
     _limpar_parquets(alvo)
     d = df.copy()
     d[por] = d[por].astype("string")
-    d.to_parquet(alvo, index=False, partition_cols=[por], compression="snappy")
+    d.to_parquet(alvo, index=False, partition_cols=[por], compression="zstd",
+                 row_group_size=1_000_000)
     tam = sum(p.stat().st_size for p in alvo.rglob("*.parquet")) / 1024
     n = len(list(alvo.rglob("*.parquet")))
     log(f"{nome:<22} {len(df):>10,} linhas em {n} particao(oes)  ->  "

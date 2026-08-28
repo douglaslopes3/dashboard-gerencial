@@ -66,11 +66,16 @@ def titulo(msg: str) -> None:
         log(l)
 
 
-def abortar(msg: str) -> None:
-    """Erro fatal: registra, fecha o log e sai com exit code 1."""
+def abortar(msg: str, situacao: str | None = None) -> None:
+    """Erro fatal: registra, fecha o log e sai com exit code 1.
+
+    `situacao` substitui a frase final quando o padrão ("nenhum Parquet foi
+    atualizado") não for verdade — auditoria, A6/C16: a mensagem fixa mentia
+    quando o aborto acontecia no MEIO da gravação."""
     log(msg, "erro")
     log("")
-    log("PIPELINE ABORTADO — nenhum Parquet foi atualizado nesta execucao.", "erro")
+    log("PIPELINE ABORTADO — "
+        + (situacao or "nenhum Parquet foi atualizado nesta execucao."), "erro")
     fechar()
     sys.exit(1)
 

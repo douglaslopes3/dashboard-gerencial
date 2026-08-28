@@ -69,6 +69,13 @@ fato, e nenhuma liga em outra.
 quase todas devoluções. Preencher com zero somaria uma caixa que não existe e
 apagaria a diferença entre "zero caixas" e "a fonte não informou".
 
+> **Perda assumida na camada agregada (27/08/2026, auditoria A13):** os cubos
+> publicam grupo 100% nulo de `CAIXAS` como `C=0`, porque o JSON posicional não
+> carrega nulo por célula. Medido: 9.519 das 368.699 células do CUBO_SKU
+> (2,6%), com −R$ 7,30 mi de receita associada. A **fato preserva o nulo** — a
+> distinção se perde só na camada de tela, e o total continua reconciliando
+> (a soma ignora nulos nas duas pontas). Quem precisar da distinção lê a fato.
+
 Particionamento: `data/curated/FATO_SELLIN/ANO=AAAA/parte.parquet`.
 
 ### 2.2 `DIM_CALENDARIO` — um mês por linha, os dois calendários na mesma tabela

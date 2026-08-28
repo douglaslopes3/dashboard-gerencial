@@ -12,6 +12,36 @@
 > instruídos a só reportar o que confirmassem na linha, e com medição empírica
 > — inclusive re-lendo os rodapés dos 28 Excel para refazer a reconciliação do
 > zero.
+>
+> **Revisão de 27/08/2026:** contagens reconferidas contra os parquets e o
+> `cubos.json` da mesma carga. Corrigidos: DIM_CLIENTE tem **13** colunas, não
+> 12; a receita do A13 foi separada em grupos (−R$ 7,30 mi) × linhas de origem
+> (−R$ 20,56 mi); âncoras atualizadas (`reconciliar():162`, `parquet.py:58/:17`).
+> Tamanhos de arquivo padronizados em **MB decimais** — o log do pipeline divide
+> por 1024, por isso README/docs citam "14,3 MB" para o mesmo painel de
+> 14.992.698 bytes (= 14,99 MB). Tudo o mais bateu com o número original.
+>
+> **Correções de 27/08/2026 — 2ª leva (grupos B e C):** aplicados **B1, B3,
+> B4, B5, B7, B8** e **C1–C14** (marcados ✔). Conferido no navegador após o B1:
+> os 4 totais de controle idênticos ao centavo, zero erros de console, render
+> em **44 ms** (51 ms no modo SKU — era o cenário de segundos), memo e abas sob
+> demanda funcionando; pipeline 6/6 cenários e 29/29 unitários; fato 23,2 →
+> **20,3 MB** com zstd. Ficam SEM aplicar, por decisão registrada: **A8**
+> (aguarda o Comercial), **B2** (exclusão do OneDrive é ação operacional do
+> dono da máquina, não de código), **B6/B10** (veredito da própria auditoria:
+> não vale mexer) e **B9** (decisão de produto — trade-off na mesa). O T-07 dos
+> cenários foi atualizado: a duplicata agora é barrada JÁ NA INGESTÃO pelo A3
+> (mesmo recorte = cópia duplicada), com o grão como segunda defesa.
+> `VERSAO_CACHE` subiu para 3 (C7/C8 mudaram o leitor de sell-in).
+>
+> **Correções de 27/08/2026:** A1–A7, A9–A12, A14 e A15 corrigidos no código
+> (marcados ✔ abaixo, com C15/C16 resolvidos de carona); A13 virou perda
+> assumida documentada (docs/06 §2.1); **A8 segue aberto** — a decisão D-32 e o
+> contador de churn ficam para quando o Comercial confirmar a leitura.
+> `VERSAO_CACHE` subiu para 2 (A9/A10/A11): a primeira execução após as
+> correções relê os 28 Excel (~2 min) e reconstrói o staging. As âncoras
+> `arquivo:linha` DENTRO dos achados referem-se ao código auditado
+> (pré-correção); as do mapa do §0 foram atualizadas para o código corrigido.
 
 **Placar:** 22 achados de risco de dado errado ou robustez, 10 de performance,
 16 de limpeza · **0 dado errado armazenado hoje** (a fato reconcilia com a
@@ -26,14 +56,14 @@ de um jeito ainda não visto) e **um semântico** (SCD, achado A8).
 ```
 ENTRADA (Excel)                          ETL — run_pipeline.py (6 passos)
 ─────────────────                        ────────────────────────────────
-bases/Sell In/*.xlsx  (28 arq, aba      1/6 EXTRAIR  src/extract/sellin.py:141 ler()
+bases/Sell In/*.xlsx  (28 arq, aba      1/6 EXTRAIR  src/extract/sellin.py:164 ler()
   Export, rodapé Total+filtros) ─────►      · valida colunas obrigatórias (config)
 data/raw/sell_in/*.xlsx  (2ª pasta)         · remove rodapé; guarda gabarito+filtro
 Produtos.xlsx (aba Produtos) ────────►      · normaliza: digitos() sem zeros,
 DePara_Estrutura_Comercial.xlsx             ano_mes(), texto(), sinais preservados
   (aba Planilha1, cód zero-preench.) ►      · cache 1 Excel→1 Parquet (staging)
 Canais.xlsx (aba Export, rodapé) ────►      · correções declaradas do config
-config/config.yaml + geografia.yaml         (cadastros.py:52/105/153)
+config/config.yaml + geografia.yaml         (cadastros.py:52/105/178)
 
                                          2/6 FATO  src/transform/fato.py:34
                                             grão declarado fato.py:31 =
@@ -47,26 +77,29 @@ config/config.yaml + geografia.yaml         (cadastros.py:52/105/153)
                                               mesma tabela; ANO_MES_LY por junção)
                                             dimensoes.py:21 dim_cliente (sell-in
                                               mais recente + estrutura + canais)
-                                            dimensoes.py:85 dim_produto
+                                            dimensoes.py:87 dim_produto
 
-                                         4/6 INTEGRIDADE  fato.py:69/121
+                                         4/6 INTEGRIDADE  fato.py:69/135
                                             FKs 100% · cobertura estrutura ≥95%
                                             · cobertura canal ≥95% (senão aborta)
 
-SAÍDA (Parquet)                          5/6 GRAVAR  src/load/parquet.py:14/48
-────────────────                            DIM_CALENDARIO (24×21) · DIM_CLIENTE
-data/curated/DIM_*.parquet                  (16.131×12) · DIM_PRODUTO (494×6) ·
-data/curated/FATO_SELLIN/ANO=*/             FATO_SELLIN (3.085.119×10, partição
-  (3 partições, snappy, 23,2 MB)            por ANO, reprocessamento completo)
-
-                                         6/6 AGREGAR  src/load/cubos.py:47
-data/curated/cubos.json (14,0 MB)           CUBO_PRINCIPAL 90.644 linhas: mês ×
-data/curated/resumo.json                      bandeira(300+balde) × categoria ×
-data/quality/relatorio_qualidade.md           PERFIL(head,ger,canal,proj) × UF
-  + 5 CSVs de exceção                       CUBO_SKU 368.699: mês × SKU ×
+SAÍDA (Parquet)                          5/6 AGREGAR  src/load/cubos.py:53
+────────────────                            CUBO_PRINCIPAL 90.644 linhas: mês ×
+data/curated/DIM_*.parquet                    bandeira(300+balde) × categoria ×
+data/curated/FATO_SELLIN/ANO=*/               PERFIL(head,ger,canal,proj) × UF
+  (3 partições, snappy, 24,4 MB)            CUBO_SKU 368.699: mês × SKU ×
                                               (head,canal) × UF
                                             inteiros escalados (¢, g, ¢cx)
-                                            reconciliar():145 cubo × fato ou aborta
+                                            reconciliar():171 cubo × fato ou aborta
+                                            — validação ANTES de gravar (A6)
+
+                                         6/6 GRAVAR  src/load/parquet.py:14/55
+data/curated/cubos.json (14,7 MB)           DIM_CALENDARIO (24×21) · DIM_CLIENTE
+data/curated/resumo.json                    (16.131×13) · DIM_PRODUTO (494×6) ·
+data/quality/relatorio_qualidade.md         FATO_SELLIN (3.085.119×10, partição
+  + 5 CSVs de exceção                       por ANO) · JSONs atômicos (.tmp +
+  + assinatura_extracao_canais.txt          os.replace) carimbados com a execução
+                                            conferida pelo run_dashboard (A6)
 
 DASHBOARD                                run_dashboard.py
 ─────────                                   injeta cubos.json + Chart.js no
@@ -95,7 +128,7 @@ navegador.
 (medição no §"o que está bem") — são as portas pelas quais o dado errado
 entraria ou já aparece errado na tela em cenários específicos.*
 
-### A1 · Ranking sem guarda de LY: FY sem ano anterior vira "ganho" gigante
+### A1 · Ranking sem guarda de LY: FY sem ano anterior vira "ganho" gigante — **✔ corrigido 27/08/2026**
 `dashboard/template.html:856-868, 878-881` · esforço **P**
 - **Problema:** `ranking()`/`tabelaRanking()` não têm a guarda `temLy` que as
   outras tabelas têm. Clicando **FY2025** (os 12 primeiros meses têm LY nulo —
@@ -106,7 +139,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** com `p.ly.length===0`, rodapé LY/Δ = `n/d` e rankings exibem
   "sem base", como as demais tabelas já fazem.
 
-### A2 · `varPct(null, ly)` devolve −100% em vez de n/d
+### A2 · `varPct(null, ly)` devolve −100% em vez de n/d — **✔ corrigido 27/08/2026**
 `dashboard/template.html:388-391` (usada em :670, :959-967, :981) · esforço **P**
 - **Problema:** o guard cobre só o denominador; `atual === null` passa e
   `(null − ly)/|ly| = −1`. O espelho Python (`src/utils/texto.py:74`) devolve
@@ -115,7 +148,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
   **"▼ −100,0%"** em vez de n/d — e **exporta `-100`** no CSV/XLSX.
 - **Correção:** adicionar `atual===null || !isFinite(atual)` ao guard.
 
-### A3 · Cópia de conflito do OneDrive dobra um mês com todas as checagens verdes
+### A3 · Cópia de conflito do OneDrive dobra um mês com todas as checagens verdes — **✔ corrigido 27/08/2026**
 `src/extract/sellin.py:60` (+ `fato.py:96-112`, `sellin.py:212-218`) · esforço **M**
 - **Problema:** `arquivos()` ingere tudo que casar `*.xlsx` nas duas pastas.
   Uma cópia do mesmo arquivo com outro nome (`...-DESKTOP-XYZ.xlsx`,
@@ -128,7 +161,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
   (complementares têm assinaturas diferentes por construção) → abortar; ou
   deduplicar por hash de conteúdo.
 
-### A4 · Exportação entrega tabela de outro recorte quando a quebra não existe
+### A4 · Exportação entrega tabela de outro recorte quando a quebra não existe — **✔ corrigido 27/08/2026**
 `dashboard/template.html:777-781` · esforço **P**
 - **Problema:** o desvio de `quebra()` ("esta quebra não existe na camada de
   SKU") escreve a mensagem direto no `innerHTML`, sem `delete RAW[idTab]` — só
@@ -139,7 +172,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** usar `vazio(idTab, msg)` no desvio (o `renderPreco:946` já faz
   certo; só `quebra()` divergiu).
 
-### A5 · Gabarito com célula vazia faz a reconciliação "passar de mão vazia"
+### A5 · Gabarito com célula vazia faz a reconciliação "passar de mão vazia" — **✔ corrigido 27/08/2026**
 `src/extract/sellin.py:101-105` (+ `fato.py:110`) · esforço **P**
 - **Problema:** a linha `Total` é lida com `float()` cru e só Caixas tem
   proteção de `notna`. Receita/Peso vazios viram `NaN` no gabarito, e
@@ -151,7 +184,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** `numero()` + `pd.notna` nas três métricas do gabarito; NaN vira
   "gabarito ausente" com aviso.
 
-### A6 · Aborto no meio da gravação deixa `data/curated` inconsistente — e a mensagem mente
+### A6 · Aborto no meio da gravação deixa `data/curated` inconsistente — e a mensagem mente — **✔ corrigido 27/08/2026**
 `run_pipeline.py:85-99` + `src/load/parquet.py:35-45` + `src/utils/log.py:73` · esforço **M**
 - **Problema:** (a) o passo 5 grava dims+fato ANTES de o passo 6 validar os
   cubos — um aborto no 6 deixa parquet novo com `cubos.json`/`resumo.json`
@@ -165,7 +198,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
   só gravar parquet após TODAS as validações; carimbar `EXECUCAO_ID` no
   cubos.json e conferir no `run_dashboard`; mensagem de aborto parametrizável.
 
-### A7 · Trimestre/semestre "fiscais" existem no payload mas o painel agrupa pelo calendário
+### A7 · Trimestre/semestre "fiscais" existem no payload mas o painel agrupa pelo calendário — **✔ corrigido 27/08/2026**
 `dashboard/template.html:674-678` (vs `:314`; geradas em `src/load/cubos.py:126-133`) · esforço **M**
 - **Problema:** `grupoPeriodo()` usa sempre `C_TRI`/`C_SEM` (calendário), mesmo
   em YTD Fiscal; `C_TFIS`/`C_SFIS` viajam no payload e **nunca são lidos**.
@@ -174,7 +207,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** em `F.base==="fis"`, agrupar por `FY-T{C_TFIS}`; ou tirar as
   colunas do payload se a decisão for manter calendário.
 
-### A8 · SCD: toda a história é classificada pela estrutura comercial DE HOJE — e a decisão não está registrada
+### A8 · SCD: toda a história é classificada pela estrutura comercial DE HOJE — e a decisão não está registrada — **aberto (decisão pendente)**
 `src/transform/dimensoes.py:45` + `src/extract/cadastros.py:129-150` · esforço **M**
 - **Problema (medido):** o de-para (gravado 24/08/2026, colunas "Novo Head/
   Gerente/Supervisor" — a estrutura pós-reorganização) é aplicado sem data de
@@ -194,7 +227,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
   **nada o mede**. Adicionar contador de clientes com >1 bandeira/UF/nome na
   série ao `qualidade.py` (hoje daria 0; o dia em que não der, aparece).
 
-### A9 · `ano_mes()` aceita mês inválido e fatia formato novo em silêncio
+### A9 · `ano_mes()` aceita mês inválido e fatia formato novo em silêncio — **✔ corrigido 27/08/2026**
 `src/utils/texto.py:66-71` · esforço **P**
 - **Problema (medido):** `202512` → `"2025-02"` (mês errado!), `"2025/13"` →
   aceito, `"07/2025"` → NA (linha some no dropna). A reconciliação soma por
@@ -204,7 +237,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** regex full-match + validar 1≤mês≤12; formato não reconhecido
   aborta com exemplo.
 
-### A10 · `numero()` tem bug latente de 100× para texto com decimal em ponto
+### A10 · `numero()` tem bug latente de 100× para texto com decimal em ponto — **✔ corrigido 27/08/2026**
 `src/utils/texto.py:57-58` · esforço **P**
 - **Problema (medido):** `"1234.56"` → `123456.0` e `"1,234.56"` → `1.23456` —
   o `.replace(".", "")` roda antes de checar se há vírgula. Hoje as colunas
@@ -215,7 +248,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** só remover `.` quando houver `,`; senão decidir pelo último
   separador.
 
-### A11 · Cache pode servir dado velho após restore do OneDrive
+### A11 · Cache pode servir dado velho após restore do OneDrive — **✔ corrigido 27/08/2026**
 `src/extract/cache.py:39` · esforço **P**
 - **Problema:** chave = `nome|tamanho|int(mtime)` — sem caminho e com mtime
   truncado. Restore de versão pelo histórico do OneDrive (ou `robocopy
@@ -224,23 +257,27 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** incluir o caminho relativo na chave + hash rápido de
   primeiros/últimos KB.
 
-### A12 · Coluna opcional que sumir da extração morre em silêncio absoluto
+### A12 · Coluna opcional que sumir da extração morre em silêncio absoluto — **✔ corrigido 27/08/2026**
 `src/extract/sellin.py:117-119` (log só na presença, :165-166) · esforço **P**
 - **Impacto:** o BI renomeia `Subcanal` → o eixo some do painel de um mês para
   o outro, sem uma linha de log.
 - **Correção:** logar por arquivo as opcionais declaradas e ausentes; avisar
   quando uma coluna que existia deixar de existir.
 
-### A13 · `fillna(0)` no cubo apaga a distinção nulo × zero de CAIXAS que a fato preserva
+### A13 · `fillna(0)` no cubo apaga a distinção nulo × zero de CAIXAS que a fato preserva — **◑ documentado 27/08/2026 (perda assumida — docs/06 §2.1)**
 `src/load/cubos.py:43` (contra a promessa de `fato.py:12-16` e docs/06) · esforço **M**
-- **Medido:** 9.519 de 368.699 células do CUBO_SKU (2,6%) são grupos 100% nulos
-  publicados como `C=0` — devoluções com R$ −20,6 mi de receita associada.
+- **Medido (reconferido em 27/08/2026):** 9.519 de 368.699 células do CUBO_SKU
+  (2,6%) são grupos 100% nulos publicados como `C=0`, com **−R$ 7,30 mi** de
+  receita nesses grupos (as linhas `C=0` publicadas somam 9.870 — as outras 351
+  têm soma zero legítima). Na origem, as 75.956 linhas da fato com caixa nula
+  carregam **−R$ 20,56 mi** de receita; a maioria cai em grupos mistos, que não
+  viram `C=0` mas somam a caixa como se o nulo fosse zero.
 - **Impacto:** a tela mostra "0 caixas" onde a verdade é "não informado"; o
   total ainda reconcilia (por isso passou 24 testes).
 - **Correção:** sentinela para grupo todo-nulo, ou documentar a perda assumida
   em docs/06.
 
-### A14 · O filtro de extração do Canais.xlsx é capturado e nunca conferido
+### A14 · O filtro de extração do Canais.xlsx é capturado e nunca conferido — **✔ corrigido 27/08/2026**
 `src/extract/cadastros.py:80-85` (consumo só de `conflitos`, :118-123) · esforço **M**
 - **Problema:** o rodapé do arquivo declara um recorte
   ("Nome Gerente é Izabela - 2650...") incoerente com a cobertura total medida
@@ -250,7 +287,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 - **Correção:** guardar a assinatura no relatório de qualidade e avisar quando
   mudar.
 
-### A15 · Merges do cubo sem validação de cardinalidade
+### A15 · Merges do cubo sem validação de cardinalidade — **✔ corrigido 27/08/2026**
 `src/load/cubos.py:49-54` (+ `dimensoes.py:46,67` protegidos só por `assert`) · esforço **P**
 - **Impacto:** duplicata futura em DIM_CLIENTE multiplicaria o cubo; a
   reconciliação pegaria, mas com diagnóstico errado ("cubo não reconcilia").
@@ -263,7 +300,7 @@ entraria ou já aparece errado na tela em cenários específicos.*
 *Nenhum item abaixo muda um número. Ordenado por ganho ÷ esforço, com o ganho
 medido.*
 
-### B1 · O motor do painel varre os cubos ~103 vezes por clique
+### B1 · O motor do painel varre os cubos ~103 vezes por clique — **✔ corrigido (índice por mês + memo de total() + render por aba; 44 ms medidos)**
 `dashboard/template.html:601-617` (motor todo) · esforço **M**
 - **Medido:** um `render()` = 103 passadas completas no CUBO (90.644 linhas) +
   2 no CUBO_SKU ≈ **10,1 milhões de visitas de linha por clique** (38,7 mi com
@@ -278,28 +315,28 @@ medido.*
   chave de filtros (−40% das passadas); (c) renderizar só a aba ativa.
   Juntas: ~10 M → ~1 M visitas/clique, sem mudar nenhum número.
 
-### B2 · `data/` e `dashboard/build/` dentro do OneDrive: ~52 MB de churn por execução
+### B2 · `data/` e `dashboard/build/` dentro do OneDrive: ~54 MB de churn por execução
 pasta `data/` + `dashboard/build/` (cicatriz no código: `parquet.py:24-43`) · esforço **M**
-- **Medido:** cada rodada reescreve fato 23,2 MB + cubos.json 14,0 MB + HTML
+- **Medido:** cada rodada reescreve fato 24,4 MB + cubos.json 14,7 MB + HTML
   15,0 MB. O retry de `PermissionError WinError 5` já existe porque o
   sincronizador **já** segurou arquivo uma vez. Com cadência diária, é atrito
   diário.
 - **Correção:** excluir `data/` e `dashboard/build/` da sincronização (OneDrive
   permite por pasta) ou movê-los para pasta local; publicar só o HTML final.
 
-### B3 · `EXECUCAO_ID`/`ARQUIVO_ORIGEM` como str por linha: 178 MB de RAM à toa
+### B3 · `EXECUCAO_ID`/`ARQUIVO_ORIGEM` como str por linha: 178 MB de RAM à toa — **✔ corrigido (category)**
 `src/transform/fato.py:44-45` · esforço **P**
 - **Medido:** `astype("category")` nas duas colunas: fato de 418 → **247 MB**
   (−41%). No disco nada muda (parquet já dicionariza).
 
-### B4 · Pico de memória ~2,4 GB por referências mortas
+### B4 · Pico de memória ~2,4 GB por referências mortas — **✔ corrigido (del bruto/f_part)**
 `run_pipeline.py:51-94` · esforço **P**
 - **Medido:** `bruto` (692 MB) e `f_part` (~460 MB) seguem referenciados após o
   último uso. `del` nos dois corta ~1,1 GB do pico. **Veredito do auditor:
   processar em partes NÃO vale** — 2,5 GB cabe em máquina corporativa e
   chunking quebraria as validações globais (grão, reconciliação).
 
-### B5 · Sort de 3,08 M linhas repetido 3× nas dimensões
+### B5 · Sort de 3,08 M linhas repetido 3× nas dimensões — **✔ corrigido (1 sort + 1 agg na dim_cliente; dim_produto mantém o seu)**
 `src/transform/dimensoes.py:32,39,92` · esforço **P**
 - **Medido:** ~0,65 s/sort + ~1 s/groupby; o passo custa 3,7 s dos 16,5 s.
   Ordenar uma vez e agregar num único `.agg` poupa ~1,5–2 s (~10% do pipeline).
@@ -310,13 +347,13 @@ pasta `data/` + `dashboard/build/` (cicatriz no código: `parquet.py:24-43`) · 
   formato de saída (listas para JSON) força materializar ~102 MB de listas de
   qualquer jeito. Vale registrar; não vale reescrever com urgência.
 
-### B7 · zstd + row groups consolidados: −14,5% e −8,4% no disco
-`src/load/parquet.py:57` e `:16` · esforço **P**
-- **Medido em regravação de teste:** fato 23,23 → 19,86 MB (zstd) e ANO=2025
-  12,57 → 11,51 MB (row groups: hoje são 110 para 3,08 M linhas). Leitura
+### B7 · zstd + row groups consolidados: −14,5% e −8,4% no disco — **✔ corrigido (fato 20,3 MB)**
+`src/load/parquet.py:58` e `:17` · esforço **P**
+- **Medido em regravação de teste:** fato 24,36 → 20,83 MB (zstd) e ANO=2025
+  13,18 → 12,07 MB (row groups: hoje são 110 para 3,08 M linhas). Leitura
   continua <0,25 s. Ganho absoluto pequeno; casa com o B2.
 
-### B8 · Cache thrash com o mesmo nome nas duas pastas de entrada
+### B8 · Cache thrash com o mesmo nome nas duas pastas de entrada — **✔ resolvido pela chave v2 com caminho relativo (A11)**
 `src/extract/cache.py:64-68` (chave em :39) · esforço **P**
 - **Problema:** dois arquivos de mesmo stem (cenário permitido pelo design de
   duas pastas) apagam o cache um do outro a cada execução — releitura eterna
@@ -344,88 +381,88 @@ pasta `data/` + `dashboard/build/` (cicatriz no código: `parquet.py:24-43`) · 
 # GRUPO C — LIMPEZA DE CÓDIGO
 *Ordenado por (risco de virar dado errado no futuro) ÷ esforço.*
 
-### C1 · `</script>` escapado nas libs mas não no JSON dos dados
+### C1 · `</script>` escapado nas libs mas não no JSON dos dados — **✔ corrigido**
 `run_dashboard.py:147-150` (vs `:59`) · esforço **P** — hoje **0 ocorrências**
 medidas nos 494 SKUs e 301 bandeiras, mas descrição de SKU vem de Excel de
 terceiros; uma futura com `</script>` quebraria o painel inteiro no parse.
 Correção: `dados.replace("</script>", "<\\/script>")` após o `json.dumps`.
 
-### C2 · Rótulos de negócio duplicados entre módulos
+### C2 · Rótulos de negócio duplicados entre módulos — **✔ corrigido (4 rótulos no config)**
 `src/transform/dimensoes.py:78,80,81,101` × `src/qualidade.py:153,209` · **P** —
 `"SEM CANAL"`/`"SEM BANDEIRA"`/`"SEM UF"`/`"NAO INFORMADO"` hardcoded em dois
 lugares (o irmão `"NÃO ATRIBUÍDO"` está certo, no config). Trocar num módulo só
 faz o relatório contar errado em silêncio. Levar os três para o config.
 
-### C3 · `read_excel` dos cadastros sem o try→`abortar` do sell-in
+### C3 · `read_excel` dos cadastros sem o try→`abortar` do sell-in — **✔ corrigido (_ler_aba)**
 `src/extract/cadastros.py:36,76,130` · **P** — aba errada = traceback cru em
 vez de "arquivo REJEITADO". Agrava: a aba da estrutura chama `"Planilha1"`,
 nome default que muda na primeira regravação do arquivo.
 
-### C4 · `colunas_opcionais` do config é documentação morta
+### C4 · `colunas_opcionais` do config é documentação morta — **✔ corrigido (Comissão anotada; guarda em runtime)**
 `config/config.yaml:52-58` × `src/extract/sellin.py:33-47` · **P** — a chave não
 é lida por código nenhum (grep: zero usos) e `Comissão Faturada Líquida`,
 presente nos arquivos, não tem destino — nunca é ingerida. Ou ingerir, ou
 anotar; e validar que toda opcional declarada tem destino.
 
-### C5 · Checagens de grão/órfãos re-implementadas no relatório
+### C5 · Checagens de grão/órfãos re-implementadas no relatório — **✔ corrigido (GRAO e contar_orfaos do fato.py)**
 `src/qualidade.py:117-119,127-131` (vs `fato.py:54,75-77`) · **P** — se a
 definição do grão mudar num lugar, o relatório mede outra coisa. O `fato.py`
 deveria devolver os números; o relatório, só relatar.
 
-### C6 · Reconhecimento de head por prefixo, no código
+### C6 · Reconhecimento de head por prefixo, no código — **✔ corrigido (igualdade no nome-base)**
 `src/qualidade.py:149-150` · **P** — `"Izabela - 2650"` casa por prefixo com o
 gabarito "Izabela"; um head novo "Izabelania" seria reconhecido sem constar da
 lista. Comparar o trecho antes de `" - "` por igualdade; regra no config.
 
-### C7 · `dropna` do sell-in descarta sem contar
+### C7 · `dropna` do sell-in descarta sem contar — **✔ corrigido (conta + receita descartada)**
 `src/extract/sellin.py:122` · **P** — hoje 0 linhas descartadas (medido);
 célula mesclada em `Ano mês` viraria descarte mudo. Contar e avisar com a
 receita descartada (a estrutura já faz assim, `cadastros.py:146-149`).
 
-### C8 · Detecção do rodapé de filtros é frouxa
+### C8 · Detecção do rodapé de filtros é frouxa — **✔ corrigido (captura a partir de 'Filtros aplicados')**
 `src/extract/sellin.py:108-111` · **P** — se o rótulo "Total" mudar (ex.:
 "Total geral"), a linha vira "filtro" e dispara falso aviso de recorte
 divergente em todo mês novo. Restringir a linhas que comecem com "Filtros
 aplicados" (padrão real medido).
 
-### C9 · `razao()` do JS não espelha `div()` do Python
+### C9 · `razao()` do JS não espelha `div()` do Python — **✔ corrigido**
 `dashboard/template.html:392` (vs `texto.py:90-98`) · **P** — `isFinite(null)`
 é `true` em JS; `razao(x, null)` devolve lixo em vez de null. Hoje nenhum
 call-site passa null (conferido um a um); a paridade prometida não existe.
 
-### C10 · `pct()`/`div()` do Python não são chamados por ninguém
+### C10 · `pct()`/`div()` do Python não são chamados por ninguém — **✔ corrigido (teste de paridade com tabela de casos)**
 `src/utils/texto.py:74-98` · **P** — espelhos documentais das fórmulas do JS, e
 o A2 mostra que o espelho já descolou. Ou virar teste de paridade com
 casos-tabela, ou docstring dizendo que são referência.
 
-### C11 · Comentário promete "soma exata"; a deriva real é sub-real
+### C11 · Comentário promete "soma exata"; a deriva real é sub-real — **✔ corrigido**
 `src/load/cubos.py:12-15` · **P** — medido: cubo × fato difere R$ 0,11 e
 R$ 0,36 (arredondamento de meio centavo por grupo; 1,6e-10 relativo). Só o
 comentário está mais forte que o fato — enfraquecer o comentário.
 
-### C12 · Código `"0"` no DePara vira NA e some sob aviso genérico
+### C12 · Código `"0"` no DePara vira NA e some sob aviso genérico — **✔ corrigido (valores crus no log)**
 `src/extract/cadastros.py:146-150` + `texto.py: digitos()` · **P** — medido: 9
 linhas com `Cód. cliente = "0"` (executivos KAR/Farma/Ecommerce) e 4 duplicadas
 idênticas descartadas sob "sem Cod. cliente". Impacto na fato: zero (código 0
 não existe no sell-in) — mas alguém preencheu e ninguém verá. Logar os códigos
 literais descartados.
 
-### C13 · Dtypes pandas mistos (`str` × `string`) na mesma tabela
+### C13 · Dtypes pandas mistos (`str` × `string`) na mesma tabela — **✔ corrigido**
 `src/transform/fato.py:44` e `calendario.py` · **P** — no Parquet ambos viram
 `large_string` (sem dado errado), mas código que dependa de semântica de NA
 diverge por coluna. `astype("string")` uniforme.
 
-### C14 · Arquivos manuais dentro da pasta gerida pelo pipeline
+### C14 · Arquivos manuais dentro da pasta gerida pelo pipeline — **✔ corrigido (movidos para docs/pedidos/)**
 `data/quality/incluir_no_DePara_estrutura.xlsx`, `clientes_canal_key_account.csv` · **P**
 — o pipeline sobrescreve só os 6 arquivos dele; esses dois (gerados a pedido,
 para Comercial/BI) ficam parecendo saída de execução. Mover para `docs/pedidos/`
 ou equivalente.
 
-### C15 · Asserts como única guarda de cardinalidade
+### C15 · Asserts como única guarda de cardinalidade — **✔ resolvido pela correção do A15**
 `src/transform/dimensoes.py:46,67` · **P** — some com `python -O` (mesma
 correção do A15: `validate="m:1"`).
 
-### C16 · Mensagem de aborto fixa e às vezes falsa
+### C16 · Mensagem de aborto fixa e às vezes falsa — **✔ resolvido pela correção do A6**
 `src/utils/log.py:73` · **P** — "nenhum Parquet foi atualizado" não vale nos
 cenários do A6. Parametrizar.
 

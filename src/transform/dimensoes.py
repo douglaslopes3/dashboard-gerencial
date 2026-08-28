@@ -15,6 +15,13 @@ from ..utils.log import log
 from ..utils.texto import texto
 
 SEM_ESTRUTURA = CFG["dimensoes"]["rotulo_sem_estrutura"]
+# C2 (auditoria): os rotulos de ausencia moram no config — o relatorio de
+# qualidade le as MESMAS strings; duplicar aqui e la fazia a contagem divergir
+# em silencio se alguem trocasse um rotulo num modulo so.
+SEM_CANAL = CFG["dimensoes"]["rotulo_sem_canal"]
+SEM_BANDEIRA = CFG["dimensoes"]["rotulo_sem_bandeira"]
+SEM_UF = CFG["dimensoes"]["rotulo_sem_uf"]
+SEM_CATEGORIA = CFG["dimensoes"]["rotulo_sem_categoria"]
 _COLS_ESTRUTURA = ["HEAD", "GERENTE", "SUPERVISOR", "ATENDIMENTO_PONTA", "PROJETO"]
 
 
@@ -29,20 +36,20 @@ def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
     """
     # O nome/bandeira/UF MAIS RECENTE vence: cliente renomeado no meio da serie
     # apareceria duas vezes no ranking.
-    base = (sellin.sort_values("ANO_MES")
-                  .groupby("COD_CLIENTE", as_index=False)
-                  .agg(NOME_CLIENTE=("NOME_CLIENTE", "last"),
-                       BANDEIRA=("BANDEIRA", "last"),
-                       UF=("UF", "last")))
-
+    # B5 (auditoria): UM sort + UMA agregacao — eram dois sorts de 3 Mi de
+    # linhas para tirar colunas da mesma passada.
+    agg = {"NOME_CLIENTE": ("NOME_CLIENTE", "last"),
+           "BANDEIRA": ("BANDEIRA", "last"),
+           "UF": ("UF", "last")}
     if "SUBCANAL" in sellin.columns:                 # GAP-01, se o BI entregar
-        sub = (sellin.sort_values("ANO_MES")
-                     .groupby("COD_CLIENTE", as_index=False)
-                     .agg(SUBCANAL=("SUBCANAL", "last")))
-        base = base.merge(sub, on="COD_CLIENTE", how="left")
+        agg["SUBCANAL"] = ("SUBCANAL", "last")
+    base = (sellin.sort_values("ANO_MES", kind="stable")
+                  .groupby("COD_CLIENTE", as_index=False).agg(**agg))
 
     antes = len(base)
-    d = base.merge(estrutura, on="COD_CLIENTE", how="left")
+    # validate="m:1" (A15): a garantia de cardinalidade nao pode morar so num
+    # assert, que desaparece com `python -O`.
+    d = base.merge(estrutura, on="COD_CLIENTE", how="left", validate="m:1")
     assert len(d) == antes, "o merge da estrutura comercial multiplicou clientes"
 
     d["NA_ESTRUTURA"] = d["HEAD"].notna() if "HEAD" in d.columns else False
@@ -63,22 +70,22 @@ def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
     if canais is not None and len(canais):
         antes = len(d)
         cols = [c for c in ("COD_CLIENTE", "CANAL", "SUBCANAL") if c in canais.columns]
-        d = d.merge(canais[cols], on="COD_CLIENTE", how="left")
+        d = d.merge(canais[cols], on="COD_CLIENTE", how="left", validate="m:1")
         assert len(d) == antes, "o merge do de-para de canais multiplicou clientes"
         d["TEM_CANAL"] = d["CANAL"].notna()
         sem_canal = int((~d["TEM_CANAL"]).sum())
         if sem_canal:
             log(f"{sem_canal:,} cliente(s) de sell-in SEM canal no de-para — "
-                "entram como 'SEM CANAL' e saem na lista de excecoes", "aviso")
+                f"entram como '{SEM_CANAL}' e saem na lista de excecoes", "aviso")
     else:
         d["TEM_CANAL"] = False
     for c in ("CANAL", "SUBCANAL"):
         if c not in d.columns:
             d[c] = pd.Series(pd.NA, index=d.index, dtype="string")
-        d[c] = d[c].fillna("SEM CANAL")
+        d[c] = d[c].fillna(SEM_CANAL)
 
-    d["BANDEIRA"] = d["BANDEIRA"].fillna("SEM BANDEIRA")
-    d["UF"] = d["UF"].fillna("SEM UF")
+    d["BANDEIRA"] = d["BANDEIRA"].fillna(SEM_BANDEIRA)
+    d["UF"] = d["UF"].fillna(SEM_UF)
     return d.sort_values("COD_CLIENTE").reset_index(drop=True)
 
 
@@ -98,7 +105,7 @@ def dim_produto(sellin: pd.DataFrame, produtos: pd.DataFrame) -> pd.DataFrame:
     d["FORA_DO_CADASTRO"] = d["DESCRICAO_PRODUTO"].isna()
 
     d["DESCRICAO_PRODUTO"] = d["DESCRICAO_PRODUTO"].fillna(d["DESC_SELLIN"])
-    d["CATEGORIA"] = d["CATEGORIA"].fillna(d["CAT_SELLIN"]).fillna("NAO INFORMADO")
+    d["CATEGORIA"] = d["CATEGORIA"].fillna(d["CAT_SELLIN"]).fillna(SEM_CATEGORIA)
     d["MARCA"] = texto(d["MARCA"]) if "MARCA" in d.columns else pd.NA
 
     fora = int(d["FORA_DO_CADASTRO"].sum())

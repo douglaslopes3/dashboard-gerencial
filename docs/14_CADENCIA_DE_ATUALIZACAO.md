@@ -78,7 +78,7 @@ arquivo — não há passo manual de limpeza. O que muda é **o que conferir** d
 
 | | |
 |---|---|
-| **O que caracteriza alteração** | troca de head/gerente/supervisor; entrada dos **71 clientes hoje `NÃO ATRIBUÍDO`** (arquivo pronto para colar: `data/quality/incluir_no_DePara_estrutura.xlsx`, head `Vago - 2600` já preenchido); mudança de projeto; cliente novo |
+| **O que caracteriza alteração** | troca de head/gerente/supervisor; entrada dos **71 clientes hoje `NÃO ATRIBUÍDO`** (arquivo pronto para colar: `docs/pedidos/incluir_no_DePara_estrutura.xlsx`, head `Vago - 2600` já preenchido); mudança de projeto; cliente novo |
 | **Conferir depois** | `cobertura da estrutura` (hoje 99,98% — colando os 71 vai a 100%); avisos de cliente com dois supervisores/heads; se um head mudar de NOME, a correção declarável fica em `config → dimensoes.estrutura_comercial.correcoes_head` (como Maykon→Vago), nunca no código |
 | **Atenção** | este arquivo tem **dono no Comercial** — alteração local que não voltar ao arquivo-mestre será desfeita na próxima atualização dele |
 

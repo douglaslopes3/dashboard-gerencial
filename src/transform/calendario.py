@@ -54,7 +54,9 @@ def construir(meses: list[str]) -> pd.DataFrame:
     datas = pd.date_range(f"{ini}-01", f"{fim}-01", freq="MS")
 
     d = pd.DataFrame({"DATA_INICIO": datas})
-    d["ANO_MES"] = d["DATA_INICIO"].dt.strftime("%Y-%m")
+    # C13 (auditoria): dtype "string" explicito — o strftime devolve object/
+    # str e a tabela ficava com semantica de NA mista entre colunas.
+    d["ANO_MES"] = d["DATA_INICIO"].dt.strftime("%Y-%m").astype("string")
     d["DATA_FIM"] = d["DATA_INICIO"] + pd.offsets.MonthEnd(0)
     d["ANO"] = d["DATA_INICIO"].dt.year.astype("int64")
     d["MES"] = d["DATA_INICIO"].dt.month.astype("int64")

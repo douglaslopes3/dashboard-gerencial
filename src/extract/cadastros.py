@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..utils.config import CFG, caminho
+from ..utils.config import CFG, PASTA_QUALITY, caminho
 from ..utils.log import abortar, log
 from ..utils.texto import digitos, texto
 from . import cache
@@ -21,6 +21,22 @@ _PROD = CFG["fontes"]["produtos"]
 _EST = CFG["fontes"]["estrutura_comercial"]
 _CAN = CFG["fontes"]["canais"]
 _DIMCFG = CFG["dimensoes"]["estrutura_comercial"]
+
+
+def _ler_aba(arq: Path, aba: str, chave_cfg: str,
+             dtype=None) -> pd.DataFrame:
+    """C3 (auditoria): aba errada/renomeada vira 'arquivo REJEITADO' com
+    diagnostico e a chave do config — nao traceback cru do calamine. A aba da
+    estrutura chama 'Planilha1', nome default que muda na primeira vez que
+    alguem regravar o arquivo."""
+    try:
+        df = pd.read_excel(arq, sheet_name=aba, engine="calamine", dtype=dtype)
+    except Exception as e:                                   # noqa: BLE001
+        abortar(f"arquivo REJEITADO: {arq.name}\n"
+                f"  nao foi possivel ler a aba '{aba}': {e}\n"
+                f"  (config/config.yaml -> fontes.{chave_cfg}.aba)")
+    df.columns = [str(c).strip() for c in df.columns]
+    return df
 
 
 def _validar(df: pd.DataFrame, obrig: list[str], arq: Path) -> None:
@@ -33,8 +49,7 @@ def _validar(df: pd.DataFrame, obrig: list[str], arq: Path) -> None:
 
 # ---------------------------------------------------------------- PRODUTOS
 def _ler_produtos(arq: Path) -> tuple[pd.DataFrame, dict]:
-    df = pd.read_excel(arq, sheet_name=_PROD["aba"], engine="calamine")
-    df.columns = [str(c).strip() for c in df.columns]
+    df = _ler_aba(arq, _PROD["aba"], "produtos")
     _validar(df, _PROD["colunas_obrigatorias"], arq)
 
     out = pd.DataFrame(index=df.index)
@@ -73,8 +88,7 @@ def _ler_canais(arq: Path) -> tuple[pd.DataFrame, dict]:
       - há um RODAPÉ de `Filtros aplicados` (linhas com o canal nulo) que não é
         dado. O texto do filtro vai para o `extra`, como no sell-in.
     """
-    df = pd.read_excel(arq, sheet_name=_CAN["aba"], engine="calamine", dtype=str)
-    df.columns = [str(c).strip() for c in df.columns]
+    df = _ler_aba(arq, _CAN["aba"], "canais", dtype=str)
     _validar(df, _CAN["colunas_obrigatorias"], arq)
 
     extra: dict = {}
@@ -116,6 +130,7 @@ def ler_canais() -> tuple[pd.DataFrame, list[str]]:
         return pd.DataFrame(columns=["COD_CLIENTE", "CANAL", "SUBCANAL"]), [msg]
 
     can, extra = cache.ler(arq, _ler_canais)
+    avisos += _conferir_assinatura_canais(extra.get("filtro"))
     if extra.get("conflitos"):
         msg = (f"{extra['conflitos']} cliente(s) com DOIS canais no de-para — "
                "vale a 1a linha; confira o arquivo")
@@ -125,10 +140,33 @@ def ler_canais() -> tuple[pd.DataFrame, list[str]]:
     return can, avisos
 
 
+def _conferir_assinatura_canais(filtro: str | None) -> list[str]:
+    """A14: o rodapé do `Canais.xlsx` declara o RECORTE da extração — e nada o
+    comparava entre execuções (ao contrário do sell-in). Se o BI reextrair o
+    de-para com outro recorte, o universo de canais muda em silêncio e o piso
+    de 95% só pega queda grande. A assinatura fica guardada em
+    `data/quality/assinatura_extracao_canais.txt`; mudança vira AVISO (o
+    arquivo tem dono no BI — a correção é lá, não aqui)."""
+    avisos: list[str] = []
+    atual = " | ".join(str(filtro or "").split("\n")).strip().casefold()
+    alvo = PASTA_QUALITY / "assinatura_extracao_canais.txt"
+    PASTA_QUALITY.mkdir(parents=True, exist_ok=True)
+    if alvo.exists():
+        anterior = alvo.read_text(encoding="utf-8").strip()
+        if anterior != atual:
+            msg = ("o recorte de extracao do Canais.xlsx MUDOU desde a ultima "
+                   f"execucao.\n  anterior: {anterior[:160] or '(vazio)'}\n"
+                   f"  atual   : {atual[:160] or '(vazio)'}\n"
+                   "  O universo de canais pode ter mudado — confira com o BI.")
+            log(msg, "aviso")
+            avisos.append(msg)
+    alvo.write_text(atual, encoding="utf-8")
+    return avisos
+
+
 # ------------------------------------------------------- ESTRUTURA COMERCIAL
 def _ler_estrutura(arq: Path) -> tuple[pd.DataFrame, dict]:
-    df = pd.read_excel(arq, sheet_name=_EST["aba"], engine="calamine", dtype=str)
-    df.columns = [str(c).strip() for c in df.columns]
+    df = _ler_aba(arq, _EST["aba"], "estrutura_comercial", dtype=str)
     _validar(df, _EST["colunas_obrigatorias"], arq)
 
     out = pd.DataFrame(index=df.index)
@@ -143,10 +181,16 @@ def _ler_estrutura(arq: Path) -> tuple[pd.DataFrame, dict]:
         if origem in df.columns:
             out[destino] = texto(df[origem], maiuscula=False)
 
-    sem_chave = int(out["COD_CLIENTE"].isna().sum())
-    if sem_chave:
-        log(f"de-para de estrutura: {sem_chave} linha(s) sem Cod. cliente, "
-            "descartadas", "aviso")
+    sem_chave = out["COD_CLIENTE"].isna()
+    if sem_chave.any():
+        # C12 (auditoria): mostrar o valor CRU descartado. Ha 9 linhas com
+        # Cod. cliente = "0" carregando estrutura real (executivos KAR/Farma/
+        # Ecommerce) — o dono do arquivo so corrige o que consegue ver.
+        crus = sorted(set(df.loc[sem_chave, "Cód. cliente"]
+                          .astype("string").fillna("(vazio)")))[:6]
+        log(f"de-para de estrutura: {int(sem_chave.sum())} linha(s) sem "
+            f"Cod. cliente aproveitavel, descartadas — valores crus: "
+            f"{crus}", "aviso")
     return out.dropna(subset=["COD_CLIENTE"]).reset_index(drop=True), {}
 
 

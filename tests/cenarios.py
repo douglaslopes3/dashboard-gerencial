@@ -121,12 +121,20 @@ def main() -> int:
         _planilha(ENTRADA / f"sellin{MARCA}dup_b.xlsx", [_linha()])
 
     def val_dup(code, s):
-        return (code == 1 and "fora do grao declarado" in s,
-                "abortou apontando a chave duplicada e os dois arquivos"
+        # Auditoria A3: a duplicata agora e pega ANTES do grao — duas partes do
+        # mesmo mes com o MESMO recorte de extracao sao copia duplicada (caso
+        # real: copia de conflito do OneDrive) e abortam ja na ingestao, com
+        # diagnostico melhor. O grao continua como segunda linha de defesa
+        # (arquivos sem rodape de filtro cairiam nele).
+        pegou = ("MESMO recorte de extracao" in s) or ("fora do grao declarado" in s)
+        onde = ("na ingestao (A3: mesmo recorte = copia duplicada)"
+                if "MESMO recorte" in s else "no grao")
+        return (code == 1 and pegou,
+                f"abortou {onde}, apontando os dois arquivos"
                 if code == 1 else "NAO abortou")
 
     cenario("T-07", "duplicidade: mesmo mes/cliente/SKU em dois arquivos",
-            "exit 1, mensagem de grao com a chave e os arquivos de origem",
+            "exit 1 — copia duplicada barrada na ingestao (A3) ou no grao",
             prep_dup, val_dup)
 
     # ---------------------------------------------------------------- T-08

@@ -43,6 +43,11 @@ def construir(sellin: pd.DataFrame) -> pd.DataFrame:
     })
     f["EXECUCAO_ID"] = EXECUCAO_ID
     f["PROCESSADO_EM"] = pd.Timestamp(INICIO)
+    # B3 (auditoria): as colunas de linhagem tem 28 e 1 valores distintos para
+    # 3 Mi de linhas — como `category` a fato cai de 418 para 247 MB em RAM.
+    # No Parquet nada muda (as strings ja saem dictionary-encoded).
+    f["ARQUIVO_ORIGEM"] = f["ARQUIVO_ORIGEM"].astype("category")
+    f["EXECUCAO_ID"] = f["EXECUCAO_ID"].astype("category")
     return f[COLUNAS]
 
 
@@ -55,8 +60,13 @@ def conferir_grao(f: pd.DataFrame) -> list[str]:
         log(f"grao {' x '.join(GRAO)}: zero duplicados em {len(f):,} linhas", "ok")
         return []
 
-    amostra = (f[f.duplicated(GRAO, keep=False)]
-               .groupby(GRAO)["ARQUIVO_ORIGEM"].agg(list).head(5))
+    # O cast para "string" vem ANTES do groupby: com ARQUIVO_ORIGEM em
+    # category (B3), o pandas 3 tenta reconverter o resultado do agg de volta
+    # para o dtype categorico da coluna de origem e estoura em lista.
+    dup_df = f[f.duplicated(GRAO, keep=False)]
+    amostra = (dup_df.assign(_ARQ=dup_df["ARQUIVO_ORIGEM"].astype("string"))
+               .groupby(GRAO)["_ARQ"]
+               .agg(lambda s: sorted(set(s))).head(5))
     abortar(f"{dup:,} linha(s) fora do grao declarado.\n"
             "  O grao da fonte e ANO_MES x COD_CLIENTE x COD_PRODUTO e foi medido\n"
             "  como unico em 24 meses. Duplicidade aqui significa arquivo\n"
@@ -64,6 +74,16 @@ def conferir_grao(f: pd.DataFrame) -> list[str]:
             f"  Exemplos (chave -> arquivos):\n"
             + "\n".join(f"    {k} -> {v}" for k, v in amostra.items()))
     return []
+
+
+def contar_orfaos(f: pd.DataFrame, dim: pd.DataFrame, coluna: str) -> int:
+    """Linhas da fato cuja chave nao existe na dimensao.
+
+    C5 (auditoria): esta e A definicao de orfao — o relatorio de qualidade usa
+    esta funcao em vez de reconstruir o `set`+`isin` por conta propria, para as
+    duas medicoes nunca divergirem.
+    """
+    return int((~f[coluna].isin(set(dim[coluna].dropna()))).sum())
 
 
 def conferir_integridade(f: pd.DataFrame, dim_cliente: pd.DataFrame,
@@ -94,7 +114,17 @@ def reconciliar_origem(f: pd.DataFrame, meta: dict) -> list[str]:
         return [msg]
 
     calc = f.groupby("ARQUIVO_ORIGEM")[["RECEITA", "PESO_KG", "CAIXAS"]].sum()
-    ruins = []
+    ruins, avisos = [], []
+
+    # A5: arquivo sem gabarito, ou gabarito com métrica vazia/ilegível, NÃO é
+    # "reconciliado" — é conferência que não rodou, e isso sai como AVISO.
+    # "Checagem que não roda é pior do que checagem que não existe."
+    for arq in meta.get("arquivos") or calc.index.tolist():
+        if arq not in gabaritos:
+            msg = f"{arq}: sem linha 'Total' legivel — reconciliacao NAO executada"
+            log(msg, "aviso")
+            avisos.append(msg)
+
     for arq, gab in sorted(gabaritos.items()):
         if arq not in calc.index:
             ruins.append(f"{arq}: nenhuma linha util apos a limpeza do rodape")
@@ -105,6 +135,10 @@ def reconciliar_origem(f: pd.DataFrame, meta: dict) -> list[str]:
                                    ("caixas", "CAIXAS", _TOL["tolerancia_caixas"])):
             esperado = gab.get(chave)
             if esperado is None:
+                msg = (f"{arq}: gabarito sem '{chave}' (celula vazia ou "
+                       "ilegivel no rodape) — metrica NAO conferida")
+                log(msg, "aviso")
+                avisos.append(msg)
                 continue
             dif = float(c[coluna]) - float(esperado)
             if abs(dif) > tol:
@@ -115,7 +149,7 @@ def reconciliar_origem(f: pd.DataFrame, meta: dict) -> list[str]:
                 + "\n  ".join(ruins))
     log(f"reconciliado contra o gabarito da fonte em {len(gabaritos)} arquivo(s), "
         "nas 3 metricas", "ok")
-    return []
+    return avisos
 
 
 def _cobertura(f: pd.DataFrame, dim_cliente: pd.DataFrame, flag: str,

@@ -309,6 +309,14 @@ const ESC = DB.escala, CAL = DB.cal, D = DB.dims;
 const CUBO = DB.cubo, CUBO_SKU = DB.cubo_sku;
 const NM = CAL.length;
 
+/* B1 (auditoria): indice por mes, construido UMA vez. Uma passada de mes unico
+   visitava as 90.644 linhas do cubo para usar ~3.777 (96% de desperdicio);
+   com o indice, cada somar() so anda pelas linhas dos meses selecionados. */
+const IDX_CUBO = Array.from({length:NM}, ()=>[]);
+for(const l of CUBO) IDX_CUBO[l[0]].push(l);
+const IDX_SKU = Array.from({length:NM}, ()=>[]);
+for(const l of CUBO_SKU) IDX_SKU[l[0]].push(l);
+
 // indices das colunas do calendario
 const C_AM=0, C_ROT=1, C_ANO=2, C_MES=3, C_TRI=4, C_SEM=5,
       C_FY=6, C_FYROT=7, C_MFIS=8, C_TFIS=9, C_SFIS=10, C_LY=11;
@@ -382,14 +390,21 @@ function fmtPreco(v){
   if(v===null||!isFinite(v)) return '<span class="nd">n/d</span>';
   return nbsp("R$ "+fmtNum(v,2)+" /kg");
 }
-// Variacao %: base zero ou nula devolve null (a tela mostra "n/d", nunca
-// infinito). Base negativa usa o MODULO no denominador, para que uma devolucao
-// liquida no LY nao inverta o sinal da variacao.
+// Variacao %: base zero/nula OU atual nulo devolvem null (a tela mostra "n/d",
+// nunca infinito nem um falso −100%). Base negativa usa o MODULO no denominador,
+// para que uma devolucao liquida no LY nao inverta o sinal da variacao.
+// (A2: sem a guarda do numerador, `null − ly` coagia a 0 e virava −100% —
+// divergindo do espelho Python `pct()`, que devolve None no mesmo caso.)
 function varPct(atual, ly){
+  if(atual===null || atual===undefined || !isFinite(atual)) return null;
   if(ly===0 || ly===null || !isFinite(ly)) return null;
   return (atual-ly)/Math.abs(ly);
 }
-function razao(a,b){ return (b===0||!isFinite(b)) ? null : a/b; }
+function razao(a,b){
+  // C9 (auditoria): espelho de div() do Python — isFinite(null) e true em JS,
+  // entao null no denominador escapava como Infinity/NaN.
+  return (b===null||b===undefined||b===0||!isFinite(b)) ? null : a/b;
+}
 
 /* --------------------------------------------------------------- periodos */
 function mesesDoFY(fyRot){
@@ -423,22 +438,35 @@ function preSelecionarMeses(){
    a lista de meses e como o YTD do comparativo acumula; nao muda esta conta. */
 function periodo(){
   const sel = selecionados();
-  if(!sel.length) return {atual:[], ly:[], ref:null};
+  if(!sel.length) return {atual:[], pareado:[], ly:[], ref:null};
   const ref = sel[sel.length-1];
-  const ly = sel.map(i=>CAL[i][C_LY]).filter(i=>i>=0);
-  return {atual:sel, ly, ref};
+  // COMPARATIVO PAREADO (decisao D-32, 27/08/2026): a comparacao com o ano
+  // anterior usa SOMENTE os meses que tem o mesmo mes no LY. `pareado` e o
+  // subconjunto do periodo atual com par; `ly` sao exatamente esses pares.
+  // ago/25 sem ago/24 na serie fica FORA do comparativo — o "Atual" exibido
+  // continua sendo o periodo inteiro, mas LY, Δ e Δ% comparam par com par.
+  const pareado = sel.filter(i=>CAL[i][C_LY]>=0);
+  return {atual:sel, pareado, ly:pareado.map(i=>CAL[i][C_LY]), ref};
 }
+// true quando HA comparativo mas nem todo mes selecionado tem par no LY
+function parcialLy(p){ return p.ly.length>0 && p.pareado.length<p.atual.length; }
+/* YTD (D-32): o lado LY e derivado por ANO_MES_LY — juncao mes a mes — e o
+   comparativo usa so os meses PAREADOS. Antes, "YTD Calendario 2025" somava
+   os 12 meses de 2025 e comparava com os 4 meses de 2024 que existem na
+   serie: crescimento falso. Devolve [meses, pareados, pares_no_LY]. */
 function ytdFiscal(ref){
-  const fy=CAL[ref][C_FY], mf=CAL[ref][C_MFIS]; const a=[],l=[];
-  for(let i=0;i<NM;i++){ if(CAL[i][C_MFIS]>mf) continue;
-    if(CAL[i][C_FY]===fy) a.push(i); if(CAL[i][C_FY]===fy-1) l.push(i); }
-  return [a,l];
+  const fy=CAL[ref][C_FY], mf=CAL[ref][C_MFIS]; const a=[];
+  for(let i=0;i<NM;i++)
+    if(CAL[i][C_FY]===fy && CAL[i][C_MFIS]<=mf) a.push(i);
+  const aP=a.filter(i=>CAL[i][C_LY]>=0);
+  return [a, aP, aP.map(i=>CAL[i][C_LY])];
 }
 function ytdCalendario(ref){
-  const an=CAL[ref][C_ANO], me=CAL[ref][C_MES]; const a=[],l=[];
-  for(let i=0;i<NM;i++){ if(CAL[i][C_MES]>me) continue;
-    if(CAL[i][C_ANO]===an) a.push(i); if(CAL[i][C_ANO]===an-1) l.push(i); }
-  return [a,l];
+  const an=CAL[ref][C_ANO], me=CAL[ref][C_MES]; const a=[];
+  for(let i=0;i<NM;i++)
+    if(CAL[i][C_ANO]===an && CAL[i][C_MES]<=me) a.push(i);
+  const aP=a.filter(i=>CAL[i][C_LY]>=0);
+  return [a, aP, aP.map(i=>CAL[i][C_LY])];
 }
 
 /* --------------------------------------------------------------- filtros
@@ -484,28 +512,37 @@ function conflitoSku(){
 /* ------------------------------------------------------------- agregacao */
 const MZERO = ()=>[0,0,0];
 function somar(meses, chaveFn, ignorar){
-  const alvo = new Uint8Array(NM);
-  meses.forEach(i=>alvo[i]=1);
   const sku = usaCuboSku();
-  const cubo = sku ? CUBO_SKU : CUBO;
+  const idx = sku ? IDX_SKU : IDX_CUBO;         // B1: so os meses pedidos
   const passa = sku ? passaSku : passaPrincipal;
   const base = sku ? 4 : 5;
   const out = new Map();
-  for(let k=0;k<cubo.length;k++){
-    const l = cubo[k];
-    if(!alvo[l[0]]) continue;
-    if(!passa(l, ignorar)) continue;
-    const ch = chaveFn ? chaveFn(l, sku) : 0;
-    if(ch===null) continue;
-    let v = out.get(ch);
-    if(!v){ v = MZERO(); out.set(ch, v); }
-    v[0]+=l[base]; v[1]+=l[base+1]; v[2]+=l[base+2];
+  for(const mi of meses){
+    const linhas = idx[mi];
+    for(let k=0;k<linhas.length;k++){
+      const l = linhas[k];
+      if(!passa(l, ignorar)) continue;
+      const ch = chaveFn ? chaveFn(l, sku) : 0;
+      if(ch===null) continue;
+      let v = out.get(ch);
+      if(!v){ v = MZERO(); out.set(ch, v); }
+      v[0]+=l[base]; v[1]+=l[base+1]; v[2]+=l[base+2];
+    }
   }
   return out;
 }
+/* B1 (auditoria): memo de total() — Evolucao e Periodo pediam os MESMOS 24
+   totais duas vezes, e os denominadores de participacao repetiam o do KPI.
+   A chave nao carrega os filtros porque o memo e limpo a cada render(), e
+   dentro de um render os filtros nao mudam. */
+const MEMO_TOTAL = new Map();
 function total(meses, ignorar){
-  const m = somar(meses, null, ignorar);
-  return m.get(0) || MZERO();
+  const k = meses.join(",")+"|"+(ignorar||"")+"|"+(usaCuboSku()?1:0);
+  let v = MEMO_TOTAL.get(k);
+  if(v) return v;
+  v = somar(meses, null, ignorar).get(0) || MZERO();
+  MEMO_TOTAL.set(k, v);
+  return v;
 }
 function met(v){
   const m = METRICAS[F.metrica];
@@ -598,22 +635,42 @@ function vazio(id, msg){
 
 /* ================================================================ RENDER = */
 let chart=null;
+/* B1 (auditoria): so a ABA ATIVA e renderizada a cada mudanca de filtro — as
+   outras quatro ficam marcadas como sujas e renderizam no clique da aba.
+   Junto com o indice por mes e o memo de total(), as ~10 milhoes de visitas
+   de linha por clique caem para ~1 milhao, sem mudar nenhum numero. */
+let SUJAS = {};
 function render(){
   const p = periodo();
+  MEMO_TOTAL.clear();
+  SUJAS = {geral:true, geo:true, band:true, sku:true, preco:true};
   atualizarEstado(p);
   if(!p.atual.length){
     ["tabYTD","tabPer","tabDet","tabUF","tabUFper","tabBan","tabSku","tabPreco","tabPrecoPer"]
       .forEach(i=>vazio(i,"Nenhum mês selecionado. Escolha ao menos um mês."));
     el("kpis").innerHTML="";
+    SUJAS = {};                     // nada a renderizar por aba
     return;
   }
-  renderKPIs(p); renderEvolucao(p); renderYTD(p); renderPeriodo(p); renderDet(p);
-  renderGeo(p); renderBandeiras(p); renderSkus(p); renderPreco(p);
-  if(F.drill){
-    const some = F.drill.tipo==="cat" ? D.cat[F.drill.k]===undefined
-                                      : !D.head.includes(F.drill.k);
-    if(some) fecharDrill(); else renderDrill();
+  renderAba(F.aba || "geral", p);
+}
+function renderAba(aba, p){
+  if(!SUJAS[aba]) return;
+  p = p || periodo();
+  if(!p.atual.length) return;
+  if(aba==="geral"){
+    renderKPIs(p); renderEvolucao(p); renderYTD(p); renderPeriodo(p); renderDet(p);
+    if(F.drill){
+      const some = F.drill.tipo==="cat" ? D.cat[F.drill.k]===undefined
+                                        : !D.head.includes(F.drill.k);
+      if(some) fecharDrill(); else renderDrill();
+    }
   }
+  else if(aba==="geo") renderGeo(p);
+  else if(aba==="band") renderBandeiras(p);
+  else if(aba==="sku") renderSkus(p);
+  else if(aba==="preco") renderPreco(p);
+  SUJAS[aba] = false;
 }
 
 function atualizarEstado(p){
@@ -623,6 +680,8 @@ function atualizarEstado(p){
   partes.push(BASES[F.base].rot);
   if(p.atual.length) partes.push(`período: <b>${CAL[p.atual[0]][C_ROT]}–${CAL[p.atual[p.atual.length-1]][C_ROT]}</b> (${p.atual.length} meses)`);
   partes.push(`LY: ${p.ly.length ? `<b>${p.ly.length}</b> de ${p.atual.length} meses cobertos` : "<b>sem base</b>"}`);
+  if(parcialLy(p))
+    partes.push(`<b>comparativo pareado</b>: LY, Δ e Δ% usam só os ${p.pareado.length} meses com par no ano anterior (D-32)`);
   const d=[];
   if(F.can.size)  d.push(`${F.can.size} canal(is)`);
   if(F.cat.size)  d.push(`${F.cat.size} categoria(s)`);
@@ -646,33 +705,46 @@ function atualizarEstado(p){
 
 function renderKPIs(p){
   const a=total(p.atual), l=total(p.ly);
+  // D-32: o lado "atual" do comparativo e o subconjunto PAREADO.
+  const aP=parcialLy(p)?total(p.pareado):a;
+  const sufP=parcialLy(p)
+    ? ` <small title="só os meses com par no ano anterior entram no comparativo">(${p.pareado.length}/${p.atual.length} meses)</small>` : "";
   const itens=[];
   for(const [k,mt] of Object.entries(METRICAS)){
-    const va=a[mt.col-5]/mt.esc, vl=l[mt.col-5]/mt.esc;
-    const pc=varPct(va, p.ly.length?vl:null);
+    const va=a[mt.col-5]/mt.esc, vl=l[mt.col-5]/mt.esc, vaP=aP[mt.col-5]/mt.esc;
+    const pc=varPct(p.ly.length?vaP:null, p.ly.length?vl:null);
     itens.push(`<div class="kpi${F.metrica===k?" destaque":""}">
       <div class="rot">${mt.rot}</div>
       <div class="val">${abrev(va,mt.un)}</div>
-      <div class="cmp">LY ${abrev(p.ly.length?vl:null,mt.un)} &nbsp;·&nbsp; ${fmtPct(pc)}</div></div>`);
+      <div class="cmp">LY ${abrev(p.ly.length?vl:null,mt.un)} &nbsp;·&nbsp; ${fmtPct(pc)}${sufP}</div></div>`);
   }
   // "Faturamento médio/mês" — o rótulo diz exatamente o que a fórmula calcula:
   // receita do período ÷ nº de meses. (Ticket médio não existe como indicador
   // separado: é o preço médio, no card ao lado — decisão D-22, só nas docs.)
   const fmA=razao(receita(a),p.atual.length), fmL=p.ly.length?razao(receita(l),p.ly.length):null;
+  const fmAP=p.ly.length?razao(receita(aP),p.pareado.length):null;
   itens.push(`<div class="kpi">
     <div class="rot">Faturamento médio/mês</div>
     <div class="val">${abrev(fmA,"R$")}</div>
-    <div class="cmp">LY ${abrev(fmL,"R$")} &nbsp;·&nbsp; ${fmtPct(varPct(fmA,fmL))}</div></div>`);
-  const pa=razao(receita(a),pesoKg(a)), pl=razao(receita(l),pesoKg(l));
+    <div class="cmp">LY ${abrev(fmL,"R$")} &nbsp;·&nbsp; ${fmtPct(varPct(fmAP,fmL))}${sufP}</div></div>`);
+  const pa=razao(receita(a),pesoKg(a)), pl=p.ly.length?razao(receita(l),pesoKg(l)):null;
+  const paP=p.ly.length?razao(receita(aP),pesoKg(aP)):null;
   itens.push(`<div class="kpi">
     <div class="rot">Preço médio</div>
     <div class="val">${fmtPreco(pa)}</div>
-    <div class="cmp">LY ${p.ly.length?fmtPreco(pl):'<span class="nd">n/d</span>'} &nbsp;·&nbsp; ${fmtPct(varPct(pa,p.ly.length?pl:null))}</div></div>`);
+    <div class="cmp">LY ${p.ly.length?fmtPreco(pl):'<span class="nd">n/d</span>'} &nbsp;·&nbsp; ${fmtPct(varPct(paP,pl))}${sufP}</div></div>`);
   el("kpis").innerHTML=itens.join("");
 }
 
 function grupoPeriodo(i){
+  // A7: na base FISCAL os grupos seguem o calendario fiscal (C_TFIS/C_SFIS).
+  // Agrupar set/25 como "2025-T3" rasgava o trimestre fiscal que o resto da
+  // aba usa; as colunas fiscais ja viajavam no payload e nao eram lidas.
   if(F.gran==="mes") return CAL[i][C_ROT];
+  if(F.base==="fis"){
+    if(F.gran==="tri") return CAL[i][C_FYROT]+"-T"+CAL[i][C_TFIS];
+    return CAL[i][C_FYROT]+"-S"+CAL[i][C_SFIS];
+  }
   if(F.gran==="tri") return CAL[i][C_ANO]+"-T"+CAL[i][C_TRI];
   return CAL[i][C_ANO]+"-S"+CAL[i][C_SEM];
 }
@@ -688,7 +760,9 @@ function renderEvolucao(p){
   for(const [g,[ms,ls]] of vistos){
     rotulos.push(g);
     atual.push(met(total(ms)));
-    anterior.push(ls.length?met(total(ls)):null);
+    // D-32: o ponto de LY so existe quando TODOS os meses do grupo tem par —
+    // comparar um trimestre inteiro com 1/3 dele seria comparacao falsa.
+    anterior.push(ls.length===ms.length?met(total(ls)):null);
   }
   const m=METRICAS[F.metrica];
   el("tEvo").textContent=`Evolução — ${m.rot} · ${GRANS[F.gran]}`;
@@ -710,15 +784,19 @@ function renderEvolucao(p){
 
 function renderYTD(p){
   if(p.ref===null) return vazio("tabYTD");
-  const [fa,fl]=ytdFiscal(p.ref), [ca,cl]=ytdCalendario(p.ref);
+  const [fa,faP,fl]=ytdFiscal(p.ref), [ca,caP,cl]=ytdCalendario(p.ref);
   const linhas=[], rawYTD=[];
-  for(const [rot,ma,ml] of [["YTD Fiscal",fa,fl],["YTD Calendário",ca,cl]]){
-    const a=met(total(ma)), l=ml.length?met(total(ml)):null;
-    rawYTD.push([rot+" "+CAL[ma[0]][C_ROT]+"-"+CAL[ma[ma.length-1]][C_ROT],
-                 nr(a),nr(l),l===null?null:nr(a-l),nr(pctNum(varPct(a,l)))]);
-    linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]}–${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]}–${CAL[ml[ml.length-1]][C_ROT]}`:""}</small>`,
+  for(const [rot,ma,maP,ml] of [["YTD Fiscal",fa,faP,fl],["YTD Calendário",ca,caP,cl]]){
+    const a=met(total(ma));
+    const aP=ml.length?(maP.length===ma.length?a:met(total(maP))):null;
+    const l=ml.length?met(total(ml)):null;
+    const par=ml.length&&maP.length<ma.length
+      ? ` · comparativo sobre ${maP.length} de ${ma.length} meses (pareados)` : "";
+    rawYTD.push([rot+" "+CAL[ma[0]][C_ROT]+"-"+CAL[ma[ma.length-1]][C_ROT]+par,
+                 nr(a),nr(l),l===null?null:nr(aP-l),nr(pctNum(varPct(aP,l)))]);
+    linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]}–${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]}–${CAL[ml[ml.length-1]][C_ROT]}${par}`:""}</small>`,
       fmtMetrica(a), l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
-      l===null?'<span class="nd">n/d</span>':fmtDelta(a-l), fmtPct(varPct(a,l))]);
+      l===null?'<span class="nd">n/d</span>':fmtDelta(aP-l), fmtPct(varPct(aP,l))]);
   }
   el("sYTD").textContent="· referência "+CAL[p.ref][C_ROT];
   el("tabYTD").innerHTML=tabela(["Acumulado","Atual","Anterior","Δ","Δ%"],linhas);
@@ -733,20 +811,26 @@ function renderPeriodo(p){
     grupos.get(g)[0].push(i);
     const ly=CAL[i][C_LY]; if(ly>=0) grupos.get(g)[1].push(ly);
   });
-  const linhas=[], raw=[]; let ta=0, tl=0, temLy=false;
+  const linhas=[], raw=[]; let ta=0, taP=0, tl=0, temLy=false;
   for(const [g,[ms,ls]] of grupos){
-    const a=met(total(ms)), l=ls.length?met(total(ls)):null;
-    ta+=a; if(l!==null){ tl+=l; temLy=true; }
+    const a=met(total(ms));
+    // D-32: comparativo do grupo so quando TODOS os meses dele tem par no LY.
+    const l=(ls.length && ls.length===ms.length)?met(total(ls)):null;
+    ta+=a;
+    if(l!==null){ tl+=l; taP+=a; temLy=true; }
     raw.push([g,nr(a),nr(l),l===null?null:nr(a-l),nr(pctNum(varPct(a,l)))]);
     linhas.push([g,fmtMetrica(a),l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
                  l===null?'<span class="nd">n/d</span>':fmtDelta(a-l),fmtPct(varPct(a,l))]);
   }
-  raw.push(["Total",nr(ta),temLy?nr(tl):null,temLy?nr(ta-tl):null,
-            nr(pctNum(temLy?varPct(ta,tl):null))]);
+  const par=temLy && taP!==ta;
+  raw.push([par?"Total (LY/Δ/Δ% sobre os períodos pareados)":"Total",
+            nr(ta),temLy?nr(tl):null,temLy?nr(taP-tl):null,
+            nr(pctNum(temLy?varPct(taP,tl):null))]);
   el("sPer").textContent="· "+GRANS[F.gran]+" · "+METRICAS[F.metrica].rot;
   el("tabPer").innerHTML=tabela(["Período","Atual","LY","Δ","Δ%"],linhas,
-    ["<b>Total</b>",fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
-     temLy?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(ta,tl):null)]);
+    ["<b>Total</b>"+(par?' <small title="LY, Δ e Δ% do total somam só os períodos com par no ano anterior">*</small>':""),
+     fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
+     temLy?fmtDelta(taP-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(taP,tl):null)]);
   registrarExport("tabPer",["Período","Atual","LY","Δ","Δ%"],raw);
 }
 
@@ -775,44 +859,52 @@ function quebra(p, dim, idTab, idInfo){
   const sku=usaCuboSku();
   const fn=CHAVES[dim];
   if(fn(sku?CUBO_SKU[0]:CUBO[0],sku)===null){
-    el(idTab).innerHTML=`<tbody><tr><td class="vazio">Esta quebra não existe na camada
-      agregada em uso${sku?" (o cubo de SKU não cruza com gerente)":""}. Escolha outra dimensão.</td></tr></tbody>`;
+    // A4: `vazio()` tambem limpa o registro de exportacao — sem isso o
+    // ⬇ CSV/XLSX entregava a tabela ANTERIOR, de outro recorte, sem aviso.
+    vazio(idTab, `Esta quebra não existe na camada agregada em uso${sku?" (o cubo de SKU não cruza com gerente)":""}. Escolha outra dimensão.`);
     return;
   }
   const a=somar(p.atual,fn,dim), l=somar(p.ly,fn,dim), den=total(p.atual,dim);
+  // D-32: o lado "atual" de LY/Δ/Δ% usa so os meses pareados.
+  const aP=parcialLy(p)?somar(p.pareado,fn,dim):a;
   // No Detalhamento, Categoria e Head abrem o nivel de baixo (SKUs / gerentes).
   const drillTipo = idTab==="tabDet" && (dim==="cat"||dim==="head") ? dim : null;
-  desenharQuebra(a,l,den,ROTULOS[dim],idTab,p, drillTipo);
+  desenharQuebra(a,aP,l,den,ROTULOS[dim],idTab,p, drillTipo);
 }
-function desenharQuebra(mapA,mapL,den,rot,idTab,p,drillTipo){
-  const denV=met(den);
-  const itens=[...mapA.entries()].map(([k,v])=>({k,a:met(v),l:mapL.has(k)?met(mapL.get(k)):null}));
-  mapL.forEach((v,k)=>{ if(!mapA.has(k)) itens.push({k,a:0,l:met(v)}); });
+function desenharQuebra(mapA,mapAP,mapL,den,rot,idTab,p,drillTipo){
+  const denV=met(den), temPar=p.ly.length>0, par=parcialLy(p);
+  const itens=[...mapA.entries()].map(([k,v])=>({k,a:met(v),
+    aP:par?(mapAP.has(k)?met(mapAP.get(k)):0):met(v),
+    l:mapL.has(k)?met(mapL.get(k)):null}));
+  mapL.forEach((v,k)=>{ if(!mapA.has(k)) itens.push({k,a:0,aP:0,l:met(v)}); });
   itens.sort((x,y)=>y.a-x.a);
   const maxA=Math.max(...itens.map(i=>Math.abs(i.a)),1);
-  let ta=0,tl=0,temLy=false;
+  let ta=0,taP=0,tl=0,temLy=false;
   const raw=[];
   const linhas=itens.map(i=>{
-    ta+=i.a; if(i.l!==null&&p.ly.length){ tl+=i.l; temLy=true; }
+    ta+=i.a; if(i.l!==null&&temPar){ tl+=i.l; taP+=i.aP; temLy=true; }
     const part=razao(i.a,denV);
     const larg=Math.max(1,Math.round(Math.abs(i.a)/maxA*54));
-    const ly = (p.ly.length && i.l!==null) ? i.l : null;
-    raw.push([rot(i.k),nr(i.a),nr(ly),ly===null?null:nr(i.a-ly),
-              nr(pctNum(varPct(i.a,ly))),part===null?null:nr(part*100)]);
+    const ly = (temPar && i.l!==null) ? i.l : null;
+    // D-32: Δ e Δ% comparam o atual PAREADO (so meses com par) contra o LY.
+    raw.push([rot(i.k),nr(i.a),nr(ly),ly===null?null:nr(i.aP-ly),
+              nr(pctNum(varPct(ly===null?null:i.aP,ly))),part===null?null:nr(part*100)]);
     const nome = drillTipo
       ? `<span class="drill" data-dk="${i.k}" title="${drillTipo==="head"?"ver os gerentes deste head":"ver os SKUs desta categoria"}">${rot(i.k)} ▸</span>`
       : rot(i.k);
     return [nome, fmtMetrica(i.a),
       ly===null?'<span class="nd">n/d</span>':fmtMetrica(ly),
-      ly===null?'<span class="nd">n/d</span>':fmtDelta(i.a-ly),
-      fmtPct(varPct(i.a,ly)),
+      ly===null?'<span class="nd">n/d</span>':fmtDelta(i.aP-ly),
+      fmtPct(varPct(ly===null?null:i.aP,ly)),
       `<span class="barra" style="width:${larg}px"></span>${fmtParte(part)}`];
   });
-  raw.push(["Total",nr(ta),temLy?nr(tl):null,temLy?nr(ta-tl):null,
-            nr(pctNum(temLy?varPct(ta,tl):null)),denV?nr(ta/denV*100):null]);
+  raw.push([par?"Total (LY/Δ/Δ% sobre os meses pareados)":"Total",
+            nr(ta),temLy?nr(tl):null,temLy?nr(taP-tl):null,
+            nr(pctNum(temLy?varPct(taP,tl):null)),denV?nr(ta/denV*100):null]);
   el(idTab).innerHTML=tabela(["Dimensão","Atual","LY","Δ","Δ%","Part. %"],linhas,
-    ["<b>Total</b>",fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
-     temLy?fmtDelta(ta-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(ta,tl):null),
+    ["<b>Total</b>"+(par?` <small title="LY, Δ e Δ% comparam só os ${p.pareado.length} meses com par no ano anterior">*</small>`:""),
+     fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
+     temLy?fmtDelta(taP-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(taP,tl):null),
      denV?fmtParte(ta/denV):"—"]);
   registrarExport(idTab,["Dimensão","Atual","LY","Δ","Δ%","Part. %"],raw);
   el(idTab).onclick = drillTipo
@@ -853,37 +945,59 @@ function renderGeo(p){
 }
 
 /* ------------------------------------------------------ rankings genericos */
-function ranking(mapA,mapL,rot,n){
+function ranking(mapA,mapAP,mapL,rot,n,temLy){
+  // A1: sem nenhum mes de LY coberto (ex.: FY sem ano anterior na serie) nao
+  // existe "ganho" nem "queda" — listar o top inteiro como ganho verde de
+  // valor cheio afirmaria crescimento onde nao ha base. Mesma regra `temLy`
+  // que as demais tabelas ja aplicam.
+  // D-32: o delta e calculado sobre o atual PAREADO (mapAP) — quando a
+  // cobertura de LY e parcial, ganho/queda compara par com par.
   const itens=[...new Set([...mapA.keys(),...mapL.keys()])].map(k=>{
-    const a=mapA.has(k)?met(mapA.get(k)):0, l=mapL.has(k)?met(mapL.get(k)):0;
-    return {k,a,l,d:a-l,novo:!mapL.has(k),sumiu:!mapA.has(k)};
+    const a=mapA.has(k)?met(mapA.get(k)):0;
+    const aP=mapAP.has(k)?met(mapAP.get(k)):0;
+    const l=temLy?(mapL.has(k)?met(mapL.get(k)):0):null;
+    return {k,a,aP,l,d:temLy?aP-l:null,novo:temLy&&!mapL.has(k),sumiu:!mapA.has(k)};
   });
+  if(!temLy){
+    const msg='<div class="vazio">Sem base no ano anterior para este período — não há como medir ganho ou queda.</div>';
+    return [msg,msg,itens];
+  }
   const ganhos=itens.filter(i=>i.d>0).sort((x,y)=>y.d-x.d).slice(0,n);
   const quedas=itens.filter(i=>i.d<0).sort((x,y)=>x.d-y.d).slice(0,n);
   const html=arr=>arr.length?arr.map(i=>
     `<div class="rank"><span class="nm">${rot(i.k)}${i.novo?' <small style="color:var(--gd)">novo</small>':""}${i.sumiu?' <small style="color:var(--bd)">sem faturamento</small>':""}</span>
-     <span class="vl">${fmtDelta(i.d)} &nbsp;<small style="color:var(--txt2)">${fmtPct(varPct(i.a,i.novo?null:i.l))}</small></span></div>`).join("")
+     <span class="vl">${fmtDelta(i.d)} &nbsp;<small style="color:var(--txt2)">${fmtPct(varPct(i.novo?null:i.aP,i.novo?null:i.l))}</small></span></div>`).join("")
     : '<div class="vazio">Nenhum item nesta direção.</div>';
   return [html(ganhos),html(quedas),itens];
 }
-function tabelaRanking(itens,rot,den,n,idTab){
+function tabelaRanking(itens,rot,den,n,idTab,temLy){
   const lista=[...itens].sort((x,y)=>y.a-x.a);
   const corte = n>0 ? lista.slice(0,n) : lista;
+  const ND='<span class="nd">n/d</span>';
   const linhas=corte.map(i=>{
     const part=razao(i.a,den);
-    return [rot(i.k),fmtMetrica(i.a),i.novo?'<span class="nd">n/d</span>':fmtMetrica(i.l),
-      i.novo?'<span class="nd">n/d</span>':fmtDelta(i.d),fmtPct(varPct(i.a,i.novo?null:i.l)),
+    const semLy=!temLy||i.novo;
+    return [rot(i.k),fmtMetrica(i.a),semLy?ND:fmtMetrica(i.l),
+      semLy?ND:fmtDelta(i.d),fmtPct(varPct(semLy?null:i.aP,semLy?null:i.l)),
       fmtParte(part)];
   });
-  const sa=corte.reduce((a,b)=>a+b.a,0), sl=corte.reduce((a,b)=>a+(b.novo?0:b.l),0);
+  // A1: com LY sem cobertura o rodape mostra n/d — nunca "LY R$ 0,00" com um
+  // delta verde do tamanho do total. D-32: os totais de LY/Δ/Δ% comparam o
+  // atual pareado com o LY.
+  const sa=corte.reduce((a,b)=>a+b.a,0);
+  const saP=temLy?corte.reduce((a,b)=>a+b.aP,0):null;
+  const sl=temLy?corte.reduce((a,b)=>a+(b.novo?0:b.l),0):null;
   el(idTab).innerHTML=tabela(["Item","Atual","LY","Δ","Δ%","Part. %"],linhas,
-    [`<b>Exibidos (${corte.length} de ${lista.length})</b>`,fmtMetrica(sa),fmtMetrica(sl),
-     fmtDelta(sa-sl),fmtPct(varPct(sa,sl)),den?fmtParte(sa/den):"—"]);
-  const rawR=corte.map(i=>[rot(i.k),nr(i.a),i.novo?null:nr(i.l),
-    i.novo?null:nr(i.d),nr(pctNum(varPct(i.a,i.novo?null:i.l))),
-    razao(i.a,den)===null?null:nr(i.a/den*100)]);
-  rawR.push(["Exibidos ("+corte.length+" de "+lista.length+")",nr(sa),nr(sl),
-    nr(sa-sl),nr(pctNum(varPct(sa,sl))),den?nr(sa/den*100):null]);
+    [`<b>Exibidos (${corte.length} de ${lista.length})</b>`,fmtMetrica(sa),
+     temLy?fmtMetrica(sl):ND,
+     temLy?fmtDelta(saP-sl):ND,fmtPct(varPct(saP,temLy?sl:null)),
+     den?fmtParte(sa/den):"—"]);
+  const rawR=corte.map(i=>{const semLy=!temLy||i.novo;
+    return [rot(i.k),nr(i.a),semLy?null:nr(i.l),
+      semLy?null:nr(i.d),nr(pctNum(varPct(semLy?null:i.aP,semLy?null:i.l))),
+      razao(i.a,den)===null?null:nr(i.a/den*100)];});
+  rawR.push(["Exibidos ("+corte.length+" de "+lista.length+")",nr(sa),temLy?nr(sl):null,
+    temLy?nr(saP-sl):null,nr(pctNum(varPct(saP,temLy?sl:null))),den?nr(sa/den*100):null]);
   registrarExport(idTab,["Item","Atual","LY","Δ","Δ%","Part. %"],rawR);
 }
 function renderBandeiras(p){
@@ -895,12 +1009,14 @@ function renderBandeiras(p){
     return;
   }
   const a=somar(p.atual,l=>l[1],"ban"), l=somar(p.ly,x=>x[1],"ban");
+  const aP=parcialLy(p)?somar(p.pareado,x=>x[1],"ban"):a;   // D-32
   const rot=i=>D.ban[i];
-  const [g,q,itens]=ranking(a,l,rot,DB.top_ranking);
+  const temLy=p.ly.length>0;
+  const [g,q,itens]=ranking(a,aP,l,rot,DB.top_ranking,temLy);
   el("ganhoBan").innerHTML=g; el("quedaBan").innerHTML=q;
   el("sGanhoB").textContent="· por Δ absoluto de "+METRICAS[F.metrica].rot;
   el("sBan").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
-  tabelaRanking(itens,rot,met(total(p.atual,"ban")),F.topBan,"tabBan");
+  tabelaRanking(itens,rot,met(total(p.atual,"ban")),F.topBan,"tabBan",temLy);
   const c=DB.corte_bandeira;
   el("nBan").innerHTML=`As <b>${c.top}</b> maiores bandeiras aparecem nominalmente
     (<b>${fmtNum(c.cobertura*100,1)}%</b> do faturamento). As outras
@@ -913,8 +1029,9 @@ function renderSkus(p){
   // e a unica camada que tem o eixo de produto. O filtro da propria dimensao e
   // ignorado (`passaSku(l,"sku")`) para que o ranking mostre o universo, e nao
   // so o que ja esta selecionado.
-  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM);
+  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM), alvoP=new Uint8Array(NM);
   p.atual.forEach(i=>alvo[i]=1); p.ly.forEach(i=>alvoL[i]=1);
+  p.pareado.forEach(i=>alvoP[i]=1);
   const somaSku=(mask)=>{
     const out=new Map();
     for(let k=0;k<CUBO_SKU.length;k++){
@@ -927,13 +1044,15 @@ function renderSkus(p){
     return out;
   };
   const a=somaSku(alvo), l=somaSku(alvoL);
+  const aP=parcialLy(p)?somaSku(alvoP):a;    // D-32
   const rot=i=>D.sku[i][1];
-  const [g,q,itens]=ranking(a,l,rot,DB.top_ranking);
+  const temLy=p.ly.length>0;
+  const [g,q,itens]=ranking(a,aP,l,rot,DB.top_ranking,temLy);
   el("ganhoSku").innerHTML=g; el("quedaSku").innerHTML=q;
   el("sGanhoS").textContent="· por Δ absoluto de "+METRICAS[F.metrica].rot;
   el("sSku").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
   const den=[...a.values()].reduce((s,v)=>s+met(v),0);
-  tabelaRanking(itens,rot,den,F.topSku,"tabSku");
+  tabelaRanking(itens,rot,den,F.topSku,"tabSku",temLy);
   el("nSku").innerHTML=`Todos os <b>${D.sku.length}</b> SKUs, sem corte de cobertura.
     A camada de SKU cruza com <b>categoria, head, canal e UF</b> — <b>não</b> com
     gerente, bandeira nem projeto. Ordenação dos destaques por <b>variação absoluta</b>.`;
@@ -947,24 +1066,34 @@ function renderPreco(p){
     vazio("tabPreco","Esta quebra não existe na camada agregada em uso.");
   } else {
     const a=somar(p.atual,fn,dim), l=somar(p.ly,fn,dim);
-    const itens=[...a.entries()].map(([k,v])=>({k,pa:razao(receita(v),pesoKg(v)),
-      pl:l.has(k)?razao(receita(l.get(k)),pesoKg(l.get(k))):null, r:receita(v)}))
-      .sort((x,y)=>y.r-x.r);
+    // D-32: o preco "atual" que entra em Δ/Δ% e o dos meses PAREADOS — o da
+    // coluna "R$/kg atual" segue sendo o do periodo inteiro.
+    const par=parcialLy(p);
+    const aPm=par?somar(p.pareado,fn,dim):a;
+    const itens=[...a.entries()].map(([k,v])=>{
+      const vP=par?aPm.get(k):v;
+      return {k,pa:razao(receita(v),pesoKg(v)),
+        paP:vP?razao(receita(vP),pesoKg(vP)):null,
+        pl:l.has(k)?razao(receita(l.get(k)),pesoKg(l.get(k))):null, r:receita(v)};
+    }).sort((x,y)=>y.r-x.r);
     const ta=total(p.atual), tl=total(p.ly);
+    const taP=par?total(p.pareado):ta;
     const pa=razao(receita(ta),pesoKg(ta)), pl=p.ly.length?razao(receita(tl),pesoKg(tl)):null;
+    const paPt=p.ly.length?razao(receita(taP),pesoKg(taP)):null;
     el("tabPreco").innerHTML=tabela(["Dimensão","R$/kg atual","R$/kg LY","Δ","Δ%"],
       itens.map(i=>[rot(i.k),fmtPreco(i.pa),
         p.ly.length?fmtPreco(i.pl):'<span class="nd">n/d</span>',
-        (i.pl===null||i.pa===null||!p.ly.length)?'<span class="nd">n/d</span>':nbsp((i.pa-i.pl>=0?"+":"−")+"R$ "+fmtNum(Math.abs(i.pa-i.pl),2)),
-        fmtPct(varPct(i.pa,p.ly.length?i.pl:null))]),
-      ["<b>Total</b>",fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
-       (pa===null||pl===null)?'<span class="nd">n/d</span>':nbsp((pa-pl>=0?"+":"−")+"R$ "+fmtNum(Math.abs(pa-pl),2)),
-       fmtPct(varPct(pa,pl))]);
+        (i.pl===null||i.paP===null||!p.ly.length)?'<span class="nd">n/d</span>':nbsp((i.paP-i.pl>=0?"+":"−")+"R$ "+fmtNum(Math.abs(i.paP-i.pl),2)),
+        fmtPct(varPct(p.ly.length?i.paP:null,p.ly.length?i.pl:null))]),
+      ["<b>Total</b>"+(par?` <small title="Δ e Δ% comparam só os ${p.pareado.length} meses com par no ano anterior">*</small>`:""),
+       fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
+       (paPt===null||pl===null)?'<span class="nd">n/d</span>':nbsp((paPt-pl>=0?"+":"−")+"R$ "+fmtNum(Math.abs(paPt-pl),2)),
+       fmtPct(varPct(paPt,pl))]);
     const rawP=itens.map(i=>[rot(i.k),nr(i.pa,4),p.ly.length?nr(i.pl,4):null,
-      (i.pl===null||i.pa===null||!p.ly.length)?null:nr(i.pa-i.pl,4),
-      nr(pctNum(varPct(i.pa,p.ly.length?i.pl:null)))]);
-    rawP.push(["Total",nr(pa,4),nr(pl,4),
-      (pa===null||pl===null)?null:nr(pa-pl,4),nr(pctNum(varPct(pa,pl)))]);
+      (i.pl===null||i.paP===null||!p.ly.length)?null:nr(i.paP-i.pl,4),
+      nr(pctNum(varPct(p.ly.length?i.paP:null,p.ly.length?i.pl:null)))]);
+    rawP.push(["Total"+(par?" (Δ sobre os meses pareados)":""),nr(pa,4),nr(pl,4),
+      (paPt===null||pl===null)?null:nr(paPt-pl,4),nr(pctNum(varPct(paPt,pl)))]);
     registrarExport("tabPreco",["Dimensão","R$/kg atual","R$/kg LY","Δ","Δ%"],rawP);
   }
   // preco por periodo
@@ -975,7 +1104,8 @@ function renderPreco(p){
     const ly=CAL[i][C_LY]; if(ly>=0) grupos.get(g)[1].push(ly); });
   const linhas=[], rawPP=[];
   for(const [g,[ms,ls]] of grupos){
-    const va=total(ms), vl=ls.length?total(ls):null;
+    // D-32: comparativo do grupo so quando TODOS os meses dele tem par.
+    const va=total(ms), vl=(ls.length && ls.length===ms.length)?total(ls):null;
     const pa=razao(receita(va),pesoKg(va));
     const pl=vl?razao(receita(vl),pesoKg(vl)):null;
     rawPP.push([g,nr(pa,4),nr(pl,4),nr(pctNum(varPct(pa,pl)))]);
@@ -1146,8 +1276,9 @@ function renderDrillHead(){
     el("nDrill").textContent="";
     return;
   }
-  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM);
+  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM), alvoP=new Uint8Array(NM);
   p.atual.forEach(i=>alvo[i]=1); p.ly.forEach(i=>alvoL[i]=1);
+  p.pareado.forEach(i=>alvoP[i]=1);
   const passa=l=>{
     const pf=D.perfil[l[3]];
     if(pf[0]!==head) return false;
@@ -1158,42 +1289,50 @@ function renderDrillHead(){
     if(F.uf.size && !F.uf.has(l[4])) return false;
     return true;
   };
-  const A=new Map(), L=new Map();
+  // Um mes pode estar no periodo ATUAL e tambem ser o LY de outro mes
+  // selecionado (ex.: "Todos" com 24 meses) — por isso cada linha soma nos
+  // acumuladores de forma INDEPENDENTE, nunca em um "ou" exclusivo.
+  const A=new Map(), AP=new Map(), L=new Map();
+  const soma=(m,g,l)=>{let v=m.get(g); if(!v){v=MZERO(); m.set(g,v);}
+    v[0]+=l[5]; v[1]+=l[6]; v[2]+=l[7];};
   for(const l of CUBO){
-    const m=alvo[l[0]]?A:(alvoL[l[0]]?L:null); if(!m) continue;
+    if(!alvo[l[0]] && !alvoL[l[0]]) continue;
     if(!passa(l)) continue;
     const g=D.perfil[l[3]][1];
-    let v=m.get(g); if(!v){v=MZERO(); m.set(g,v);}
-    v[0]+=l[5]; v[1]+=l[6]; v[2]+=l[7];
+    if(alvo[l[0]])  soma(A,g,l);
+    if(alvoP[l[0]]) soma(AP,g,l);
+    if(alvoL[l[0]]) soma(L,g,l);
   }
   const temLy=p.ly.length>0;
   const itens=[...new Set([...A.keys(),...L.keys()])].map(k=>{
     const a=A.has(k)?met(A.get(k)):0;
+    const aP=AP.has(k)?met(AP.get(k)):0;
     const l=temLy?(L.has(k)?met(L.get(k)):0):null;
-    return {k,a,l,d:l===null?null:a-l,novo:temLy&&!L.has(k),sumiu:!A.has(k)};
+    return {k,a,aP,l,d:l===null?null:aP-l,novo:temLy&&!L.has(k),sumiu:!A.has(k)};
   }).sort((x,y)=>(x.d??0)-(y.d??0));
-  const raw=[]; let sa=0, sl=0;
+  const raw=[]; let sa=0, saP=0, sl=0;
   const linhas=itens.map(i=>{
-    sa+=i.a; sl+=i.l||0;
+    sa+=i.a; saP+=i.aP; sl+=i.l||0;
     raw.push([i.k,nr(i.a),nr(i.l),i.d===null?null:nr(i.d),
-              nr(pctNum(varPct(i.a,i.novo?null:i.l)))]);
+              nr(pctNum(varPct(i.novo?null:i.aP,i.novo?null:i.l)))]);
     return [i.k
       +(i.novo?' <small style="color:var(--gd)">novo</small>':"")
       +(i.sumiu?' <small style="color:var(--bd)">sem faturamento</small>':""),
       fmtMetrica(i.a),
       i.l===null?'<span class="nd">n/d</span>':fmtMetrica(i.l),
       i.d===null?'<span class="nd">n/d</span>':fmtDelta(i.d),
-      fmtPct(varPct(i.a,i.novo?null:i.l))];
+      fmtPct(varPct(i.novo?null:i.aP,i.novo?null:i.l))];
   });
   if(!linhas.length){ vazio("tabDrill","Nenhum gerente deste head no recorte."); }
   else{
     el("tabDrill").innerHTML=tabela(["Gerente","Atual","LY","Δ","Δ%"],linhas,
-      ["<b>Total do head</b>",fmtMetrica(sa),
+      ["<b>Total do head</b>"+(parcialLy(p)?' <small title="LY, Δ e Δ% comparam só os meses com par no ano anterior">*</small>':""),
+       fmtMetrica(sa),
        temLy?fmtMetrica(sl):'<span class="nd">n/d</span>',
-       temLy?fmtDelta(sa-sl):'<span class="nd">n/d</span>',
-       fmtPct(temLy?varPct(sa,sl):null)]);
-    raw.push(["Total",nr(sa),temLy?nr(sl):null,temLy?nr(sa-sl):null,
-              nr(pctNum(temLy?varPct(sa,sl):null))]);
+       temLy?fmtDelta(saP-sl):'<span class="nd">n/d</span>',
+       fmtPct(temLy?varPct(saP,sl):null)]);
+    raw.push(["Total",nr(sa),temLy?nr(sl):null,temLy?nr(saP-sl):null,
+              nr(pctNum(temLy?varPct(saP,sl):null))]);
     registrarExport("tabDrill",["Gerente","Atual","LY","Δ","Δ%"],raw);
   }
   const ign=[];
@@ -1209,8 +1348,9 @@ function renderDrillCat(){
   const p=periodo();
   el("drillTitulo").textContent="SKUs de "+(D.cat[F.drill.k]??"?");
   el("sDrill").textContent=" · "+METRICAS[F.metrica].rot+" · ordenado pela maior queda";
-  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM);
+  const alvo=new Uint8Array(NM), alvoL=new Uint8Array(NM), alvoP=new Uint8Array(NM);
   p.atual.forEach(i=>alvo[i]=1); p.ly.forEach(i=>alvoL[i]=1);
+  p.pareado.forEach(i=>alvoP[i]=1);
   const passa=l=>{
     if(D.sku[l[1]][2]!==F.drill.k) return false;
     const hc=D.hc[l[2]];
@@ -1219,41 +1359,48 @@ function renderDrillCat(){
     if(F.uf.size&&!F.uf.has(l[3])) return false;
     return true;
   };
-  const A=new Map(), L=new Map();
+  // Mesma regra do drill de head: um mes pode estar no ATUAL e ser o LY de
+  // outro mes selecionado — os acumuladores somam de forma independente.
+  const A=new Map(), AP=new Map(), L=new Map();
+  const soma=(m,k,l)=>{let v=m.get(k); if(!v){v=MZERO(); m.set(k,v);}
+    v[0]+=l[4]; v[1]+=l[5]; v[2]+=l[6];};
   for(const l of CUBO_SKU){
-    const m=alvo[l[0]]?A:(alvoL[l[0]]?L:null); if(!m) continue;
+    if(!alvo[l[0]] && !alvoL[l[0]]) continue;
     if(!passa(l)) continue;
-    let v=m.get(l[1]); if(!v){v=MZERO(); m.set(l[1],v);}
-    v[0]+=l[4]; v[1]+=l[5]; v[2]+=l[6];
+    if(alvo[l[0]])  soma(A,l[1],l);
+    if(alvoP[l[0]]) soma(AP,l[1],l);
+    if(alvoL[l[0]]) soma(L,l[1],l);
   }
   const temLy=p.ly.length>0;
   const itens=[...new Set([...A.keys(),...L.keys()])].map(k=>{
     const a=A.has(k)?met(A.get(k)):0;
+    const aP=AP.has(k)?met(AP.get(k)):0;
     const l=temLy?(L.has(k)?met(L.get(k)):0):null;
-    return {k,a,l,d:l===null?null:a-l,novo:temLy&&!L.has(k),sumiu:!A.has(k)};
+    return {k,a,aP,l,d:l===null?null:aP-l,novo:temLy&&!L.has(k),sumiu:!A.has(k)};
   }).sort((x,y)=>(x.d??0)-(y.d??0));
-  const raw=[]; let sa=0, sl=0;
+  const raw=[]; let sa=0, saP=0, sl=0;
   const linhas=itens.map(i=>{
-    sa+=i.a; sl+=i.l||0;
+    sa+=i.a; saP+=i.aP; sl+=i.l||0;
     raw.push([D.sku[i.k][0]+" "+D.sku[i.k][1],nr(i.a),nr(i.l),
-              i.d===null?null:nr(i.d),nr(pctNum(varPct(i.a,i.novo?null:i.l)))]);
+              i.d===null?null:nr(i.d),nr(pctNum(varPct(i.novo?null:i.aP,i.novo?null:i.l)))]);
     return [D.sku[i.k][1]
       +(i.novo?' <small style="color:var(--gd)">novo</small>':"")
       +(i.sumiu?' <small style="color:var(--bd)">sem faturamento</small>':""),
       fmtMetrica(i.a),
       i.l===null?'<span class="nd">n/d</span>':fmtMetrica(i.l),
       i.d===null?'<span class="nd">n/d</span>':fmtDelta(i.d),
-      fmtPct(varPct(i.a,i.novo?null:i.l))];
+      fmtPct(varPct(i.novo?null:i.aP,i.novo?null:i.l))];
   });
   if(!linhas.length){ vazio("tabDrill","Nenhum SKU desta categoria no recorte."); }
   else{
     el("tabDrill").innerHTML=tabela(["SKU","Atual","LY","Δ","Δ%"],linhas,
-      ["<b>Total da categoria</b>",fmtMetrica(sa),
+      ["<b>Total da categoria</b>"+(parcialLy(p)?' <small title="LY, Δ e Δ% comparam só os meses com par no ano anterior">*</small>':""),
+       fmtMetrica(sa),
        temLy?fmtMetrica(sl):'<span class="nd">n/d</span>',
-       temLy?fmtDelta(sa-sl):'<span class="nd">n/d</span>',
-       fmtPct(temLy?varPct(sa,sl):null)]);
-    raw.push(["Total",nr(sa),temLy?nr(sl):null,temLy?nr(sa-sl):null,
-              nr(pctNum(temLy?varPct(sa,sl):null))]);
+       temLy?fmtDelta(saP-sl):'<span class="nd">n/d</span>',
+       fmtPct(temLy?varPct(saP,sl):null)]);
+    raw.push(["Total",nr(sa),temLy?nr(sl):null,temLy?nr(saP-sl):null,
+              nr(pctNum(temLy?varPct(saP,sl):null))]);
     registrarExport("tabDrill",["SKU","Atual","LY","Δ","Δ%"],raw);
   }
   const ign=[];
@@ -1313,6 +1460,7 @@ function ligar(){
     t.classList.add("active");
     el(t.dataset.p).classList.add("active");
     F.aba=t.dataset.p;
+    renderAba(F.aba);               // B1: renderiza sob demanda, se suja
   });
 }
 

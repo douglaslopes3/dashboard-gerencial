@@ -84,6 +84,16 @@ def main() -> int:
     if not resumo_arq.exists():
         abortar(f"{resumo_arq} nao existe. Rode `python run_pipeline.py` primeiro.")
     R = json.loads(resumo_arq.read_text(encoding="utf-8"))
+
+    # A6: cubos.json e resumo.json tem de vir da MESMA execucao. Divergencia
+    # significa gravacao interrompida no meio — o painel sairia com cara de
+    # valido misturando dados de execucoes diferentes.
+    if pacote.get("execucao") != R.get("execucao"):
+        abortar("cubos.json e resumo.json vem de execucoes DIFERENTES "
+                f"({pacote.get('execucao') or '?'} x {R.get('execucao') or '?'}).\n"
+                "  A gravacao anterior deve ter sido interrompida no meio.\n"
+                "  Rode `python run_pipeline.py` de novo antes de gerar o painel.")
+
     meses = [c[0] for c in pacote["cal"]]
 
     def br(v: float, casas: int = 2) -> str:
@@ -145,6 +155,10 @@ def main() -> int:
                 f"{template.name}; tem de aparecer exatamente 1.")
 
     dados = json.dumps(pacote, ensure_ascii=False, separators=(",", ":"))
+    # C1 (auditoria): descricao de SKU vem de Excel de terceiros. Um "</script>"
+    # futuro dentro de um valor encerraria o bloco no parse e quebraria o painel
+    # inteiro. "<\/" e escape JSON valido — o valor lido nao muda.
+    dados = dados.replace("</script>", "<\\/script>")
     antes, resto = html.split(ini, 1)
     _, depois = resto.split(fim, 1)
     html = antes + ini + dados + fim + depois

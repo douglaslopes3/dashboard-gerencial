@@ -9,10 +9,12 @@ Os números vão para o JSON como INTEIROS ESCALADOS — receita em centavos, pe
 gramas, caixas em centésimos. Dois motivos:
 
   1. inteiro serializa mais curto que float com casas decimais;
-  2. e, principalmente, a soma volta **exata**. Arredondar para reais faria a
-     soma dos 72 mil registros do cubo divergir da fato em alguns milhares de
-     reais — pequeno na tela, mas suficiente para a reconciliação nunca fechar,
-     e reconciliação que não fecha vira reconciliação que ninguém olha.
+  2. e, principalmente, a soma volta exata AO CENTAVO por celula; no total, o
+     arredondamento de meio centavo por grupo deriva menos de R$ 1 sobre
+     R$ 2,26 bi (medido: R$ 0,36 no pior cubo — 1,6e-10, 6 mil vezes dentro da
+     tolerancia). Arredondar para reais, ao contrario, derivaria milhares de
+     reais e a reconciliacao nunca fecharia — e reconciliacao que nao fecha
+     vira reconciliacao que ninguem olha (auditoria, C11).
 
 Os cortes de cada cubo estão medidos em `docs/09_ARQUITETURA_SOLUCAO.md §4`.
 """
@@ -40,18 +42,27 @@ def _escalar(g: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(index=g.index)
     out["R"] = (g["RECEITA"] * ESC_RECEITA).round().astype("int64")
     out["P"] = (g["PESO_KG"] * ESC_PESO).round().astype("int64")
+    # PERDA ASSUMIDA (auditoria A13; docs/06 §2.1): o JSON posicional nao
+    # carrega nulo por celula, entao grupo 100% nulo de CAIXAS sai como C=0.
+    # Medido em 27/08/2026: 9.519 das 368.699 celulas do CUBO_SKU (2,6%),
+    # R$ -7,30 mi de receita associada. A FATO preserva o nulo — quem precisar
+    # da distincao le a fato, nao o cubo. O total reconcilia igual (a soma
+    # ignora nulos nas duas pontas).
     out["C"] = (g["CAIXAS"].fillna(0.0) * ESC_CAIXAS).round().astype("int64")
     return out
 
 
 def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
               dim_produto: pd.DataFrame, dim_cal: pd.DataFrame) -> dict:
+    # validate="m:1" (A15): uma duplicata futura em DIM_CLIENTE/DIM_PRODUTO
+    # multiplicaria o cubo — a reconciliacao pegaria, mas com o diagnostico
+    # errado ("cubo nao reconcilia"). Aqui o erro nasce com o nome certo.
     d = fato.merge(
         dim_cliente[["COD_CLIENTE", "BANDEIRA", "UF", "HEAD", "GERENTE",
                      "CANAL", "PROJETO"]],
-        on="COD_CLIENTE", how="left")
+        on="COD_CLIENTE", how="left", validate="m:1")
     d = d.merge(dim_produto[["COD_PRODUTO", "CATEGORIA"]],
-                on="COD_PRODUTO", how="left")
+                on="COD_PRODUTO", how="left", validate="m:1")
 
     # ---------------------------------------------------------------- eixos
     meses, i_mes = _indexar(dim_cal["ANO_MES"].tolist())

@@ -109,8 +109,8 @@ ou aborta com a causa (nenhum Parquet é atualizado num aborto):
 | 2 | **FATO** | monta a fato, confere o **grão** (zero duplicados) e **reconcilia contra a linha `Total`** de cada arquivo, nas 3 métricas | — |
 | 3 | **DIMENSÕES** | calendário, cliente (com canal/estrutura), produto | — |
 | 4 | **INTEGRIDADE** | FKs 100% + pisos de cobertura (estrutura ≥95%, canal ≥95%) | — |
-| 5 | **GRAVAR** | o modelo estrela em Parquet | `data/curated/DIM_*.parquet`, `FATO_SELLIN/ANO=*/` |
-| 6 | **AGREGAR + RELATAR** | os 2 cubos (principal 90.644 linhas: mês × bandeira × categoria × perfil × UF; SKU 368.699: mês × SKU × head/canal × UF), **reconcilia cubo × fato**, gera o relatório de qualidade | `data/curated/cubos.json`, `resumo.json`, `data/quality/*` |
+| 5 | **AGREGAR** | os 2 cubos (principal 90.644 linhas: mês × bandeira × categoria × perfil × UF; SKU 368.699: mês × SKU × head/canal × UF) e a **reconciliação cubo × fato** — tudo **antes** de qualquer gravação (auditoria A6) | — |
+| 6 | **GRAVAR + RELATAR** | o modelo estrela em Parquet; `cubos.json`/`resumo.json` gravados de forma **atômica** e carimbados com a execução (conferida pelo `run_dashboard.py`); relatório de qualidade | `data/curated/DIM_*.parquet`, `FATO_SELLIN/ANO=*/`, `cubos.json`, `resumo.json`, `data/quality/*` |
 
 **Regra de ouro do passo 6:** linha transacional **nunca** chega ao HTML — só
 agregado; e camada agregada que não reconcilia com a fato **não é publicada**.
