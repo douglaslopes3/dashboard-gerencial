@@ -12,7 +12,7 @@ Chave: **`ANO_MES` × `COD_CLIENTE` × `COD_PRODUTO`**.
 O grão foi **medido** na fonte, não escolhido:
 
 ```
-duplicados em ANO_MES x Cod. cliente x Cod. material   0  de 3.085.119
+duplicados em ANO_MES x Cod. cliente x Cod. material   0  de 3.081.986
 duplicados de linha inteira                            0
 ```
 
@@ -126,7 +126,7 @@ seria falso amanhã. Ver §7 do prompt e o `docs/07_CATALOGO_METRICAS.md`.
   mesma linha, têm o cliente como única chave e nunca são recortadas sem ele.
   Tabelas separadas seriam snowflake com um atributo cada.
 * **Head, gerente e supervisor também são atributos do cliente.** A cardinalidade
-  é 4 / 12 / 57 contra 16.131 clientes — uma `DIM_ESTRUTURA_COMERCIAL` separada
+  é 4 / 12 / 57 contra 16.092 clientes — uma `DIM_ESTRUTURA_COMERCIAL` separada
   ligaria na fato **pelo cliente** de qualquer forma, e a junção extra não
   entregaria nenhum atributo novo.
 * **O nome do cliente vence o mais recente** (`ANO_MES` máximo): cliente

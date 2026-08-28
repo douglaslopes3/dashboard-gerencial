@@ -19,6 +19,9 @@ Checagem que não roda é pior do que checagem que não existe, porque dá a sen
 de proteção.
 
 v1 (26/08/2026) — versão inicial deste projeto.
+v5 (28/08/2026) — D-36: o leitor de sell-in passou a descartar (e contar no
+   `extra["linhas_zeradas"]`) as linhas com as três métricas zeradas/nulas.
+   Um cache v4 entregaria as linhas fantasma e o `extra` sem o campo.
 v4 (28/08/2026) — troca da base de estrutura comercial (D-34): o leitor passou
    a montar HEAD/GERENTE/SUPERVISOR como rótulo concatenado da
    Hierarquia_Consolidada (código + papel + nome) e a coluna
@@ -47,7 +50,7 @@ import pandas as pd
 from ..utils.config import PASTA_STAGING, RAIZ
 from ..utils.log import log
 
-VERSAO_CACHE = 4
+VERSAO_CACHE = 5
 
 _KB64 = 65536
 

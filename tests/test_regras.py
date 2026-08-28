@@ -16,9 +16,25 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.extract import sellin                                       # noqa: E402
 from src.transform import calendario, dimensoes, fato as fato_mod   # noqa: E402
 from src.utils.texto import (ano_mes, digitos, div, numero, pct,     # noqa: E402
                              texto)
+
+
+# ======================================================== descarte D-36
+def test_linha_100_zerada_e_descartada_e_contada():
+    """D-36: linha com receita, peso E caixas zerados/nulos sai (e e contada);
+    QUALQUER metrica diferente de zero segura a linha — inclusive negativa,
+    que e devolucao, nunca ruido."""
+    df = pd.DataFrame({
+        "RECEITA": [0.0, None, 0.0, 10.0, -5.0],
+        "PESO_KG": [0.0, 0.0, None, 0.0, 0.0],
+        "CAIXAS":  [None, 0.0, None, None, 0.0],
+    })
+    out, n = sellin._descartar_zeradas(df)
+    assert n == 3
+    assert list(out["RECEITA"]) == [10.0, -5.0]
 
 
 # ============================================================ normalizacao

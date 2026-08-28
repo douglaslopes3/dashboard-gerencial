@@ -48,7 +48,7 @@ explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
   <rect class="box base" x="20" y="40"  width="270" height="86" rx="8"/>
   <text class="t" x="32" y="60">Sell In · 28 arquivos .xlsx</text>
   <text class="d" x="32" y="76">bases/Sell In/ e data/raw/sell_in/ · aba Export</text>
-  <text class="d" x="32" y="90">3.085.119 linhas · 24 meses (2024-09 a 2026-08)</text>
+  <text class="d" x="32" y="90">3.081.986 linhas · 24 meses (2024-09 a 2026-08)</text>
   <text class="d" x="32" y="104">rodapé: linha Total (gabarito) + filtros</text>
   <text class="d" x="32" y="118">ATUALIZAÇÃO DIÁRIA — substituir o mês corrente</text>
 
@@ -105,7 +105,7 @@ explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
   <text class="d" x="652" y="92">ANO_MES_LY = pareamento explícito</text>
 
   <rect class="box modelo" x="640" y="118" width="250" height="64" rx="8"/>
-  <text class="t" x="652" y="138">DIM_CLIENTE · 16.131</text>
+  <text class="t" x="652" y="138">DIM_CLIENTE · 16.092</text>
   <text class="d" x="652" y="156">bandeira, UF + head/ger/superv/projeto</text>
   <text class="d" x="652" y="170">+ canal/subcanal — tudo atributo, sem snowflake</text>
 
@@ -114,16 +114,16 @@ explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
   <text class="d" x="652" y="234">categoria + marca; 7 órfãos adotados marcados</text>
 
   <rect class="box modelo" x="640" y="260" width="250" height="56" rx="8"/>
-  <text class="t" x="652" y="280">FATO_SELLIN · 3.085.119</text>
+  <text class="t" x="652" y="280">FATO_SELLIN · 3.081.986</text>
   <text class="d" x="652" y="296">grão: mês × cliente × SKU · R$, kg, caixas</text>
   <text class="d" x="652" y="310">particionada por ANO · linhagem por execução</text>
 
   <!-- ============ coluna 4: agregacao ============ -->
   <rect class="box agg" x="640" y="346" width="250" height="90" rx="8"/>
-  <text class="t" x="652" y="366">CUBO_PRINCIPAL · 90.644 linhas</text>
+  <text class="t" x="652" y="366">CUBO_PRINCIPAL · 91.393 linhas</text>
   <text class="d" x="652" y="382">mês × bandeira(300+balde) × categoria ×</text>
   <text class="d" x="652" y="396">PERFIL(head,ger,canal,proj) × UF</text>
-  <text class="t" x="652" y="414">CUBO_SKU · 368.699 linhas</text>
+  <text class="t" x="652" y="414">CUBO_SKU · 366.868 linhas</text>
   <text class="d" x="652" y="430">mês × SKU × (head,canal) × UF</text>
 
   <rect class="box agg" x="640" y="452" width="250" height="54" rx="8"/>

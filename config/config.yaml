@@ -58,6 +58,14 @@ fontes:
     colunas_opcionais:
       - "Subcanal"
       - "Representante"
+    # D-36 (28/08/2026): linha com receita, peso E caixas zerados/nulos nao
+    # carrega fato mensuravel — mas cria cliente/canal/SKU fantasma nos eixos
+    # do painel. Caso real: 19 linhas de nov/24 a R$ 0,00 (remessas simbolicas
+    # de 3 clientes Makro/Sam's) sustentavam sozinhas o canal KEY ACCOUNT
+    # NACIONAL. O descarte e contado no log e no relatorio de qualidade; as
+    # linhas somam exatamente zero, entao a reconciliacao contra o gabarito
+    # da fonte nao se altera.
+    descartar_linhas_100_zeradas: true
 
   produtos:
     arquivo: "bases/Bases para tabelas dimensões/Produtos.xlsx"

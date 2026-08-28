@@ -10,7 +10,7 @@
 | Pasta | `bases/Sell In/` (e também `data/raw/sell_in/`, criada para o ciclo mensal) |
 | Formato | `.xlsx`, aba única **`Export`** |
 | Arquivos | **28** (~95 MB) |
-| Linhas úteis | **3.085.119** |
+| Linhas úteis | **3.081.986** (D-36: 3.133 linhas 100% zeradas descartadas na ingestão) |
 | Período | **2024/09 a 2026/08** — 24 meses, sem buraco |
 | Schemas distintos | **1** — as 28 planilhas têm exatamente as mesmas 13 colunas |
 
@@ -100,7 +100,7 @@ de devolução; Caixas é bruto. Tamanho do desvio: **90.289 de 32.659.819 caixa
 ### 1.6 Grão e duplicidade
 
 ```
-duplicados em ANO_MES x Cod. cliente x Cod. material   0  de 3.085.119
+duplicados em ANO_MES x Cod. cliente x Cod. material   0  de 3.081.986
 duplicados de linha inteira                            0
 duplicados no grao dentro do mesmo arquivo             0
 ```
@@ -112,7 +112,7 @@ duplicados no grao dentro do mesmo arquivo             0
 | Coluna | Distintos |
 |---|---:|
 | `Ano mês` | 24 |
-| `Cód. cliente` | **16.131** |
+| `Cód. cliente` | **16.092** (16.131 antes da D-36: 39 clientes só tinham linhas zeradas) |
 | `Cliente` (nome) | 12.261 |
 | `Bandeira cliente` | **11.296** |
 | `Estado` | **27** (as 27 UFs) |
@@ -181,7 +181,7 @@ incorporar, o complemento esvazia sozinho.
 ```
 cobertura de HEAD sobre o sell-in (oficial + complemento)
   receita com head      99,98%
-  clientes sem head     71 de 16.131
+  clientes sem head     71 de 16.092
   so a oficial          93,95% de receita — ABAIXO do piso de 95%
 ```
 
@@ -205,7 +205,7 @@ Aba `Export` · 43.073 clientes · colunas `Cód. cliente` (zero-preenchido),
 `Filtros aplicados`, como o sell-in.
 
 ```
-cobertura sobre o sell-in    16.131 de 16.131 clientes (100,0000%)
+cobertura sobre o sell-in    16.092 de 16.092 clientes (100,0000%)
 receita classificada         R$ 2.260.853.914,86 (100,0000%)
 clientes orfaos              0
 clientes com >1 canal        0

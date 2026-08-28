@@ -81,6 +81,15 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     linha(f"- **Aceitos:** {len(por_arq)}")
     linha("- **Rejeitados:** 0 — arquivo incompatível aborta o pipeline antes "
           "deste ponto, nunca entra pela metade")
+    zer = meta.get("linhas_zeradas") or {}
+    if zer:
+        det = ", ".join(f"`{a}` ({n})" for a, n in sorted(zer.items()))
+        linha(f"- **Linhas 100% zeradas descartadas (D-36):** "
+              f"{sum(zer.values()):,} em {len(zer)} arquivo(s) — {det}. "
+              "Receita, peso e caixas zerados/nulos; somam R$ 0,00 e não "
+              "alteram a reconciliação")
+    else:
+        linha("- **Linhas 100% zeradas descartadas (D-36):** 0")
     linha()
     linha("| Arquivo | Mês(es) | Linhas | Receita R$ | Peso kg | Caixas |")
     linha("|---|---|---:|---:|---:|---:|")

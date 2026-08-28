@@ -22,7 +22,7 @@
 
 | # | Arquivo | Formato | Aba | O que traz | Cadência |
 |---|---|---|---|---|---|
-| 1 | `bases/Sell In/sellin_*.xlsx` (28 arquivos) e/ou `data/raw/sell_in/*.xlsx` | Excel | `Export` | **o faturamento**: 3.085.119 linhas, mês × cliente × SKU, com Receita Líquida, Peso Líquido (kg) e Qtde Faturado (caixas). Cada arquivo tem um rodapé com a linha `Total` e o texto dos filtros da extração | **diária** (ver doc 14) |
+| 1 | `bases/Sell In/sellin_*.xlsx` (28 arquivos) e/ou `data/raw/sell_in/*.xlsx` | Excel | `Export` | **o faturamento**: 3.081.986 linhas úteis (D-36: 3.133 linhas 100% zeradas descartadas), mês × cliente × SKU, com Receita Líquida, Peso Líquido (kg) e Qtde Faturado (caixas). Cada arquivo tem um rodapé com a linha `Total` e o texto dos filtros da extração | **diária** (ver doc 14) |
 | 2 | `bases/Bases para tabelas dimensões/Produtos.xlsx` | Excel | `Produtos` | cadastro de SKU: código, descrição, **categoria**, **marca** (1.712 SKUs) | estática |
 | 3 | `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` + `Hierarquia_Complemento.xlsx` (D-34) | Excel | `Planilha1` | estrutura comercial por cliente: **head, gerente, supervisor, projeto** como rótulo `código - papel - nome` (13.448 clientes na oficial + 2.612 no complemento) | estática |
 | 4 | `bases/Canais/Canais.xlsx` | Excel | `Export` | **canal e subcanal** por cliente (43.073 clientes; cobre 100% do sell-in) | estática |
@@ -80,14 +80,14 @@ viraria aviso (hoje: zero).
                        DIM_CALENDARIO (24 linhas · PK ANO_MES)
                               │ 1:N
   DIM_PRODUTO ────────── FATO_SELLIN ────────── DIM_CLIENTE
-  (494 · PK COD_PRODUTO)  3.085.119 linhas      (16.131 · PK COD_CLIENTE)
+  (494 · PK COD_PRODUTO)  3.081.986 linhas      (16.092 · PK COD_CLIENTE)
         1:N                                          1:N
 ```
 
 | Ligação | Chave | Cardinalidade | Integridade |
 |---|---|---|---|
 | Fato → Calendário | `ANO_MES` (`AAAA-MM`) | N:1 — 24 meses | 100%, aborta se quebrar |
-| Fato → Cliente | `COD_CLIENTE` (dígitos sem zeros) | N:1 — 16.131 clientes | 100% (a dimensão adota órfãos) |
+| Fato → Cliente | `COD_CLIENTE` (dígitos sem zeros) | N:1 — 16.092 clientes | 100% (a dimensão adota órfãos) |
 | Fato → Produto | `COD_PRODUTO` (idem) | N:1 — 494 SKUs | 100% (idem) |
 | Cliente → canal/head/gerente/projeto/bandeira/UF | atributos na própria `DIM_CLIENTE` | 1:1 por cliente | coberturas com piso: estrutura 99,98%, canal 100,00% (abaixo de 95% o pipeline aborta) |
 | Produto → categoria/marca | atributos na própria `DIM_PRODUTO` | 1:1 por SKU | zero divergência medida entre sell-in e cadastro |

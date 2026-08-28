@@ -678,3 +678,33 @@ pareados, nada mudou nos números).
    sempre para o fim da lista de botões; o resto segue alfabético pt-BR.
    Conferido no navegador: último chip de cada linha correto e Δ% do
    gráfico batendo com a tabela "Evolução por período" (set/25 −7,0%).
+
+## D-36 · Descarte declarado de linhas 100% zeradas; displays/pallets ficam (28/08/2026)
+
+**Contexto.** O canal `KEY ACCOUNT NACIONAL` aparecia no painel inteiro
+(chip + linha do Detalhamento, tudo R$ 0,00) sustentado por 19 linhas de
+nov/2024 com receita, peso e caixas zerados/nulos — remessas simbólicas de 3
+clientes (Makro AM e duas filiais WMS/Sam's). O Douglas: *"esse canal não
+deveria existir aqui"*. Medido o universo: **3.133 linhas 100% zeradas** nos
+28 arquivos, e **39 clientes** que só existiam por linhas assim.
+
+**Decisão (Douglas, 28/08/2026).**
+
+1. Linha com as **três métricas zeradas/nulas** é **descartada na ingestão**
+   (`fontes.sellin.descartar_linhas_100_zeradas`, ligada). Ela não carrega
+   fato mensurável, mas cria cliente/canal/SKU fantasma nos eixos. O descarte
+   é contado no log e no §1 do relatório de qualidade, por arquivo. Linha com
+   QUALQUER métrica diferente de zero fica — negativa inclusive (devolução).
+   A reconciliação contra o gabarito não se altera: as linhas somam zero.
+2. **DISPLAY/MAT.PROMOCIONAL e PALLETS (NAO INFORMADO) FICAM no painel**
+   (opção C, deliberada): têm valores reais (−R$ 23,3 mil; +R$ 50,9 mil e
+   54,8 t de peso, 100% SPAL/DISTRIBUIDOR) e descartá-los quebraria a
+   reconciliação com a fonte. A correção certa é na origem — se incomodar,
+   abrir pedido ao BI para tirar esses 6 SKUs da extração.
+
+**Efeito medido.** Fato 3.085.119 → **3.081.986** linhas (−3.133); clientes
+16.131 → **16.092** (−39); canal `KEY ACCOUNT NACIONAL` sumiu do painel
+(ficam os 7 do gabarito, cobertura de canal segue 100,0000%); os 71 sem
+estrutura seguem os mesmos. **Totais idênticos ao centavo**
+(R$ 2.260.853.914,86 · 161.321,49 t · 32.659.819 cx). `VERSAO_CACHE` 4 → 5.
+30/30 testes (novo: `test_linha_100_zerada_e_descartada_e_contada`).

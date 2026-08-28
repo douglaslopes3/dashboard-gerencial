@@ -93,6 +93,19 @@ def _validar_schema(df: pd.DataFrame, arq: Path) -> None:
                 "  (config/config.yaml -> fontes.sellin.colunas_obrigatorias)")
 
 
+def _descartar_zeradas(out: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """D-36: linha com as TRES metricas zeradas/nulas nao carrega fato
+    mensuravel — mas cria cliente/canal/SKU fantasma nos eixos do painel.
+    Caso real (28/08/2026): 19 linhas de nov/24 a R$ 0,00 sustentavam
+    sozinhas o canal KEY ACCOUNT NACIONAL. Linha com QUALQUER metrica
+    diferente de zero fica. O descarte soma exatamente zero, entao a
+    reconciliacao contra o gabarito da fonte nao se altera."""
+    zerada = ((out["RECEITA"].isna() | (out["RECEITA"] == 0))
+              & (out["PESO_KG"].isna() | (out["PESO_KG"] == 0))
+              & (out["CAIXAS"].isna() | (out["CAIXAS"] == 0)))
+    return out[~zerada], int(zerada.sum())
+
+
 def _ler_um(arq: Path) -> tuple[pd.DataFrame, dict]:
     try:
         df = pd.read_excel(arq, sheet_name=FONTE["aba"], engine="calamine")
@@ -162,6 +175,10 @@ def _ler_um(arq: Path) -> tuple[pd.DataFrame, dict]:
             f"Cod. cliente/material, descartadas — receita descartada "
             f"R$ {out.loc[perdidas, 'RECEITA'].sum():,.2f}", "aviso")
     out = out.dropna(subset=["ANO_MES", "COD_CLIENTE", "COD_PRODUTO"])
+    if FONTE.get("descartar_linhas_100_zeradas"):
+        out, n_zer = _descartar_zeradas(out)
+        if n_zer:
+            extra["linhas_zeradas"] = n_zer
     return out.reset_index(drop=True), extra
 
 
@@ -186,6 +203,7 @@ def ler() -> tuple[pd.DataFrame, dict]:
     log(f"{len(arqs)} arquivo(s) de Sell In encontrado(s)")
 
     partes, gabaritos, filtros, meses_por_arq = [], {}, {}, {}
+    zeradas: dict[str, int] = {}
     declaradas = FONTE.get("colunas_opcionais") or []
     # C4 (auditoria): opcional declarada no config sem destino no leitor era
     # documentacao mentindo — parecia ingerida e nao era.
@@ -204,6 +222,8 @@ def ler() -> tuple[pd.DataFrame, dict]:
             filtros[a.name] = extra["filtro"]
         if extra.get("gabarito"):
             gabaritos[a.name] = extra["gabarito"]
+        if extra.get("linhas_zeradas"):
+            zeradas[a.name] = extra["linhas_zeradas"]
         meses_por_arq[a.name] = sorted(d["ANO_MES"].dropna().unique())
         for origem, destino in opcionais:
             presenca[origem].append(destino in d.columns)
@@ -227,11 +247,17 @@ def ler() -> tuple[pd.DataFrame, dict]:
 
     df = pd.concat(partes, ignore_index=True)
 
+    if zeradas:
+        log(f"{sum(zeradas.values())} linha(s) 100% zeradas descartadas "
+            f"(D-36) em {len(zeradas)} arquivo(s) — receita, peso e caixas "
+            "zerados/nulos; somam R$ 0,00 e nao alteram a reconciliacao", "ok")
+
     meta = {
         "arquivos": [a.name for a in arqs],
         "gabaritos": gabaritos,
         "filtros": filtros,
         "meses_por_arquivo": meses_por_arq,
+        "linhas_zeradas": zeradas,
         "tem_subcanal": "SUBCANAL" in df.columns,
     }
     if meta["tem_subcanal"]:

@@ -102,7 +102,7 @@ Idempotente por construção.
 
 ## 4. Camada de agregação — dimensionada com medição
 
-O painel **nunca** recebe linha transacional. As 3.085.119 linhas viram dois
+O painel **nunca** recebe linha transacional. As 3.081.986 linhas viram dois
 cubos. Tamanhos medidos serializando o JSON de verdade:
 
 | Cubo | Grão | Linhas | JSON | Serve |
@@ -170,7 +170,7 @@ que não reconcilia com a fato não é publicada.
 | Cache Parquet por arquivo de origem | **sim** | reexecução sem mudança de base pula a leitura do Excel |
 | Parquet + seleção só das colunas necessárias | **sim** | |
 | Particionamento da fato por `ANO` | **sim** | 3 partições hoje (2024, 2025, 2026); cresce 1 por ano |
-| Categorias como `category`/dicionário no Parquet | **sim** | 16.131 clientes e 11.296 bandeiras repetidas |
+| Categorias como `category`/dicionário no Parquet | **sim** | 16.092 clientes e 11.296 bandeiras repetidas |
 | Cubos pré-agregados no lugar da fato na interface | **sim** | 3,08 mi de linhas → 280 mil |
 | Tabelas do painel paginadas / com rolagem própria | **sim** | |
 | Compressão zstd + row groups de 1 Mi | **sim** (auditoria B7) | fato 23,2 → **20,3 MB**; leitura igual |

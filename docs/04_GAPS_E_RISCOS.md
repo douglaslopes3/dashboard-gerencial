@@ -11,7 +11,7 @@ A base chegou: `bases/Canais/Canais.xlsx` (aba `Export`, chave `Cód. cliente`,
 colunas `Cód. canal`, `Canal`, `Subcanal`). Medido na integração:
 
 ```
-clientes do sell-in com canal   16.131 de 16.131  (100,0000%)
+clientes do sell-in com canal   16.092 de 16.092  (100,0000%)
 receita classificada            R$ 2.260.853.914,86 (100,0000%)
 clientes orfaos                 0
 canais com receita              8 (KEY ACCOUNT NACIONAL existe no de-para
@@ -81,7 +81,7 @@ extração.
 
 | | |
 |---|---|
-| **Tamanho** | 71 de 16.131 clientes · **R$ 421.421,67 (0,02% da receita)** |
+| **Tamanho** | 71 de 16.092 clientes · **R$ 421.421,67 (0,02% da receita)** |
 | **Dono** | **Comercial / Cadastro** |
 | **Estado** | **entram no fato** com `HEAD = NÃO ATRIBUÍDO`. Não são descartados |
 
