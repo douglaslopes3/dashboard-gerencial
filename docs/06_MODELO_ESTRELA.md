@@ -115,8 +115,8 @@ seria falso amanhã. Ver §7 do prompt e o `docs/07_CATALOGO_METRICAS.md`.
 | `NOME_CLIENTE` | Sell In (`Cliente`) — vence o **mais recente** | 0 |
 | `BANDEIRA` | Sell In (`Bandeira cliente`) | 0 |
 | `UF` | Sell In (`Estado`) | 0 |
-| `HEAD`, `GERENTE`, `SUPERVISOR` | `DePara_Estrutura_Comercial.xlsx` | 71 clientes |
-| `ATENDIMENTO_PONTA`, `PROJETO` | idem | 71 clientes |
+| `HEAD`, `GERENTE`, `SUPERVISOR` | `Hierarquia_Consolidada.xlsx` + complemento (D-34) — rótulo `código - papel - nome` | 71 clientes |
+| `PROJETO` | idem | 71 clientes |
 | `CANAL`, `SUBCANAL` | `bases/Canais/Canais.xlsx` (26/08/2026) | 0 clientes — 100% de cobertura |
 | `NA_ESTRUTURA`, `TEM_CANAL` | derivados | booleanos |
 

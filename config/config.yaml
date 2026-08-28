@@ -66,13 +66,37 @@ fontes:
     colunas_opcionais: ["Marca"]
 
   estrutura_comercial:
-    arquivo: "bases/Bases para tabelas dimensões/DePara_Estrutura_Comercial.xlsx"
+    # Hierarquia oficial desde 28/08/2026 (D-34): substitui o
+    # DePara_Estrutura_Comercial.xlsx. Os cabeçalhos do arquivo têm QUEBRA DE
+    # LINHA interna ("CÓDIGO\nCLIENTE") — o leitor normaliza todo espaçamento
+    # para um espaço antes de validar; os nomes abaixo já estão normalizados.
+    # Head, gerente e supervisor viram UM rótulo por nível, concatenando
+    # código + papel + nome com " - " (parte vazia é omitida — há linhas de
+    # gerente sem nome, e o código+papel seguram o rótulo).
+    arquivo: "bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx"
     aba: "Planilha1"
-    colunas_obrigatorias: ["Cód. cliente", "Novo Head", "Novo Gerente", "Novo Supervisor"]
-    colunas_opcionais: ["Atendimento Ponta", "PROJETO"]
+    colunas_obrigatorias:
+      - "CÓDIGO CLIENTE"
+      - "(N1) CÓDIGO HEAD"
+      - "CRIAR NO BI (N1) HEAD"
+      - "(N1) NOME HEAD"
+      - "(N2) CÓDIGO GERENTE"
+      - "(N2) GERENTE"
+      - "(N2) NOME GERENTE"
+      - "(N3) CÓDIGO SUP./EXEC."
+      - "(N3) SUP./EXEC."
+      - "(N3) NOME SUP./EXEC."
+    colunas_opcionais: ["PROJETO"]
     # A ausência deste arquivo NÃO derruba o pipeline: o painel roda sem
     # hierarquia, com todo mundo em "NÃO ATRIBUÍDO" e um aviso na tela.
     obrigatorio: false
+    # COMPLEMENTO (D-34): 2.612 clientes que faturam e não estão na base
+    # oficial (554 ativos em ago/2026, R$ 136,4 Mi em 24 meses), mapeados pelo
+    # supervisor da base anterior. Mesmo layout e mesma aba. A base principal
+    # SEMPRE vence: quando a oficial incorporar esses clientes, o complemento
+    # esvazia sozinho. Pendente de validação do Comercial — as colunas de
+    # apoio (ORIGEM, DOMINÂNCIA...) não são lidas pelo pipeline.
+    complemento: "bases/Bases para tabelas dimensões/Hierarquia_Complemento.xlsx"
 
   # De-para Cliente -> Canal, entregue em 26/08/2026 (resolve o GAP-01).
   # Cobertura medida na entrega: 100,0000% dos 16.131 clientes e da receita.
@@ -103,13 +127,19 @@ calendario:
 # -----------------------------------------------------------------------------
 dimensoes:
   estrutura_comercial:
-    # Confirmado pelo Comercial em 26/08/2026 (devolutiva, item 3): a posicao
-    # 2600 esta vaga — Maykon = Vago. A troca sai no log e no relatorio de
-    # qualidade a cada execucao. O codigo fica no rotulo pela mesma convencao
-    # dos pares ("Izabela - 2650", "Michel - 1000").
+    # Padronização aprovada em 28/08/2026 (D-34): a Hierarquia_Consolidada
+    # grafa o mesmo posto vago ora "[VAGO]", ora "[Vago]" — sem a correção o
+    # painel mostraria DOIS heads para o mesmo código 30. O padrão é [VAGO].
+    # As 106 linhas do gerente 33000 sem nome nenhum recebem o [VAGO] também,
+    # senão viram um segundo rótulo do mesmo gerente.
+    # (A correção do Maykon, da base anterior, saiu com ela — D-34.)
     correcoes_head:
-      "Maykon - 2600": "Vago - 2600"
-    correcoes_gerente: {}
+      "30 - KA Nacional - [Vago]": "30 - KA Nacional - [VAGO]"
+    correcoes_gerente:
+      "31000 - Ger. Reg._ASSAI+ - [Vago]": "31000 - Ger. Reg._ASSAI+ - [VAGO]"
+      "32000 - Ger. Reg._ATACADAO+ - [Vago]": "32000 - Ger. Reg._ATACADAO+ - [VAGO]"
+      "33000 - Ger. Reg._LASA+ - [Vago]": "33000 - Ger. Reg._LASA+ - [VAGO]"
+      "33000 - Ger. Reg._LASA+": "33000 - Ger. Reg._LASA+ - [VAGO]"
     correcoes_supervisor: {}
     # Cliente com duas linhas e supervisores diferentes: declare aqui quem vence.
     # Sem declaração, vence a 1a linha COM AVISO.
@@ -149,7 +179,8 @@ validacao:
     categoria:
       ["AMENDOIM", "BALA", "CHOCOLATE", "COMPOUND", "GELATINA", "GOMAS",
        "GRANULADO", "JUBES FRUIT SNACK", "PIRULITO", "REGALIZ"]
-    head: ["Ademir", "Izabela", "Michel", "Vago"]
+    head: ["10 - DISTRIBUICAO - MICHEL MEIRA", "20 - ATACADO - ADEMIR TAVARES",
+           "30 - KA Nacional - [VAGO]", "40 - KA REGIONAL - IZABELA SANTOS"]
     canal:
       ["ATACADO ESPECIALIZADO", "ATACADO GENERALISTA", "VAREJO ESPECIALIZADO",
        "VAREJO", "CASH & CARRY", "NOVOS CANAIS", "DISTRIBUIDOR"]

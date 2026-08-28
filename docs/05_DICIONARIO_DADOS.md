@@ -32,19 +32,30 @@ há transformação silenciosa**.
 relatório de valores não reconhecidos. Toda correção de rótulo é **declarada em
 `config/config.yaml`** e registrada no log e no relatório de qualidade.
 
-## 2. `DePara_Estrutura_Comercial.xlsx` → `DIM_CLIENTE`
+## 2. `Hierarquia_Consolidada.xlsx` (+ complemento) → `DIM_CLIENTE` (D-34)
+
+Os cabeçalhos do arquivo têm quebra de linha interna — o leitor normaliza todo
+espaçamento para um espaço antes de validar. Cada nível vira **um rótulo**
+concatenando `código - papel - nome` com `" - "` (parte vazia é omitida).
 
 | Origem | Destino | Transformação |
 |---|---|---|
-| `Cód. cliente` (`0001010846`) | chave de junção (`1010846`) | `digitos()` + `lstrip("0")` |
-| `Novo Head` | `HEAD` | `texto(maiuscula=False)` + `correcoes_head` do config |
-| `Novo Gerente` | `GERENTE` | `texto(maiuscula=False)` + `correcoes_gerente` |
-| `Novo Supervisor` | `SUPERVISOR` | `texto(maiuscula=False)` + `correcoes_supervisor` |
-| `Atendimento Ponta` | `ATENDIMENTO_PONTA` | `texto()` |
+| `CÓDIGO CLIENTE` | chave de junção (`1036022`) | `digitos()` + `lstrip("0")` |
+| `(N1) CÓDIGO HEAD` + `CRIAR NO BI (N1) HEAD` + `(N1) NOME HEAD` | `HEAD` | rótulo concatenado + `correcoes_head` |
+| `(N2) CÓDIGO GERENTE` + `(N2) GERENTE` + `(N2) NOME GERENTE` | `GERENTE` | rótulo concatenado + `correcoes_gerente` |
+| `(N3) CÓDIGO SUP./EXEC.` + `(N3) SUP./EXEC.` + `(N3) NOME SUP./EXEC.` | `SUPERVISOR` | rótulo concatenado + `correcoes_supervisor` |
 | `PROJETO` | `PROJETO` | `texto(maiuscula=False)` |
 
-Cliente com mais de uma linha: vence a primeira, **com aviso**; o desempate
-declarado vive em `dimensoes.estrutura_comercial.desempate_cliente`.
+Nível N4 (vendedor/RCA), `CLIENTE`, `BANDEIRA`/`REDE`: **não ingeridos** (a
+granularidade do arquivo é cliente × vendedor; a deduplicação por cliente
+acontece depois das correções, com checagem de conflito N1–N3).
+`ATENDIMENTO_PONTA` deixou de existir com a troca da base.
+
+O **complemento** (`Hierarquia_Complemento.xlsx`, mesmo layout) entra pelo
+mesmo leitor; linha cujo cliente já está na oficial é descartada com log.
+
+Cliente com mais de uma linha divergente: vence a primeira, **com aviso**; o
+desempate declarado vive em `dimensoes.estrutura_comercial.desempate_cliente`.
 Cliente sem linha no de-para: `HEAD = "NÃO ATRIBUÍDO"`, `NA_ESTRUTURA = false`.
 
 ## 3. `Produtos.xlsx` → `DIM_PRODUTO`

@@ -8,6 +8,7 @@ ainda via o antigo.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -35,7 +36,10 @@ def _ler_aba(arq: Path, aba: str, chave_cfg: str,
         abortar(f"arquivo REJEITADO: {arq.name}\n"
                 f"  nao foi possivel ler a aba '{aba}': {e}\n"
                 f"  (config/config.yaml -> fontes.{chave_cfg}.aba)")
-    df.columns = [str(c).strip() for c in df.columns]
+    # A Hierarquia_Consolidada traz QUEBRA DE LINHA dentro dos cabecalhos
+    # ("CÓDIGO\nCLIENTE") — todo espacamento vira um espaco antes de validar,
+    # e os nomes no config ja estao nessa forma.
+    df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
     return df
 
 
@@ -165,32 +169,52 @@ def _conferir_assinatura_canais(filtro: str | None) -> list[str]:
 
 
 # ------------------------------------------------------- ESTRUTURA COMERCIAL
+# Cada nivel da Hierarquia_Consolidada vira UM rotulo: codigo + papel + nome,
+# unidos por " - " (D-34). A parte vazia e omitida — ha 106 linhas de gerente
+# sem nome, e o codigo+papel seguram o rotulo sozinhos.
+_NIVEIS = {
+    "HEAD": ["(N1) CÓDIGO HEAD", "CRIAR NO BI (N1) HEAD", "(N1) NOME HEAD"],
+    "GERENTE": ["(N2) CÓDIGO GERENTE", "(N2) GERENTE", "(N2) NOME GERENTE"],
+    "SUPERVISOR": ["(N3) CÓDIGO SUP./EXEC.", "(N3) SUP./EXEC.",
+                   "(N3) NOME SUP./EXEC."],
+}
+
+
+def _rotulo_concatenado(df: pd.DataFrame, cols: list[str]) -> pd.Series:
+    out: pd.Series | None = None
+    for c in cols:
+        s = texto(df[c], maiuscula=False)
+        out = s.fillna("") if out is None else out + (" - " + s).fillna("")
+    return out.str.strip(" -").replace({"": pd.NA})
+
+
 def _ler_estrutura(arq: Path) -> tuple[pd.DataFrame, dict]:
     df = _ler_aba(arq, _EST["aba"], "estrutura_comercial", dtype=str)
     _validar(df, _EST["colunas_obrigatorias"], arq)
 
     out = pd.DataFrame(index=df.index)
-    # O arquivo traz o codigo zero-preenchido ("0001010846") e o sell-in traz o
-    # numero puro ("1010846"). Ver `digitos()`.
-    out["COD_CLIENTE"] = digitos(df["Cód. cliente"])
-    out["HEAD"] = texto(df["Novo Head"], maiuscula=False)
-    out["GERENTE"] = texto(df["Novo Gerente"], maiuscula=False)
-    out["SUPERVISOR"] = texto(df["Novo Supervisor"], maiuscula=False)
-    for origem, destino in (("Atendimento Ponta", "ATENDIMENTO_PONTA"),
-                            ("PROJETO", "PROJETO")):
-        if origem in df.columns:
-            out[destino] = texto(df[origem], maiuscula=False)
+    # O sell-in traz o numero puro ("1010846") — a base anterior vinha
+    # zero-preenchida e a atual nao; `digitos()` cobre as duas.
+    out["COD_CLIENTE"] = digitos(df["CÓDIGO CLIENTE"])
+    for destino, cols in _NIVEIS.items():
+        out[destino] = _rotulo_concatenado(df, cols)
+    if "PROJETO" in df.columns:
+        out["PROJETO"] = texto(df["PROJETO"], maiuscula=False)
 
     sem_chave = out["COD_CLIENTE"].isna()
     if sem_chave.any():
-        # C12 (auditoria): mostrar o valor CRU descartado. Ha 9 linhas com
-        # Cod. cliente = "0" carregando estrutura real (executivos KAR/Farma/
-        # Ecommerce) — o dono do arquivo so corrige o que consegue ver.
-        crus = sorted(set(df.loc[sem_chave, "Cód. cliente"]
+        # C12 (auditoria): mostrar o valor CRU descartado — o dono do arquivo
+        # so corrige o que consegue ver. (Na Hierarquia_Consolidada sao 71
+        # linhas de codigo vazio carregando estrutura real da Izabela.)
+        crus = sorted(set(df.loc[sem_chave, "CÓDIGO CLIENTE"]
                           .astype("string").fillna("(vazio)")))[:6]
         log(f"de-para de estrutura: {int(sem_chave.sum())} linha(s) sem "
-            f"Cod. cliente aproveitavel, descartadas — valores crus: "
+            f"CÓDIGO CLIENTE aproveitavel, descartadas — valores crus: "
             f"{crus}", "aviso")
+    # A granularidade do arquivo e cliente x VENDEDOR (nivel N4, nao ingerido):
+    # linhas repetidas por cliente sao esperadas e os niveis N1-N3 nao
+    # conflitam (medido em 28/08/2026: zero conflitos). A deduplicacao e a
+    # checagem de conflito ficam em `ler_estrutura`, depois das correcoes.
     return out.dropna(subset=["COD_CLIENTE"]).reset_index(drop=True), {}
 
 
@@ -208,6 +232,30 @@ def ler_estrutura() -> tuple[pd.DataFrame, list[str]]:
                                      "SUPERVISOR"]), [msg]
 
     est = cache.ler(arq, _ler_estrutura)[0]
+
+    # ---- COMPLEMENTO (D-34) ---------------------------------------------
+    # Clientes que faturam e nao estao na base oficial, mapeados pelo
+    # supervisor da base anterior. A base principal SEMPRE vence: linha do
+    # complemento cujo cliente ja esta na oficial e descartada com log — e o
+    # dia em que TODAS forem descartadas, o complemento pode ser aposentado.
+    comp_rel = _EST.get("complemento")
+    if comp_rel:
+        arq_c = caminho(comp_rel)
+        if arq_c.exists():
+            comp = cache.ler(arq_c, _ler_estrutura)[0]
+            ja_na_oficial = comp["COD_CLIENTE"].isin(set(est["COD_CLIENTE"]))
+            n_novos = int((~ja_na_oficial).sum())
+            msg = (f"complemento da estrutura ({arq_c.name}): {n_novos:,} "
+                   f"cliente(s) adicionados, {int(ja_na_oficial.sum()):,} ja "
+                   "na base oficial (oficial vence)")
+            log(msg, "ok")
+            avisos.append(msg)
+            est = pd.concat([est, comp[~ja_na_oficial]], ignore_index=True)
+        else:
+            msg = (f"complemento da estrutura declarado no config e ausente "
+                   f"({arq_c.name}) — os clientes dele ficam NÃO ATRIBUÍDO")
+            log(msg, "aviso")
+            avisos.append(msg)
 
     # ---- correcoes DECLARADAS -------------------------------------------
     for coluna, chave in (("HEAD", "correcoes_head"),

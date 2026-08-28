@@ -76,13 +76,13 @@ arquivo — não há passo manual de limpeza. O que muda é **o que conferir** d
 | **Conferir depois** | `cobertura de canal` no resumo (tem de seguir ~100%); `data/quality/clientes_sem_canal.csv` (tem de seguir vazio); §6 do relatório (canal novo aparece como "não reconhecido" até entrar no gabarito `validacao.valores_esperados.canal` do config) |
 | **Atenção** | o arquivo traz o código zero-preenchido — o piso de 95% aborta se um layout novo quebrar o join |
 
-### 2.2 `bases/Bases para tabelas dimensões/DePara_Estrutura_Comercial.xlsx`
+### 2.2 `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` (+ `Hierarquia_Complemento.xlsx`) — D-34
 
 | | |
 |---|---|
-| **O que caracteriza alteração** | troca de head/gerente/supervisor; entrada dos **71 clientes hoje `NÃO ATRIBUÍDO`** (arquivo pronto para colar: `docs/pedidos/incluir_no_DePara_estrutura.xlsx`, head `Vago - 2600` já preenchido); mudança de projeto; cliente novo |
-| **Conferir depois** | `cobertura da estrutura` (hoje 99,98% — colando os 71 vai a 100%); avisos de cliente com dois supervisores/heads; se um head mudar de NOME, a correção declarável fica em `config → dimensoes.estrutura_comercial.correcoes_head` (como Maykon→Vago), nunca no código |
-| **Atenção** | este arquivo tem **dono no Comercial** — alteração local que não voltar ao arquivo-mestre será desfeita na próxima atualização dele |
+| **O que caracteriza alteração** | troca de head/gerente/supervisor/vendedor; incorporação dos **2.612 clientes do complemento** à base oficial (aí o complemento esvazia sozinho — o log passa a dizer "0 adicionados" e ele pode ser aposentado); mudança de projeto; cliente novo |
+| **Conferir depois** | `cobertura da estrutura` (hoje 99,98% com o complemento; **só a oficial dá 93,95% e ABORTA no piso de 95%** — não remova o complemento antes de a oficial incorporar os clientes); log do complemento ("N adicionados, M já na oficial"); avisos de conflito N1–N3; grafia nova de `[VAGO]`/vago sem nome → correção declarada em `config → dimensoes.estrutura_comercial.correcoes_*`, nunca no código |
+| **Atenção** | este arquivo tem **dono no Comercial** — alteração local que não voltar ao arquivo-mestre será desfeita na próxima atualização dele. Os cabeçalhos têm quebra de linha interna (o leitor normaliza); a granularidade é cliente × vendedor (N4, não ingerido) |
 
 ### 2.3 `bases/Bases para tabelas dimensões/Produtos.xlsx` (cadastro de SKU)
 

@@ -29,13 +29,15 @@ _SEM_BANDEIRA = CFG["dimensoes"]["rotulo_sem_bandeira"]
 
 
 def _nome_base(v) -> str:
-    """O nome antes do codigo: 'Izabela - 2650' -> 'izabela'.
+    """Rotulo completo normalizado para comparar com a lista esperada.
 
-    C6 (auditoria): a comparacao por prefixo reconheceria um head novo
-    'Izabelania' sem ele constar da lista esperada. Igualdade no trecho antes
-    de ' - ' nao tem esse furo.
+    Com a Hierarquia_Consolidada (D-34) o rotulo de head e
+    'codigo - papel - nome' ('20 - ATACADO - ADEMIR TAVARES'), entao a lista
+    esperada guarda o rotulo INTEIRO e a comparacao e igualdade total —
+    fatiar no ' - ' (convencao da base anterior) pegaria so o codigo.
+    C6 (auditoria) continua valendo: igualdade, nunca prefixo.
     """
-    return str(v).split(" - ")[0].strip().casefold()
+    return str(v).strip().casefold()
 
 
 def _csv(df: pd.DataFrame, nome: str) -> None:
@@ -163,8 +165,8 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     head_real = set(dim_cliente["HEAD"].dropna())
     esperados_head = {str(e).casefold() for e in _ESPERADOS.get("head", [])}
     for v in sorted(head_real):
-        # C6: "Izabela - 2650" e reconhecido porque o nome-base ("izabela") e
-        # IGUAL a um esperado — prefixo reconheceria "Izabelania" por engano.
+        # C6: igualdade do rotulo completo (casefold), nunca prefixo — um head
+        # novo parecido com um esperado deve aparecer aqui, nao passar batido.
         if _nome_base(v) not in esperados_head:
             n = int((dim_cliente["HEAD"] == v).sum())
             nao_rec.append({"DIMENSAO": "HEAD", "VALOR": v, "SKUS": n})

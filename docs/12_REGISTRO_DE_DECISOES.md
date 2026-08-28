@@ -574,3 +574,45 @@ o cenário T-07 foi atualizado para refletir isso.
 | **B2** (tirar `data/` e `dashboard/build/` do OneDrive — ~54 MB de churn por execução) | é configuração do sincronizador na máquina de quem opera, não código |
 | **B9** (cortar o eixo UF do cubo de SKU: −9,5 MB no painel) | decisão de produto — perde SKU×UF; trade-off documentado no AUDIT |
 | **B6/B10** | veredito da própria auditoria: não vale mexer |
+
+## D-34 · Troca da base de estrutura: `Hierarquia_Consolidada.xlsx` + complemento, rótulos concatenados (28/08/2026)
+
+**Contexto.** O Comercial passou a manter a hierarquia na
+`Hierarquia_Consolidada.xlsx` (14.054 linhas, granularidade cliente ×
+vendedor, 4 níveis N1–N4 com código/papel/nome, cabeçalhos com quebra de
+linha interna). Medido antes da troca: a base nova é **subconjunto estrito**
+da anterior — 13.448 clientes contra 16.060 — e cobre só **93,95%** da
+receita (94,80% no FY2026; 554 dos ausentes faturaram em ago/2026), abaixo do
+piso de 95%. Os 2.612 clientes ausentes carregam R$ 136,4 mi em 24 meses.
+
+**Decisão (Douglas, 28/08/2026).**
+
+1. A `Hierarquia_Consolidada.xlsx` é a base oficial daqui para a frente.
+2. Cada nível vira **um rótulo concatenado** `código - papel - nome`
+   (ex.: `20 - ATACADO - ADEMIR TAVARES`), parte vazia omitida — as 106
+   linhas de gerente sem nome ficam com código+papel. `ATENDIMENTO_PONTA`
+   deixa de existir (nunca chegava ao painel). O N4 (vendedor) **não** é
+   ingerido; a deduplicação por cliente confere conflito N1–N3 (zero, medido).
+3. Os 2.612 ausentes entram pelo **`Hierarquia_Complemento.xlsx`** (mesmo
+   layout), gerado pelo mapa de migração dos 13.448 clientes comuns
+   (supervisor da base anterior → N3 novo dominante; 2.582 com dominância
+   ≥ 90%; os 30 restantes entram pelo dominante mesmo assim, marcados).
+   **Pendente de validação do Comercial** — o destino certo é a base oficial
+   incorporá-los; a oficial sempre vence e o complemento esvazia sozinho.
+4. `[VAGO]`/`[Vago]` (mesmo código 30) e o gerente 33000 com/sem nome:
+   padronizados para `[VAGO]` por **correção declarada** no config (436 + 783
+   linhas corrigidas, no log). A correção do Maykon (base anterior) saiu.
+5. O gabarito `valores_esperados.head` guarda o rótulo completo e a
+   comparação do relatório de qualidade virou igualdade total (o corte no
+   ` - ` da convenção antiga pegaria só o código). `VERSAO_CACHE` 3 → 4.
+
+**Validação da troca.** Cobertura 99,98% (idêntica à anterior); totais de
+controle ao centavo (R$ 2.260.853.914,86 · 161.321,49 t · 32.659.819 cx);
+os mesmos 71 clientes `NÃO ATRIBUÍDO`; receita por head reconcilia com a
+estrutura anterior (Vago 466,5 mi idêntico; demais com migrações pequenas);
+29/29 unitários, 6/6 cenários. Perfis do cubo: 104 → 110.
+
+**Consequência declarada.** A história inteira (24 meses) passa a ser lida
+pela hierarquia nova — mesma regra do A8 ("carteira atual olhada para trás"),
+que segue aberto. O eixo PROJETO agora mistura os valores da base nova com os
+herdados da anterior nos clientes do complemento (`Clientes Novos` etc.).

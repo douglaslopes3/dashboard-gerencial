@@ -19,6 +19,11 @@ Checagem que não roda é pior do que checagem que não existe, porque dá a sen
 de proteção.
 
 v1 (26/08/2026) — versão inicial deste projeto.
+v4 (28/08/2026) — troca da base de estrutura comercial (D-34): o leitor passou
+   a montar HEAD/GERENTE/SUPERVISOR como rótulo concatenado da
+   Hierarquia_Consolidada (código + papel + nome) e a coluna
+   ATENDIMENTO_PONTA deixou de existir. Um cache v3 entregaria as colunas
+   antigas.
 v3 (27/08/2026) — leitores mudaram de novo: o texto do filtro do sell-in
    passa a ser capturado a partir da linha "Filtros aplicados" (C8) e o
    descarte de linha sem cliente/material passou a ser contado (C7). O `extra`
@@ -42,7 +47,7 @@ import pandas as pd
 from ..utils.config import PASTA_STAGING, RAIZ
 from ..utils.log import log
 
-VERSAO_CACHE = 3
+VERSAO_CACHE = 4
 
 _KB64 = 65536
 

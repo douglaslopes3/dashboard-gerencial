@@ -24,7 +24,7 @@
 |---|---|---|---|---|---|
 | 1 | `bases/Sell In/sellin_*.xlsx` (28 arquivos) e/ou `data/raw/sell_in/*.xlsx` | Excel | `Export` | **o faturamento**: 3.085.119 linhas, mês × cliente × SKU, com Receita Líquida, Peso Líquido (kg) e Qtde Faturado (caixas). Cada arquivo tem um rodapé com a linha `Total` e o texto dos filtros da extração | **diária** (ver doc 14) |
 | 2 | `bases/Bases para tabelas dimensões/Produtos.xlsx` | Excel | `Produtos` | cadastro de SKU: código, descrição, **categoria**, **marca** (1.712 SKUs) | estática |
-| 3 | `bases/Bases para tabelas dimensões/DePara_Estrutura_Comercial.xlsx` | Excel | `Planilha1` | estrutura comercial por cliente: **head, gerente, supervisor, projeto**, atendimento ponta (16.061 clientes) | estática |
+| 3 | `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` + `Hierarquia_Complemento.xlsx` (D-34) | Excel | `Planilha1` | estrutura comercial por cliente: **head, gerente, supervisor, projeto** como rótulo `código - papel - nome` (13.448 clientes na oficial + 2.612 no complemento) | estática |
 | 4 | `bases/Canais/Canais.xlsx` | Excel | `Export` | **canal e subcanal** por cliente (43.073 clientes; cobre 100% do sell-in) | estática |
 | — | `config/config.yaml` + `config/geografia.yaml` | YAML | — | parâmetros: pastas, colunas obrigatórias, ano fiscal (set→ago), tolerâncias, correções declaradas (ex.: Maykon→Vago), cortes de exibição, nomes de UF | muda por decisão |
 

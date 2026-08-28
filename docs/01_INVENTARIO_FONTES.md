@@ -154,33 +154,46 @@ no período) e o sell-in tem duas que o cadastro não tem, nos 7 SKUs órfãos.
 > O cadastro **tem** coluna `Marca` (o do projeto anterior não tinha). Marca é
 > dado de origem aqui — não é inferido da descrição.
 
-### 2.2 `bases/Bases para tabelas dimensões/DePara_Estrutura_Comercial.xlsx`
+### 2.2 `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` (D-34)
 
-Aba `Planilha1` · 16.071 linhas · 16.061 códigos distintos.
-Colunas: `Cód. cliente`, `Novo Head`, `Novo Gerente`, `Novo Supervisor`,
-`Atendimento Ponta`, `PROJETO`.
+Substituiu o `DePara_Estrutura_Comercial.xlsx` em 28/08/2026 (D-34). Aba
+`Planilha1` · 14.054 linhas · 13.448 códigos distintos · 71 linhas sem código
+(estrutura real, descartadas com aviso — mesmo padrão do C12). A granularidade
+é **cliente × vendedor (N4)**: linhas repetidas por cliente são esperadas e os
+níveis N1–N3 não conflitam (medido: zero conflitos).
 
-**Armadilha medida:** o código vem zero-preenchido (`0001010846`) e o sell-in traz
-o número puro (`1010846`). Sem `lstrip("0")` o join casa com **zero** clientes —
-e casa em silêncio (todo o join vira nulo e o pipeline segue).
+Colunas por nível (os cabeçalhos têm **quebra de linha interna** — o leitor
+normaliza todo espaçamento): `CÓDIGO CLIENTE`, N1 head (`(N1) CÓDIGO HEAD`,
+`CRIAR NO BI (N1) HEAD`, `(N1) NOME HEAD`), N2 gerente, N3 sup./exec.,
+N4 vend./RCA (não ingerido), `PROJETO`, e ainda `CLIENTE`, `BANDEIRA`/`REDE`
+com códigos (não ingeridos — bandeira segue vindo do sell-in).
+
+Cada nível vira **um rótulo concatenado** `código - papel - nome` (parte vazia
+omitida): `20 - ATACADO - ADEMIR TAVARES`. O código vem SEM zeros à esquerda
+(a base anterior vinha zero-preenchida) — `digitos()` cobre os dois formatos.
+
+**Complemento** `Hierarquia_Complemento.xlsx` (mesma pasta, mesmo layout):
+2.612 clientes que faturam e não constam da base oficial (554 ativos em
+ago/2026, R$ 136,4 mi/24m), mapeados pelo supervisor da base anterior —
+pendente de validação do Comercial. A oficial **sempre vence**; quando ela os
+incorporar, o complemento esvazia sozinho.
 
 ```
-cobertura de HEAD sobre o sell-in
-  linhas com head       3.083.525 de 3.085.119   (99,95%)
-  receita com head      R$ 2.260.432.493,19      (99,98%)
+cobertura de HEAD sobre o sell-in (oficial + complemento)
+  receita com head      99,98%
   clientes sem head     71 de 16.131
-  receita sem head      R$ 421.421,67            ( 0,02%)
-  clientes com >1 head  1
+  so a oficial          93,95% de receita — ABAIXO do piso de 95%
 ```
 
-Heads presentes: `Ademir` (R$ 907,4 mi) · `Michel - 1000` (R$ 548,5 mi) ·
-`Maykon - 2600` (R$ 466,5 mi) · `Izabela - 2650` (R$ 338,0 mi).
+Heads: `20 - ATACADO - ADEMIR TAVARES` (R$ 912,5 mi) · `10 - DISTRIBUICAO -
+MICHEL MEIRA` (R$ 543,4 mi) · `30 - KA Nacional - [VAGO]` (R$ 466,5 mi) ·
+`40 - KA REGIONAL - IZABELA SANTOS` (R$ 338,0 mi). Gerentes: 13 ·
+Supervisores: 55 · `PROJETO`: 7 valores. `Atendimento Ponta` **não existe
+mais** (a coluna saiu da DIM_CLIENTE; nunca chegava ao painel).
 
-Outros eixos disponíveis no mesmo arquivo: `Novo Gerente` (12 valores),
-`Novo Supervisor` (57), `PROJETO` (8), `Atendimento Ponta` (202).
-
-> `Maykon - 2600` é a posição hoje **vaga** (o protótipo já a rotula `Vago`).
-> O rótulo **não é corrigido em silêncio** — ver GAP-03.
+> A base grafa o mesmo posto vago ora `[VAGO]`, ora `[Vago]`, e o gerente
+> 33000 aparece com e sem nome — padronizados por **correção declarada** no
+> config (`correcoes_head`/`correcoes_gerente`), nunca em silêncio.
 
 ### 2.3 `bases/Canais/Canais.xlsx` — de-para Cliente → Canal (26/08/2026)
 

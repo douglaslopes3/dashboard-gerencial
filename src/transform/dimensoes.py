@@ -22,7 +22,9 @@ SEM_CANAL = CFG["dimensoes"]["rotulo_sem_canal"]
 SEM_BANDEIRA = CFG["dimensoes"]["rotulo_sem_bandeira"]
 SEM_UF = CFG["dimensoes"]["rotulo_sem_uf"]
 SEM_CATEGORIA = CFG["dimensoes"]["rotulo_sem_categoria"]
-_COLS_ESTRUTURA = ["HEAD", "GERENTE", "SUPERVISOR", "ATENDIMENTO_PONTA", "PROJETO"]
+# ATENDIMENTO_PONTA saiu com a troca da base (D-34): a Hierarquia_Consolidada
+# nao traz a coluna, e ela nunca chegou ao painel.
+_COLS_ESTRUTURA = ["HEAD", "GERENTE", "SUPERVISOR", "PROJETO"]
 
 
 def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,

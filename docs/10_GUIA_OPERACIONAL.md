@@ -73,7 +73,7 @@ válido.
 | `X linha(s) fora do grao declarado` | o mesmo mês/cliente/SKU aparece duas vezes (segunda defesa, para arquivo sem rodapé de filtro) | idem: a mensagem nomeia a chave e os arquivos |
 | `a fato NAO bate com a linha 'Total' da fonte` | a soma dos dados não fecha com o rodapé do próprio arquivo | o arquivo veio truncado ou foi editado. Peça a reextração |
 | `integridade referencial: ... fora de DIM_...` | chave órfã | não deveria acontecer (as dimensões adotam órfãos). Se acontecer, é bug — abra o log |
-| `cobertura da estrutura comercial ... (piso: 95%)` | o de-para deixou de casar com os clientes | conferir se o `DePara_Estrutura_Comercial.xlsx` mudou de layout. Se a queda for real, ajuste `validacao.cobertura_minima_head` |
+| `cobertura da estrutura comercial ... (piso: 95%)` | o de-para deixou de casar com os clientes | conferir se a `Hierarquia_Consolidada.xlsx` mudou de layout e se o `Hierarquia_Complemento.xlsx` está presente (sem ele a cobertura cai para ~93,95% e aborta — D-34). Se a queda for real, ajuste `validacao.cobertura_minima_head` |
 | `nao foi possivel apagar ... OneDrive` | o sincronizador está segurando o arquivo | pause a sincronização e rode de novo |
 | `o marcador ... aparece N vez(es)` | alguém editou o `template.html` e duplicou um marcador | ver `docs/09_ARQUITETURA_SOLUCAO.md` |
 
