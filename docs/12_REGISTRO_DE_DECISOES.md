@@ -551,3 +551,26 @@ somar de forma independente.
 `Atual − LY` das colunas visíveis (o Atual é cheio; o Δ é pareado) — por isso
 o `*` e o tooltip. Com cobertura total (ex.: FY2026), nada muda: todos os
 números ficam idênticos aos de antes.
+
+## D-33 · Correções da auditoria aplicadas; três itens ficam abertos por decisão (27/08/2026)
+
+**Contexto.** A auditoria (`AUDIT.md`) levantou 48 achados em cinco camadas,
+com zero dado errado armazenado.
+
+**Decisão.** Foram **aplicados** (commits `ce5216e` → `ceff091`): todo o grupo
+de risco de dado errado exceto A8 (A1–A7, A9–A15, com A13 virando perda
+assumida documentada em docs/06 §2.1), as melhorias de performance B1, B3, B4,
+B5, B7 e B8, e todas as limpezas C1–C16. Validado: 29/29 unitários, 6/6
+cenários, os 4 totais de controle idênticos ao centavo no painel, render em
+44 ms, fato 20,3 MB. A duplicata de mês passou a ser barrada **na ingestão**
+(A3: mesmo recorte = cópia duplicada), com o grão como segunda defesa —
+o cenário T-07 foi atualizado para refletir isso.
+
+**Ficam abertos, de propósito:**
+
+| Item | Por quê não foi aplicado |
+|---|---|
+| **A8** (SCD: a história é classificada pela estrutura comercial de hoje — 50,1% da receita é anterior a ela) | é decisão de leitura de negócio; aguarda o Comercial confirmar "carteira atual olhada para trás" e, se preciso, um de-para com vigência |
+| **B2** (tirar `data/` e `dashboard/build/` do OneDrive — ~54 MB de churn por execução) | é configuração do sincronizador na máquina de quem opera, não código |
+| **B9** (cortar o eixo UF do cubo de SKU: −9,5 MB no painel) | decisão de produto — perde SKU×UF; trade-off documentado no AUDIT |
+| **B6/B10** | veredito da própria auditoria: não vale mexer |

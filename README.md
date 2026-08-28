@@ -25,12 +25,19 @@ reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
 grao                         zero duplicados em 3,08 mi de linhas
 cobertura da estrutura       99,98% da receita
 cobertura de canal           100,00% da receita
-testes                       26/26 unitarios · 6/6 cenarios ponta a ponta
+testes                       29/29 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~20 s com cache · exit 0
+fato em disco                20,3 MB (zstd) · JSONs atomicos e carimbados
 painel                       14,3 MB · zero requisicao de rede · 5 paginas
+                             render 44 ms (motor com indice + memo + aba ativa)
                              exportacao CSV/XLSX em toda tabela
                              drills: Categoria -> SKU · Head -> Gerente
 ```
+
+**Auditoria completa** (26–27/08, cinco camadas, tudo medido): [`AUDIT.md`](AUDIT.md)
+— zero dado errado armazenado; correções aplicadas em duas levas (D-33). Abertos
+por decisão: A8 (SCD/estrutura vigente — Comercial), B2 (OneDrive) e B9 (corte
+do cubo de SKU).
 
 O caminho do dado bruto ao painel, sem ler código:
 **[docs/13_FLUXO_GERACAO_PAINEL.md](docs/13_FLUXO_GERACAO_PAINEL.md)** (diagrama
@@ -162,6 +169,8 @@ run_pipeline.py  run_dashboard.py
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
+| — | [AUDIT.md](AUDIT.md) — auditoria de 5 camadas com medição; achados, correções (✔) e o que ficou aberto |
+| — | [docs/pedidos/](docs/pedidos/) — material pronto para encaminhar ao Comercial e ao BI |
 
 ## Pendências abertas no encerramento — e de quem dependem
 

@@ -458,3 +458,50 @@ exportacao                            gerentes-ademir_ytd-fiscal_2026-08
 drill de categoria                    continua funcionando apos o novo
 console                               zero erros
 ```
+
+
+---
+
+# Reteste pós-correções da auditoria — 27/08/2026
+
+Após aplicar as duas levas do `AUDIT.md` (A1–A7/A9–A15, B1/B3/B4/B5/B7/B8,
+C1–C16; `VERSAO_CACHE=3`).
+
+## T-26 · Suites e pipeline
+
+```
+python tests/test_regras.py    29 de 29  (novos: paridade pct/div x varPct/razao)
+python tests/cenarios.py       6 de 6    (T-07 atualizado: a duplicata e barrada
+                                          NA INGESTAO pelo A3 — mesmo recorte =
+                                          copia duplicada; o grao e a 2a defesa)
+python run_pipeline.py         exit 0 · 129 s com releitura total (cache v3);
+                               mesmos totais: R$ 2.260.853.914,86 · 161.321,49 t
+                               · 32.659.819 cx · coberturas 99,98% / 100,00%
+FATO_SELLIN                    23,2 -> 20,3 MB (zstd + row groups de 1 Mi)
+```
+
+## T-27 · Identidade de números no painel (o B1 não pode mudar nada)
+
+Os 4 totais de controle, lidos no navegador após índice+memo+abas sob demanda:
+
+```
+FY2026                    R$ 1.127.251.765,81   identico
+Geral (24 meses)          R$ 2.260.853.914,97   identico
+CASH & CARRY no FY2026    R$   242.860.922,34   identico
+Ademir no FY2026          R$   440.020.838,54   identico
+memo de total()           mesmo objeto devolvido no segundo acesso
+console                   zero erros
+```
+
+## T-28 · Comportamentos das correções, na tela
+
+```
+A7  granularidade Trimestre em base fiscal    FY2026-T1..T4 (era 2025-T3 rasgado)
+A1  FY2025 (sem LY) na aba Bandeiras          rodape LY/Δ = n/d; destaque diz
+                                              "Sem base no ano anterior" (era
+                                              +R$ 2,26 bi verde)
+B1c abas sob demanda                          sujas apos filtro; renderizam no
+                                              clique (SUJAS conferido no console)
+render()                                      44 ms · modo SKU 51 ms (era o
+                                              cenario de segundos em maquina fraca)
+```

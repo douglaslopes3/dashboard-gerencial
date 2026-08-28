@@ -69,7 +69,8 @@ válido.
 | `nenhum arquivo de Sell In encontrado` | pasta vazia ou padrão de nome fora do aceito | a própria mensagem lista as pastas procuradas e se cada uma existe |
 | `arquivo REJEITADO: ... colunas obrigatorias ausentes` | a extração veio com colunas diferentes | peça a reextração no layout padrão. Se a coluna mudou de nome de vez, ajuste `config/config.yaml → fontes.sellin.colunas_obrigatorias` |
 | `arquivo REJEITADO: nao foi possivel ler a aba 'Export'` | não é um arquivo de Sell In, ou a aba mudou de nome | tire o arquivo da pasta, ou ajuste `fontes.sellin.aba` |
-| `X linha(s) fora do grao declarado` | o mesmo mês/cliente/SKU aparece duas vezes | **quase sempre é o mesmo mês largado duas vezes.** A mensagem nomeia a chave e os arquivos |
+| `o mes X esta partido ... MESMO recorte de extracao` | **cópia duplicada do mesmo mês** (ex.: cópia de conflito do OneDrive, ou o mesmo arquivo nas duas pastas) | apague a cópia e rode de novo — a mensagem lista os arquivos (auditoria A3) |
+| `X linha(s) fora do grao declarado` | o mesmo mês/cliente/SKU aparece duas vezes (segunda defesa, para arquivo sem rodapé de filtro) | idem: a mensagem nomeia a chave e os arquivos |
 | `a fato NAO bate com a linha 'Total' da fonte` | a soma dos dados não fecha com o rodapé do próprio arquivo | o arquivo veio truncado ou foi editado. Peça a reextração |
 | `integridade referencial: ... fora de DIM_...` | chave órfã | não deveria acontecer (as dimensões adotam órfãos). Se acontecer, é bug — abra o log |
 | `cobertura da estrutura comercial ... (piso: 95%)` | o de-para deixou de casar com os clientes | conferir se o `DePara_Estrutura_Comercial.xlsx` mudou de layout. Se a queda for real, ajuste `validacao.cobertura_minima_head` |
@@ -146,7 +147,7 @@ sinal (+/−).
 ## Rodar os testes
 
 ```bash
-python tests/test_regras.py      # 26 testes de regra critica
+python tests/test_regras.py      # 29 testes de regra critica
 python tests/cenarios.py         # 6 cenarios de ponta a ponta (roda o pipeline)
 ```
 
@@ -172,3 +173,10 @@ docs/                   esta documentacao
 
 Apagar `data/` e `logs/` é seguro: `python run_pipeline.py` refaz tudo a partir
 das bases.
+
+> Quando a `VERSAO_CACHE` sobe (um leitor mudou — está documentado em
+> `src/extract/cache.py`), a primeira execução relê os 28 Excel (~2 min) e
+> reconstrói o staging sozinha; as seguintes voltam aos ~20 s. Não é defeito.
+
+A auditoria completa do pipeline, com o que foi corrigido e o que ficou aberto
+por decisão, está em [`AUDIT.md`](../AUDIT.md).

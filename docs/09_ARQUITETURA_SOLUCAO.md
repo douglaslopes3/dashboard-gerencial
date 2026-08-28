@@ -107,11 +107,13 @@ cubos. Tamanhos medidos serializando o JSON de verdade:
 
 | Cubo | Grão | Linhas | JSON | Serve |
 |---|---|---:|---:|---|
-| **`CUBO_PRINCIPAL`** | `ANO_MES × BANDEIRA × CATEGORIA × HEAD/GERENTE × UF` | 72.378 | **2.474 KB** | páginas 1, 2, 3 e 5 e **todos** os filtros, menos SKU |
-| **`CUBO_SKU`** | `ANO_MES × SKU × HEAD × UF` | 208.716 | **6.409 KB** | página 4 e o filtro global de SKU |
+| **`CUBO_PRINCIPAL`** | `ANO_MES × BANDEIRA(300+balde) × CATEGORIA × PERFIL(head, gerente, canal, projeto) × UF` | 90.644 | **~3,2 MB** | páginas 1, 2, 3 e 5 e todos os filtros, menos SKU |
+| **`CUBO_SKU`** | `ANO_MES × SKU × (HEAD, CANAL) × UF` | 368.699 | **~11,5 MB** | página 4, o filtro global de SKU e os drills |
 
 Total medido no arquivo gerado (após canal, projeto, exportação e drills):
-**14,30 MB** de HTML — dados embutidos + 195 KB de biblioteca.
+**14,3 MB** de HTML — dados embutidos + 195 KB de biblioteca. No navegador, o
+motor re-agrega os cubos com **índice por mês + memo + render só da aba ativa**
+(auditoria B1): render medido em **44 ms** (51 ms com filtro de SKU).
 
 > Os tamanhos das tabelas comparativas abaixo foram medidos em cubos de sondagem,
 > antes de o eixo HEAD/GERENTE virar par e antes do balde `DEMAIS`. Servem para
@@ -171,6 +173,9 @@ que não reconcilia com a fato não é publicada.
 | Categorias como `category`/dicionário no Parquet | **sim** | 16.131 clientes e 11.296 bandeiras repetidas |
 | Cubos pré-agregados no lugar da fato na interface | **sim** | 3,08 mi de linhas → 280 mil |
 | Tabelas do painel paginadas / com rolagem própria | **sim** | |
+| Compressão zstd + row groups de 1 Mi | **sim** (auditoria B7) | fato 23,2 → **20,3 MB**; leitura igual |
+| Linhagem (`ARQUIVO_ORIGEM`/`EXECUCAO_ID`) como `category` | **sim** (auditoria B3) | fato −41% de RAM; no disco nada muda |
+| Motor do painel com índice por mês + memo + aba sob demanda | **sim** (auditoria B1) | ~10 mi → ~1 mi de visitas de linha por clique; 44 ms medidos |
 | `DuckDB` | **não** | não está instalado, e o volume não exige: o pipeline inteiro roda em pandas. Reavaliar acima de ~20 mi de linhas |
 | Particionar por `ANO_MES` | **não** | 24 partições de ~130 mil linhas — mais arquivo, nenhum ganho medido |
 | Cache no navegador / lazy loading por página | **não** | o JSON já está embutido; não há o que carregar sob demanda |

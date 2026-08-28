@@ -16,9 +16,11 @@ valem) e **apague ou sobrescreva a extração anterior do mesmo mês**.
 
 > ⚠ **SUBSTITUIR, nunca adicionar.** O mês vem do **conteúdo** do arquivo
 > (coluna `Ano mês`), não do nome. Se a extração de ontem e a de hoje do mesmo
-> mês ficarem juntas na pasta, o mesmo mês entra duas vezes — e o pipeline
-> **aborta de propósito** ("linhas fora do grão declarado"), apontando a chave
-> e os dois arquivos. É a proteção funcionando, não um defeito.
+> mês ficarem juntas na pasta, o pipeline **aborta de propósito** já na
+> ingestão ("mês partido com o MESMO recorte de extração = cópia duplicada" —
+> auditoria A3), listando os dois arquivos; um arquivo sem rodapé de filtro
+> cai na segunda defesa, o grão. É a proteção funcionando, não um defeito —
+> ela existe porque uma cópia de conflito do OneDrive dobraria o mês.
 
 Os meses fechados (arquivos antigos) ficam como estão. Mês partido em
 `_p1`/`_p2` pela extração: largue **as duas partes** — o pipeline soma e
