@@ -579,6 +579,21 @@ function chip(txt, on, extra){
 }
 function el(id){ return document.getElementById(id); }
 
+// Rotulos de AUSENCIA sempre por ultimo nos chips (pedido de 28/08: "o nao
+// atribuido e sempre o ultimo"). As strings espelham config/config.yaml ->
+// dimensoes.rotulo_* — se um rotulo mudar la, mude aqui junto (mesma regra
+// C2 de nao deixar os dois lados divergirem).
+const ROT_AUSENCIA=new Set(["NÃO ATRIBUÍDO","NAO INFORMADO","SEM CANAL",
+                            "SEM BANDEIRA","SEM UF"]);
+function ausenciaPorUltimo(rot){
+  const r=rot||(x=>x);
+  return (a,b)=>{
+    const ra=ROT_AUSENCIA.has(r(a)), rb=ROT_AUSENCIA.has(r(b));
+    if(ra!==rb) return ra?1:-1;
+    return String(r(a)).localeCompare(String(r(b)),"pt-BR");
+  };
+}
+
 function montarFiltros(){
   el("fMetrica").innerHTML = Object.entries(METRICAS)
     .map(([k,v])=>`<span class="chip${F.metrica===k?" on":""}" data-k="${k}">${v.rot}</span>`).join("");
@@ -587,19 +602,21 @@ function montarFiltros(){
   el("fGran").innerHTML = Object.entries(GRANS)
     .map(([k,v])=>`<span class="chip${F.gran===k?" on":""}" data-k="${k}">${v}</span>`).join("");
   montarAno(); montarMeses();
-  el("fCat").innerHTML = D.cat.map((c,i)=>
+  el("fCat").innerHTML = D.cat.map((c,i)=>[c,i])
+    .sort(ausenciaPorUltimo(x=>x[0])).map(([c,i])=>
     `<span class="chip${F.cat.has(i)?" on":""}" data-k="${i}">${c}</span>`).join("");
-  el("fCanal").innerHTML = D.canal.map(c=>
+  el("fCanal").innerHTML = [...D.canal].sort(ausenciaPorUltimo()).map(c=>
     `<span class="chip${F.can.has(c)?" on":""}" data-k="${c}">${c}</span>`).join("");
-  el("fHead").innerHTML = D.head.map(h=>
+  el("fHead").innerHTML = [...D.head].sort(ausenciaPorUltimo()).map(h=>
     `<span class="chip${F.head.has(h)?" on":""}" data-k="${h}">${h}</span>`).join("");
-  const gers = [...new Set(D.perfil.map(p=>p[1]))].sort();
+  const gers = [...new Set(D.perfil.map(p=>p[1]))].sort(ausenciaPorUltimo());
   el("fGer").innerHTML = gers.map(g=>
     `<span class="chip${F.ger.has(g)?" on":""}" data-k="${g}">${g}</span>`).join("");
-  const projs = [...new Set(D.perfil.map(p=>p[3]))].sort();
+  const projs = [...new Set(D.perfil.map(p=>p[3]))].sort(ausenciaPorUltimo());
   el("fProj").innerHTML = projs.map(g=>
     `<span class="chip${F.proj.has(g)?" on":""}" data-k="${g}">${g}</span>`).join("");
-  el("fUF").innerHTML = D.uf.map((u,i)=>
+  el("fUF").innerHTML = D.uf.map((u,i)=>[u,i])
+    .sort(ausenciaPorUltimo(x=>x[0])).map(([u,i])=>
     `<span class="chip${F.uf.has(i)?" on":""}" data-k="${i}">${u}</span>`).join("");
   el("topBan").innerHTML = DB.tops.ban.map(n=>
     `<span class="chip${F.topBan===n?" on":""}" data-k="${n}">${n}</span>`).join("");
@@ -790,9 +807,20 @@ function renderEvolucao(p){
     anterior.push(ls.length===ms.length?met(total(ls)):null);
   }
   const m=METRICAS[F.metrica];
+  // Δ% de cada periodo contra o MESMO periodo do LY (28/08) — so onde o par
+  // e completo (mesma regra dos pontos de barra clara).
+  const variacao=atual.map((v,i)=>{
+    const pc=varPct(v,anterior[i]);
+    return pc===null?null:pc*100;
+  });
+  // Media simples dos periodos exibidos (28/08) — para R$/mes e o mesmo
+  // numero do KPI "Faturamento medio/mes".
+  const media=atual.length?atual.reduce((s,v)=>s+v,0)/atual.length:null;
   el("tEvo").textContent=`Evolução — ${m.rot} · ${GRANS[F.gran]}`;
   el("nEvo").innerHTML=`Barra escura = período selecionado. Barra clara = mesmo período do ano anterior.
-    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara</b> — não são exibidos como zero.":""}`;
+    Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita).
+    Linha tracejada = <b>média do período: ${abrev(media,m.un)}</b> por ${GRANS[F.gran].toLowerCase()}.
+    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara e sem o Δ%</b> — não são exibidos como zero.":""}`;
   const ctx=el("cEvo").getContext("2d");
   if(chart) chart.destroy();
   // Rotulo de dados desenhado a mao (afterDatasetsDraw): o bundle embutido e
@@ -804,33 +832,59 @@ function renderEvolucao(p){
     if(a>=1e3) return s+fmtNum(a/1e3,1)+" mil";
     return s+fmtNum(a,0);
   };
+  const fmtVar=v=>{
+    const s=v>0?"+":(v<0?"−":"");
+    return s+fmtNum(Math.abs(v),1)+"%";
+  };
   const rotuloBarras={id:"rotuloBarras",afterDatasetsDraw(c){
     const g=c.ctx; g.save();
     g.textAlign="center";
     c.data.datasets.forEach((ds,di)=>{
       const meta=c.getDatasetMeta(di);
       if(meta.hidden) return;
-      g.font=(di===0?"600 ":"")+"9.5px 'Segoe UI',Arial";
-      g.fillStyle=di===0?"#003a70":"#7d8fa1";
+      if(ds.label==="Média do período") return;          // linha lisa, sem rotulo
+      const ehVar=ds.label==="Δ% vs LY";
+      g.font=(di===0||ehVar?"600 ":"")+"9.5px 'Segoe UI',Arial";
       meta.data.forEach((elb,i)=>{
         const v=ds.data[i];
         if(v===null||v===undefined) return;
-        g.textBaseline=v<0?"top":"bottom";
-        g.fillText(rotCurto(v), elb.x, v<0?elb.y+3:elb.y-3);
+        if(ehVar){
+          g.fillStyle=v>0?"#1a7f4b":(v<0?"#c0392b":"#5b6b7c");
+          g.textBaseline="bottom";
+          g.fillText(fmtVar(v), elb.x, elb.y-5);
+        }else{
+          g.fillStyle=di===0?"#003a70":"#7d8fa1";
+          g.textBaseline=v<0?"top":"bottom";
+          g.fillText(rotCurto(v), elb.x, v<0?elb.y+3:elb.y-3);
+        }
       });
     });
     g.restore();
   }};
   chart=new Chart(ctx,{type:"bar",data:{labels:rotulos,datasets:[
       {label:"Atual",data:atual,backgroundColor:"#00539f",borderRadius:3,
-       maxBarThickness:46},
+       maxBarThickness:46,order:3},
       {label:"Ano anterior",data:anterior,backgroundColor:"#c2cfdc",borderRadius:3,
-       maxBarThickness:46}]},
+       maxBarThickness:46,order:4},
+      {type:"line",label:"Δ% vs LY",data:variacao,yAxisID:"y1",
+       borderColor:"#f5a623",backgroundColor:"#f5a623",borderWidth:2,
+       pointRadius:3,tension:.3,spanGaps:false,order:1},
+      {type:"line",label:"Média do período",
+       data:atual.map(()=>media),borderColor:"#5b6b7c",borderDash:[5,4],
+       borderWidth:1.5,pointRadius:0,pointHitRadius:0,order:2}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
-      layout:{padding:{top:16}},
+      layout:{padding:{top:18}},
       plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},
-        tooltip:{callbacks:{label:c=>c.dataset.label+": "+(c.parsed.y===null?"n/d":abrev(c.parsed.y,m.un))}}},
+        tooltip:{callbacks:{label:c=>{
+          if(c.parsed.y===null) return c.dataset.label+": n/d";
+          if(c.dataset.label==="Δ% vs LY") return "Δ% vs LY: "+fmtVar(c.parsed.y);
+          return c.dataset.label+": "+abrev(c.parsed.y,m.un);
+        }}}},
       scales:{y:{beginAtZero:true,ticks:{callback:v=>abrev(v,m.un),font:{size:10}}},
+              // Eixo do Δ%: so grade do eixo principal, para nao poluir.
+              y1:{position:"right",grid:{drawOnChartArea:false},
+                  ticks:{callback:v=>fmtNum(v,0)+"%",font:{size:10},
+                         color:"#b07c1a"}},
               x:{ticks:{font:{size:10}}}}},
     plugins:[rotuloBarras]});
 }

@@ -663,3 +663,18 @@ o par vazio quando incompleto; todo o resto da tela já lia esses campos.
 compara R$ 103,47 mi × 111,23 mi (−7,0%); linhas mensais mantêm LY
 individual; drill abre e fecha de verdade; FY2026 segue idêntico (12/12
 pareados, nada mudou nos números).
+
+**Ajustes do mesmo dia (2ª rodada, pedidos do Douglas):**
+
+1. **Δ% no gráfico de Evolução**: linha laranja com a variação de cada
+   período contra o MESMO período do ano anterior, em eixo próprio à
+   direita, com rótulo em cada ponto colorido pelo sinal. Período sem par
+   completo fica sem o ponto (mesma regra da barra clara).
+2. **Média do período no gráfico**: linha tracejada com a média simples dos
+   períodos exibidos, declarada na nota do card — para R$ no mês é o mesmo
+   número do KPI "Faturamento médio/mês".
+3. **Chips de ausência por último**: `NÃO ATRIBUÍDO` (head/gerente/projeto),
+   `NAO INFORMADO` (categoria), `SEM CANAL`/`SEM BANDEIRA`/`SEM UF` vão
+   sempre para o fim da lista de botões; o resto segue alfabético pt-BR.
+   Conferido no navegador: último chip de cada linha correto e Δ% do
+   gráfico batendo com a tabela "Evolução por período" (set/25 −7,0%).

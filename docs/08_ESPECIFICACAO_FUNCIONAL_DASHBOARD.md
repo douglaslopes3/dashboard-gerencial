@@ -61,8 +61,16 @@ ninguém consegue explicar depois.
   sinal e seta**.
 * **Evolução mensal:** barras do período atual + barras do mesmo período LY
   (28/08/2026 — era linha), com **rótulo de dados** sobre cada barra (desenhado
-  à mão no `afterDatasetsDraw`, sem plugin externo — zero rede) e tooltip com
-  os dois valores. Período sem par no LY fica **sem a barra clara**, nunca zero.
+  à mão no `afterDatasetsDraw`, sem plugin externo — zero rede). Sobre as
+  barras, a **linha laranja de Δ%** de cada período contra o mesmo período do
+  LY (eixo próprio à direita, rótulo colorido pelo sinal) e a **linha
+  tracejada da média do período** (valor declarado na nota do card; para R$
+  no mês é o mesmo número do KPI "Faturamento médio/mês"). Período sem par
+  no LY fica **sem a barra clara e sem o ponto de Δ%**, nunca zero.
+* **Ordem dos chips de filtro:** rótulos de ausência (`NÃO ATRIBUÍDO`,
+  `NAO INFORMADO`, `SEM CANAL`, `SEM BANDEIRA`, `SEM UF`) sempre **por
+  último**; o resto em ordem alfabética pt-BR. A lista espelha
+  `config → dimensoes.rotulo_*` (mesma regra C2 de não deixar divergir).
 * **Comparativo YTD:** YTD Fiscal atual × anterior e YTD Calendário atual ×
   anterior, cada um com Δ absoluto e Δ %. **Os dois aparecem sempre**, independente
   da base selecionada — é a comparação que o §11 pede.
