@@ -78,6 +78,34 @@ SKU que aparece no sell-in e não está no cadastro entra com
 `FORA_DO_CADASTRO = true`, usando descrição e categoria do próprio sell-in e
 `MARCA` nula.
 
+## 3b. `FY 26-27_Meta Set_TT BRASIL.xlsx` → `FATO_META` (D-43)
+
+Grão: `ANO_MES` x `COD_HEAD` x `BANDEIRA_META` x `COD_BANDEIRA` x `CATEGORIA`
+(duplicidade ABORTA). A competência vem do rótulo da coluna (`SET'26`), e a
+soma do detalhe é reconciliada contra a linha `Total` do próprio arquivo.
+
+| Origem | Destino | Transformação |
+|---|---|---|
+| rótulo da coluna de mês | `ANO_MES` | `SET'26` → `2026-09` (aborta se não casar `MMM'AA`) |
+| `CÓDIGO HEAD` | `COD_HEAD` | `digitos()` (10/20/30/40 — os mesmos da hierarquia) |
+| `HEAD` | `HEAD_META` | `texto()` (nome como veio, só conferência) |
+| `CLUSTER` | `CLUSTER` | `texto()` (Top Atacados, Sem Mudança, Phase 1...) |
+| `CLIENTE` | `BANDEIRA_META` | `texto()` (nome da bandeira; espaço duplo colapsa) |
+| `CÓD. BANDEIRA 1` | `COD_BANDEIRA` | `digitos()` — série 82xxxxx (D-42) |
+| `CÓD. BANDEIRA 2` | `COD_BANDEIRA_2` | só quando dígito puro E ≠ do 1 (fusão); senão `<NA>` |
+| `CATEGORIA` | `CATEGORIA` | `texto()` (10/10 batem com a DIM_PRODUTO) |
+| `(N2) CÓDIGO GERENTE` | `COD_GERENTE` | `digitos()` (prefixo do rótulo `GERENTE` da DIM) |
+| `(N3) CÓDIGO SUP./EXEC.` | `COD_SUPERVISOR` | `digitos()` (prefixo do rótulo `SUPERVISOR`) |
+| `STATUS VÍNCULO` | `STATUS_VINCULO` | `texto()` |
+| coluna sob rótulo `Volume (kg)` | `META_PESO_KG` | numérico |
+| coluna sob rótulo `RL (R$)` | `META_RECEITA` | numérico |
+| nome do arquivo | `ARQUIVO_ORIGEM` | linhagem |
+
+Arquivo ausente NÃO derruba o pipeline: `FATO_META` sai vazia com o esquema
+estável e o painel fica sem meta (ausente, nunca zero). O cruzamento com o
+realizado (fase dos visuais) é por CÓDIGO primeiro (D-42), nome como
+fallback declarado.
+
 ## 4. Derivado — `DIM_CALENDARIO`
 
 Não tem fonte de arquivo: é gerada da amplitude de `ANO_MES` presente na fato.

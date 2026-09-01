@@ -29,7 +29,7 @@ for _fluxo in (sys.stdout, sys.stderr):
     except (AttributeError, OSError):
         pass
 
-from src.extract import cadastros, sellin
+from src.extract import cadastros, metas, sellin
 from src.load import cubos, parquet
 from src.qualidade import gerar as gerar_qualidade
 from src.transform import calendario, dimensoes, fato as fato_mod
@@ -68,6 +68,8 @@ def main() -> int:
     avisos_negocio += avisos_est
     canais, avisos_can = cadastros.ler_canais()
     avisos_negocio += avisos_can
+    fato_meta, avisos_meta = metas.ler()
+    avisos_negocio += avisos_meta
 
     # ------------------------------------------------------------ 2. FATO
     titulo("2/6 · FATO — grao e reconciliacao contra a origem")
@@ -82,6 +84,7 @@ def main() -> int:
         f"{sorted(dim_cal['ANO_FISCAL_ROTULO'].unique())}")
     dim_cli = dimensoes.dim_cliente(bruto, estrutura, canais)
     dim_prod = dimensoes.dim_produto(bruto, produtos)
+    avisos_negocio += metas.conferir_cobertura(fato_meta, dim_cli)
     del bruto    # B4: 692 MB que ninguem mais le — fora do pico de memoria
 
     # ----------------------------------------------------- 4. INTEGRIDADE
@@ -105,6 +108,9 @@ def main() -> int:
     parquet.salvar(dim_cal, "DIM_CALENDARIO")
     parquet.salvar(dim_cli, "DIM_CLIENTE")
     parquet.salvar(dim_prod, "DIM_PRODUTO")
+    # FATO_META e gravada mesmo vazia: esquema estavel para quem le a curated,
+    # e "sem meta" aparece como tabela sem linhas — nunca como zero.
+    parquet.salvar(fato_meta, "FATO_META")
     f_part = f.copy()
     f_part["ANO"] = f_part["ANO_MES"].str.slice(0, 4)
     parquet.salvar_particionado(f_part, "FATO_SELLIN", "ANO")

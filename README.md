@@ -25,13 +25,19 @@ fato                         3.110.907 linhas (3.391 100% zeradas descartadas, D
 SKUs 400 · categorias 12 · canais 7 · heads 4 · bandeiras 300 nominais + balde de 10.989
 cod. de bandeira (D-42)      13.101 de 16.122 clientes (81,3% · 93,5% da receita),
                              lido da Hierarquia_Consolidada: ponte por codigo com a
-                             base de metas FY 26/27 (cruzamento em construcao)
+                             base de metas FY 26/27
+FATO_META (D-43)             meta set/26 ingerida de bases/Metas: 3.282 linhas ·
+                             R$ 122.279.463,48 · 7.824,5 t, reconciliada ao centavo
+                             com a linha Total do proprio arquivo; 73,3% do R$ casa
+                             por codigo + 0,7% por nome (sem par: baldes do Atacado
+                             + 3 codigos novos, pedidos ao Comercial abertos);
+                             visuais de meta nos paineis: proxima fase
 
 reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
 grao                         zero duplicados
 cobertura da estrutura       99,96% da receita
 cobertura de canal           100,00% da receita
-testes                       31/31 unitarios · 6/6 cenarios ponta a ponta
+testes                       35/35 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~20 s com cache · exit 0
 painel (v3)                  14,4 MB · zero requisicao de rede · 5 paginas
                              granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),

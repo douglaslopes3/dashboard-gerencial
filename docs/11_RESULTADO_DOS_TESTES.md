@@ -663,3 +663,30 @@ correcao de registro             o README dizia "3.110.907 linhas de origem ·
                                  3.110.907 - o descarte tinha sido subtraido
                                  duas vezes no texto
 ```
+
+## T-37 · Leitor de metas e FATO_META (D-43)
+
+```
+testes novos (4)
+  rotulo de mes                  SET26/FY 26/27/XYZ26 -> None; SET26 valido
+                                 -> 2026-09 (conteudo, nunca posicao)
+  estruturar                     linhas Total fora do dado; total geral vira
+                                 gabarito; par SET26 mapeado kg/R$ pelo
+                                 indicador da linha de cima
+  COD. BANDEIRA 2                fusao so digito puro e != do 1; "Ok",
+                                 autorreferencia e chave de balde viram <NA>
+  reconciliacao                  detalhe x linha Total: divergencia aborta
+unitarios                        35/35 (31 anteriores + 4)
+cenarios ponta a ponta           6/6 (T-06 idempotencia inclui a nova carga)
+pipeline com o arquivo real      exit 0 · FATO_META 3.282 linhas x 14 col
+  meta set/26                    R$ 122.279.463,48 · 7.824,5 t · 4 heads ·
+                                 259 bandeiras · reconciliada ao centavo
+                                 com a linha Total do proprio arquivo
+  cobertura sobre o realizado    73,3% do R$ por CODIGO + 0,7% por nome;
+                                 sem par 26,1% = baldes Sem Mudanca/Projeto L
+                                 (R$ 30,5 mi) + DISO/UNIVALE/PELLAH
+  bonus                          DOCES  TIQUINHO (espaco duplo) casou sozinho
+                                 pela normalizacao texto()
+sell-in                          intocado: totais identicos ao centavo,
+                                 painel regenerado, particionamento fecha
+```

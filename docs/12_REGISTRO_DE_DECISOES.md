@@ -883,3 +883,45 @@ HORTIFRUTTI, confirmar se o grupo fundido é intencional).
 centavo (R$ 2.309.797.874,70 · 164.510,21 t · 33.384.067 cx); painel
 regenerado byte-idêntico em tamanho; log novo: "codigo de bandeira
 (hierarquia): 13.101 de 16.122 clientes (81,3%)".
+
+---
+
+## D-43 · Leitor da base de metas FY 26/27 e FATO_META (01/09/2026)
+
+**Contexto.** Douglas colocou o `FY 26-27_Meta Set_TT BRASIL.xlsx` em
+`bases\Metas\` (regra da pasta: o arquivo vem como está, o leitor se adapta).
+Layout medido: cabeçalho na 4a linha, rótulo do indicador (Volume kg / RL R$)
+na linha ACIMA do cabeçalho, o mês só no rótulo da coluna (SET'26), linhas
+Total no meio do dado, e a dupla de códigos de bandeira com semântica mista.
+
+**Decisão.**
+
+1. Leitor novo `src/extract/metas.py` (config `fontes.metas`, obrigatorio
+   false): acha o cabeçalho pelo CONTEÚDO (linha com CLIENTE e CATEGORIA),
+   lê o indicador na linha acima, converte o rótulo do mês em ANO_MES
+   (MMM'AA; o que não casar ABORTA — competência nunca vem de posição nem de
+   nome de arquivo) e faz o melt para uma linha por mês.
+2. **A linha Total geral do arquivo é o gabarito**: detalhe que não soma a
+   linha Total aborta, nas duas métricas, com as tolerâncias do sell-in.
+   Grão ANO_MES x COD_HEAD x BANDEIRA_META x COD_BANDEIRA x CATEGORIA:
+   duplicidade aborta (meta dobrada em silêncio no join é o mesmo defeito da
+   fato).
+3. **`CÓD. BANDEIRA 2` só é fusão quando é dígito puro E diferente do 1.**
+   Medido: "Ok" (2.181 linhas), autorreferência (4 bandeiras) e a chave
+   interna dos baldes (`201_AMENDOIM`) não são fusão; sobram 3 fusões reais
+   (BH+Minas 1054413, Economart 8202051, Super Adega 8200032).
+4. Não ingeridos: N4, nomes por extenso, CLIENTE ATIVO. Baldes Sem Mudança/
+   Projeto L entram como linhas normais; o tratamento é da fase dos visuais.
+5. FATO_META gravada SEMPRE (vazia se o arquivo faltar): esquema estável,
+   meta ausente aparece ausente — nunca zero.
+6. `conferir_cobertura()` MEDE e relata o encaixe com o realizado (código
+   primeiro, D-42; nome fallback) sem abortar: meta sem par é lacuna de
+   cadastro com dono, não defeito do pipeline.
+
+**Validação.** 35/35 regras (31 + 4 do leitor) · 6/6 cenários · pipeline
+exit 0 com FATO_META 3.282 linhas · R$ 122.279.463,48 · 7.824,5 t
+reconciliados ao centavo com a linha Total. Cobertura primeira carga: 73,3%
+do R$ por código + 0,7% por nome; sem par: baldes (R$ 30,5 mi) +
+DISO/UNIVALE/PELLAH (códigos 8202xxx — pedidos ao Comercial, D-42). Bônus
+medido: o `texto()` colapsa o espaço duplo e o DOCES TIQUINHO casou sozinho.
+Sell-in e painel intocados (totais idênticos, particionamento fecha).

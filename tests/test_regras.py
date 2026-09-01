@@ -16,7 +16,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.extract import sellin                                       # noqa: E402
+from src.extract import metas, sellin                                # noqa: E402
 from src.transform import calendario, dimensoes, fato as fato_mod   # noqa: E402
 from src.utils.texto import (ano_mes, digitos, div, numero, pct,     # noqa: E402
                              texto)
@@ -320,6 +320,76 @@ def test_reconciliacao_passa_quando_bate():
     meta = {"gabaritos": {"a.xlsx": {"receita": 350.0, "peso_kg": 35.0,
                                      "caixas": 7.0}}}
     assert fato_mod.reconciliar_origem(f, meta) == []
+
+
+# ============================================================ metas (D-43)
+# Grade sintetica espelhando o layout real: linha vazia, indicador ACIMA do
+# cabecalho, cabecalho fora da linha 1, linhas Total no meio do dado.
+_META_GRID = [
+    [""] * 12,
+    ["", "", "", "", "", "", "", "", "", "", "Volume (kg)", "RL (R$)"],
+    ["CÓDIGO HEAD", "HEAD", "CLUSTER", "CLIENTE", "CÓD. BANDEIRA 1",
+     "CÓD. BANDEIRA 2", "CATEGORIA", "(N2) CÓDIGO GERENTE",
+     "(N3) CÓDIGO SUP./EXEC.", "STATUS VÍNCULO", "SET'26", "SET'26"],
+    ["Total", "Total", "Total", "Total", "Total", "Total", "Total",
+     "N/A", "N/A", "OK", 15.0, 150.0],
+    ["Total", "Total", "Total", "Total", "Total", "Total", "BALA",
+     "N/A", "N/A", "OK", 10.0, 100.0],
+    ["20", "Ademir", "Top Atacados", "ASSAI", "8200056", "Ok", "BALA",
+     "31000", "3110", "OK", 10.0, 100.0],
+    ["40", "Izabela", "Phase 1", "BH + MINAS", "8201079", "1054413", "GOMAS",
+     "41000", "4230", "OK", 5.0, 50.0],
+]
+
+
+def test_meta_rotulo_de_mes_vira_ano_mes():
+    """A competencia vem do CONTEUDO (rotulo da coluna), nunca do nome do
+    arquivo — e rotulo estranho nao vira mes em silencio."""
+    assert metas.ano_mes_de_rotulo("SET'26") == "2026-09"
+    assert metas.ano_mes_de_rotulo(" dez'27 ") == "2027-12"
+    assert metas.ano_mes_de_rotulo("FY 26/27") is None
+    assert metas.ano_mes_de_rotulo("XYZ'26") is None
+    assert metas.ano_mes_de_rotulo("SET26") is None
+
+
+def test_meta_estruturar_pula_totais_melt_e_gabarito():
+    """Linhas Total saem do dado (a geral vira gabarito), o par de colunas
+    SET'26 vira kg e R$ pelo INDICADOR da linha de cima, e o melt carrega
+    a competencia certa."""
+    df, extra = metas._estruturar(pd.DataFrame(_META_GRID), "meta.xlsx")
+    assert len(df) == 2                       # os 2 Totais ficaram de fora
+    assert set(df["ANO_MES"]) == {"2026-09"}
+    r = df.set_index("BANDEIRA_META")
+    assert r.at["ASSAI", "META_PESO_KG"] == 10.0
+    assert r.at["ASSAI", "META_RECEITA"] == 100.0
+    assert r.at["ASSAI", "COD_HEAD"] == "20"
+    assert extra["gabarito"] == {"2026-09": {"META_PESO_KG": 15.0,
+                                             "META_RECEITA": 150.0}}
+    # COD. BANDEIRA 2: "Ok" nao e fusao; digito puro diferente do 1 e.
+    assert pd.isna(r.at["ASSAI", "COD_BANDEIRA_2"])
+    assert r.at["BH + MINAS", "COD_BANDEIRA_2"] == "1054413"
+
+
+def test_meta_cod_bandeira_2_so_e_fusao_quando_digito_puro_e_diferente():
+    """D-43: autorreferencia, "Ok" e a chave interna dos baldes
+    (codigo_categoria) NAO sao fusao."""
+    b2 = pd.Series(["Ok", "8200056", "201_AMENDOIM", "1054413"])
+    b1 = pd.Series(["8200056", "8200056", "201", "8201079"])
+    r = metas._cod_bandeira_2(b2, b1)
+    assert pd.isna(r[0]) and pd.isna(r[1]) and pd.isna(r[2])
+    assert r[3] == "1054413"
+
+
+def test_meta_reconciliacao_com_a_linha_total_aborta_quando_nao_bate():
+    df, extra = metas._estruturar(pd.DataFrame(_META_GRID), "meta.xlsx")
+    metas._reconciliar(df, extra["gabarito"], "meta.xlsx")     # bate: passa
+    errado = {"2026-09": {"META_PESO_KG": 15.0, "META_RECEITA": 999.0}}
+    try:
+        metas._reconciliar(df, errado, "meta.xlsx")
+    except SystemExit as e:
+        assert e.code == 1
+        return
+    raise AssertionError("meta divergente do proprio Total NAO abortou")
 
 
 # ================================================================== runner

@@ -110,6 +110,30 @@ fontes:
     # apoio (ORIGEM, DOMINÂNCIA...) não são lidas pelo pipeline.
     complemento: "bases/Bases para tabelas dimensões/Hierarquia_Complemento.xlsx"
 
+  # Base de metas FY 26/27 (D-43): grao HEAD x bandeira x categoria, um par de
+  # colunas (Volume kg + RL R$) por mes. Peculiaridades ABSORVIDAS pelo leitor,
+  # nao exigidas do arquivo: cabecalho fora da linha 1 (achado pelo conteudo),
+  # rotulo do indicador na linha ACIMA do cabecalho, linhas "Total" no meio dos
+  # dados (a total geral vira o GABARITO de reconciliacao) e competencia no
+  # rotulo da coluna ("SET'26" -> 2026-09), nunca no nome do arquivo.
+  metas:
+    arquivo: "bases/Metas/FY 26-27_Meta Set_TT BRASIL.xlsx"
+    aba: "Meta 26-27_com Bandeira"
+    colunas_obrigatorias:
+      - "CÓDIGO HEAD"
+      - "HEAD"
+      - "CLUSTER"
+      - "CLIENTE"
+      - "CÓD. BANDEIRA 1"
+      - "CÓD. BANDEIRA 2"
+      - "CATEGORIA"
+      - "(N2) CÓDIGO GERENTE"
+      - "(N3) CÓDIGO SUP./EXEC."
+      - "STATUS VÍNCULO"
+    # Sem o arquivo o pipeline RODA (painel sem meta, com aviso) — meta ausente
+    # aparece como ausente, nunca como zero.
+    obrigatorio: false
+
   # De-para Cliente -> Canal, entregue em 26/08/2026 (resolve o GAP-01).
   # Cobertura medida na entrega: 100,0000% dos 16.131 clientes e da receita.
   canais:
