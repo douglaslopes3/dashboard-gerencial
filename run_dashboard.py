@@ -71,6 +71,20 @@ def filtrar_por_head(pacote: dict, head: str) -> dict:
                     "hc": [dims["hc"][i] for i in manter_hc]}
     novo["cubo"] = cubo
     novo["cubo_sku"] = cubo_sku
+
+    # D-44: o cubo de metas segue o MESMO recorte fisico. O dono do grupo e o
+    # da rota A (o declarado na meta para bandeira nomeada; a hierarquia para a
+    # cauda) — e exatamente o que o arquivo do head deve enxergar.
+    cm = pacote.get("cubo_meta")
+    if cm:
+        manter_g = [i for i, g in enumerate(cm["grupos"]) if g[0] == head]
+        mapa_g = {i: j for j, i in enumerate(manter_g)}
+        novo["cubo_meta"] = {
+            **cm,
+            "grupos": [cm["grupos"][i] for i in manter_g],
+            "linhas": [[l[0], mapa_g[l[1]], *l[2:]]
+                       for l in cm["linhas"] if l[1] in mapa_g],
+        }
     return novo
 
 
@@ -234,6 +248,9 @@ def main() -> int:
             hc = pac["dims"]["hc"]
             assert all(perf[l[3]][0] == head for l in pac["cubo"])
             assert all(hc[l[2]][0] == head for l in pac["cubo_sku"])
+            cm = pac.get("cubo_meta")
+            if cm:
+                assert all(cm["grupos"][l[1]][0] == head for l in cm["linhas"])
             rec_head = sum(l[5] for l in pac["cubo"])      # centavos, exato
             soma_heads += rec_head
             pac["meta"] = {**pacote["meta"], "recorte_head": head,

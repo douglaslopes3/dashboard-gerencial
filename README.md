@@ -30,16 +30,22 @@ FATO_META (D-43)             meta set/26 ingerida de bases/Metas: 3.282 linhas �
                              R$ 122.279.463,48 · 7.824,5 t, reconciliada ao centavo
                              com a linha Total do proprio arquivo; 73,3% do R$ casa
                              por codigo + 0,7% por nome (sem par: baldes do Atacado
-                             + 3 codigos novos, pedidos ao Comercial abertos);
-                             visuais de meta nos paineis: proxima fase
+                             + 3 codigos novos, pedidos ao Comercial abertos)
+aba Metas (D-44, rota A)     CUBO_META cruzado na geracao (2.547 linhas, 54 grupos,
+                             257 bandeiras, reconciliado): Meta x Realizado x ano
+                             anterior por head/gerente/executivo/bandeira/categoria
+                             no painel completo e nos 4 arquivos por head; o
+                             realizado da bandeira nomeada segue o dono DECLARADO
+                             na meta (rota A); mes sem sell-in aparece como n/d,
+                             nunca zero
 
 reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
 grao                         zero duplicados
 cobertura da estrutura       99,96% da receita
 cobertura de canal           100,00% da receita
-testes                       35/35 unitarios · 6/6 cenarios ponta a ponta
+testes                       37/37 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~20 s com cache · exit 0
-painel (v3)                  14,4 MB · zero requisicao de rede · 5 paginas
+painel (v3)                  14,5 MB · zero requisicao de rede · 6 paginas (aba Metas)
                              granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),
                              periodo parcial declarado, filtros em todas as abas
                              exportacao CSV/XLSX em toda tabela

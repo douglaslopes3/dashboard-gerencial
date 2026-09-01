@@ -925,3 +925,55 @@ do R$ por código + 0,7% por nome; sem par: baldes (R$ 30,5 mi) +
 DISO/UNIVALE/PELLAH (códigos 8202xxx — pedidos ao Comercial, D-42). Bônus
 medido: o `texto()` colapsa o espaço duplo e o DOCES TIQUINHO casou sozinho.
 Sell-in e painel intocados (totais idênticos, particionamento fecha).
+
+---
+
+## D-44 · CUBO_META e a aba Metas: rota A, cruzamento na geração (01/09/2026)
+
+**Contexto.** Com a FATO_META carregada (D-43), Douglas pediu as visões de
+Meta x Realizado x mesmo mês do ano anterior para os heads, nos níveis N1/N2/
+N3, bandeira e categoria — e escolheu a ROTA A para o dono do realizado no N3
+(o vazamento medido entre a hierarquia vigente e o dono declarado na meta era
+16,3% do realizado no N3 e 5,2% no N2).
+
+**Decisão.**
+
+1. **Rota A**: na visão de metas, o realizado de bandeira NOMEADA segue o
+   head/gerente/executivo DECLARADOS na meta, mesmo quando a hierarquia
+   vigente distribui os clientes por outros códigos. É o que faz meta e
+   realizado fecharem ao centavo em todos os níveis (N3 soma para N2 e N1).
+   A cauda sem bandeira nomeada segue a hierarquia vigente do cliente e entra
+   como DEMAIS BANDEIRAS, onde a meta dos baldes (Sem Mudança/Projeto L,
+   abertos por gerente/executivo) se encaixa na mesma linha.
+2. **Cruzamento na GERAÇÃO** (`src/load/cubo_meta.py`), nunca na tela: o
+   painel recebe (mês x grupo da meta x bandeira x categoria) com meta,
+   realizado e LY já pareados, como inteiros escalados. Atribuição de cliente:
+   código de bandeira primeiro (D-42, código 2 cobre fusão), nome como
+   fallback só para entidade sem nenhum cliente por código; código
+   reivindicado duas vezes fica com o dono principal, com aviso. Entidade por
+   código consolida as linhas duplicadas (Passarela + Via Atacadista) sem
+   tocar na planilha.
+3. **Ausência é ausência**: mês da meta sem sell-in carregado viaja como null
+   e a tela mostra n/d com o aviso "sem sell-in do mês ainda" — nunca 0% de
+   atingimento. LY = mesmo mês do ano anterior, mesma atribuição.
+4. **Reconciliação aborta**: meta do cubo x FATO_META e realizado/LY do cubo
+   x FATO_SELLIN, por mês, com a tolerância RELATIVA dos cubos (meio centavo
+   por célula de arredondamento; medido R$ 0,13 em R$ 122,28 mi).
+5. **Aba Metas no v3**: fora dos filtros globais (o cubo de meta não tem
+   canal/UF/projeto/SKU; o #fPainel não viaja para lá), com mês da meta,
+   métrica (R$ ou t) e visão (Head/Gerente/Executivo/Bandeira/Categoria),
+   KPIs (meta, realizado, atingimento, ano anterior, crescimento embutido),
+   exportação CSV/XLSX e ordenação como as demais tabelas. Sem cubo_meta no
+   pacote, a aba é REMOVIDA do DOM (painel antigo republicado não mostra aba
+   vazia). Arquivos por head: mesmo recorte físico (grupo do cubo de meta
+   pertence ao head do arquivo), com assert na geração; pela rota A, bandeira
+   de dono declarado aparece INTEIRA no arquivo do dono (ex.: Economart
+   completa no da Izabela, incluindo a fatia que a hierarquia daria ao
+   Ademir) — consequência aceita da decisão.
+
+**Validação.** 37/37 regras + 6/6 cenários; CUBO_META 2.547 linhas, 54
+grupos, 257 bandeiras, reconciliado (meta, LY; set/26 sem sell-in ainda);
+painel completo e 4 por head conferidos no navegador (KPIs R$ 122,28 mi meta,
+R$ 103,47 mi LY, +18,2%; visão head bate a régua por head; arquivo da
+Izabela só com executivos 4xxx; zero erros de console). cubos.json +136 KB;
+painel v3 14,53 MB.

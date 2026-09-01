@@ -690,3 +690,29 @@ pipeline com o arquivo real      exit 0 · FATO_META 3.282 linhas x 14 col
 sell-in                          intocado: totais identicos ao centavo,
                                  painel regenerado, particionamento fecha
 ```
+
+## T-38 · CUBO_META e aba Metas (D-44, rota A)
+
+```
+testes novos (2)
+  rota A                         cliente de hierarquia divergente soma no dono
+                                 DECLARADO na meta; fusao entra pelo codigo 2;
+                                 cauda segue a hierarquia e casa com o balde
+                                 na mesma linha DEMAIS BANDEIRAS
+  sem base                       construir() devolve None e o painel remove a
+                                 aba do DOM
+unitarios                        37/37 · cenarios 6/6 · pipeline exit 0
+CUBO_META (carga real)           2.547 linhas · 54 grupos · 257 bandeiras ·
+                                 reconciliado contra FATO_META (R$ e kg) e
+                                 FATO_SELLIN (LY set/25) · +136 KB no pacote
+navegador (server painel)        painel completo: meta R$ 122,28 mi · LY
+                                 R$ 103,47 mi · +18,2% embutido · realizado
+                                 n/d com aviso "sem sell-in do mes ainda" ·
+                                 visao head = regua por head ao centavo de
+                                 exibicao · 54 executivos · 257 bandeiras ·
+                                 11 categorias (1 sem meta) · metrica em t ok
+arquivo por head (Izabela)       so grupos dela (18 executivos 4xxx), meta
+                                 R$ 20,30 mi · LY 15,60 mi · ECONOMART inteira
+                                 no arquivo dela (rota A, decisao declarada)
+console                          zero erros nas duas paginas
+```

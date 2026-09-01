@@ -30,7 +30,7 @@ for _fluxo in (sys.stdout, sys.stderr):
         pass
 
 from src.extract import cadastros, metas, sellin
-from src.load import cubos, parquet
+from src.load import cubo_meta, cubos, parquet
 from src.qualidade import gerar as gerar_qualidade
 from src.transform import calendario, dimensoes, fato as fato_mod
 from src.utils import log as L
@@ -101,6 +101,8 @@ def main() -> int:
     # execucao anterior com cara de valido.
     pacote = cubos.construir(f, dim_cli, dim_prod, dim_cal)
     cubos.reconciliar(pacote, f)
+    # D-44: meta x realizado x LY cruzados AQUI (rota A); o painel so agrega.
+    pacote["cubo_meta"] = cubo_meta.construir(f, dim_cli, dim_prod, fato_meta)
     pacote["execucao"] = EXECUCAO_ID     # conferido por run_dashboard.py (A6)
 
     # ------------------------------------------------ 6. GRAVAR e RELATAR

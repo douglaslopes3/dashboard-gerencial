@@ -315,6 +315,8 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
   <div class="tab" data-p="band">Bandeiras</div>
   <div class="tab" data-p="sku">SKU</div>
   <div class="tab" data-p="preco">R$/kg</div>
+  <!-- D-44: some quando o pacote nao traz cubo_meta (iniciar()). -->
+  <div class="tab" data-p="metas" id="tabMetas">Metas</div>
 </div>
 
 <div class="panel active" id="geral">
@@ -465,6 +467,26 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Preço médio por período <small id="sPrecoPer"></small></h3>
       <div class="scroll"><table id="tabPrecoPer"></table></div></div>
+  </div>
+</div>
+
+<!-- D-44: Meta x Realizado x ano anterior, cruzados na GERACAO (rota A).
+     A aba NAO responde aos filtros globais: o cubo de meta tem eixos proprios
+     (grupo comercial da meta, bandeira, categoria) e nenhum recorte de canal,
+     UF, projeto ou SKU — por isso o #fPainel nao viaja para ca. -->
+<div class="panel" id="metas">
+  <div class="alerta" id="mAviso" hidden></div>
+  <div class="frow" style="margin-bottom:10px">
+    <div class="flab">Mês da meta</div><div class="chips" id="mMes"></div>
+    <div class="flab" style="margin-left:14px">Métrica</div>
+    <div class="chips" id="mMet"></div>
+  </div>
+  <div class="kpis" id="mKpis"></div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3>Meta x Realizado x ano anterior <small>· por:</small>
+        <span class="chips" id="mVisao"></span><small id="sMeta"></small></h3>
+      <div class="scroll"><table id="tabMeta"></table></div>
+      <div class="note" id="nMeta"></div></div>
   </div>
 </div>
 
@@ -724,6 +746,9 @@ const ALVOS_PERIODO = ["fPeriodo"];
    no preserva os listeners; nada e clonado nem re-ligado. */
 function posicionarFiltros(aba){
   const fp=el("fPainel");
+  // D-44: a aba de metas nao usa os filtros globais — o painel fica onde esta
+  // (dentro de um panel oculto), em vez de viajar para uma tela que o ignora.
+  if(aba==="metas") return;
   if(aba==="geral"){
     const g=el("gridEvo");
     if(fp.previousElementSibling!==g) g.after(fp);
@@ -1029,7 +1054,7 @@ let SUJAS = {};
 function render(){
   const p = periodo();
   MEMO_TOTAL.clear();
-  SUJAS = {geral:true, geo:true, band:true, sku:true, preco:true};
+  SUJAS = {geral:true, geo:true, band:true, sku:true, preco:true, metas:true};
   atualizarEstado(p);
   // v3 (F1-A): antes do retorno de "nenhum mes selecionado" — e a barra que
   // devolve o usuario a um periodo valido quando ele zera os meses.
@@ -1046,6 +1071,12 @@ function render(){
   renderAba(F.aba || "geral", p);
 }
 function renderAba(aba, p){
+  // D-44: a aba de metas tem estado e dados proprios — renderiza fora do
+  // ciclo de filtros globais (e mesmo quando a selecao de meses esta vazia).
+  if(aba==="metas"){
+    if(SUJAS.metas!==false){ renderMetas(); SUJAS.metas=false; }
+    return;
+  }
   if(!SUJAS[aba]) return;
   p = p || periodo();
   if(!p.atual.length) return;
@@ -1860,7 +1891,8 @@ const NOME_TAB={tabPer:"periodo",tabYTD:"ytd",tabDet:()=>"detalhe-"+F.dimGeral,
   tabPreco:()=>"preco-"+F.dimPreco,tabPrecoPer:"preco-periodo",
   tabDrill:()=> F.drill && F.drill.tipo==="head"
     ? "gerentes-"+slug(F.drill.k)
-    : "sku-"+slug(D.cat[F.drill?.k]??"categoria")};
+    : "sku-"+slug(D.cat[F.drill?.k]??"categoria"),
+  tabMeta:()=>"metas-"+MF.visao+(CM?"_"+CM.meses[MF.mes][0]:"")};
 function nr(v,c=2){ if(v===null||v===undefined||!isFinite(v)) return null;
   const f=Math.pow(10,c); return Math.round(v*f)/f; }
 function pctNum(v){ return (v===null||v===undefined||!isFinite(v))?null:v*100; }
@@ -2106,6 +2138,124 @@ function renderDrillCat(){
     +(ign.length?" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".":"");
 }
 
+/* ==================================================== metas (D-44, rota A)
+   O cruzamento chega PRONTO do pipeline (DB.cubo_meta): cada linha ja traz
+   meta, realizado e LY pareados por (mes, grupo comercial DA META, bandeira,
+   categoria). Aqui so se agrega pela visao escolhida e formata. Regras que
+   vieram de decisao, nao de gosto:
+   - rota A: o realizado da bandeira nomeada segue o dono DECLARADO na meta —
+     e o que faz N3 somar para N2 e N1 sem vazamento;
+   - a cauda sem bandeira nomeada segue a hierarquia vigente e aparece como
+     "DEMAIS BANDEIRAS" (onde os baldes da meta se encaixam);
+   - null e ausencia (mes sem sell-in, meta sem par): vira n/d, nunca 0.     */
+const CM = DB.cubo_meta;
+const MF = {mes:0, visao:"exec", met:"val"};
+const MVIS = {head:"Head", ger:"Gerente", exec:"Executivo",
+              band:"Bandeira", cat:"Categoria"};
+const MMET = {val:{rot:"Valor (R$)", off:0, esc:100,  un:"R$"},
+              vol:{rot:"Volume (t)", off:1, esc:1e6, un:"t"}};
+function mRotulo(l){
+  if(MF.visao==="band") return CM.bands[l[2]];
+  if(MF.visao==="cat")  return CM.cats[l[3]];
+  const g=CM.grupos[l[1]];
+  return g[{head:0, ger:1, exec:2}[MF.visao]];
+}
+function mSoma(a,b){ return b===null||b===undefined ? a : (a===null?0:a)+b; }
+function mAgrupar(){
+  const mp=new Map();
+  for(const l of CM.linhas){
+    if(l[0]!==MF.mes) continue;
+    const k=mRotulo(l);
+    let v=mp.get(k);
+    if(!v){ v=[null,null,null,null,null,null]; mp.set(k,v); }
+    for(let j=0;j<6;j++) v[j]=mSoma(v[j], l[4+j]);
+  }
+  return mp;
+}
+function mFmt(v, met){
+  return v===null ? '<span class="nd">n/d</span>' : abrev(v/met.esc, met.un);
+}
+function renderMetas(){
+  if(!CM) return;
+  const mm=CM.meses[MF.mes], met=MMET[MF.met];
+  const temReal=mm[4], temLy=mm[5];
+  el("mMes").innerHTML=CM.meses.map((m,i)=>
+    `<span class="chip${i===MF.mes?" on":""}" data-mm="${i}">${m[1]}</span>`).join("");
+  el("mMet").innerHTML=Object.entries(MMET).map(([k,m])=>
+    `<span class="chip${MF.met===k?" on":""}" data-mt="${k}">${m.rot}</span>`).join("");
+  el("mVisao").innerHTML=Object.entries(MVIS).map(([k,r])=>
+    `<span class="chip${MF.visao===k?" on":""}" data-mv="${k}">${r}</span>`).join("");
+
+  const grupos=mAgrupar();
+  const o=met.off;
+  // KPIs do mes: meta, realizado, atingimento, LY e meta x LY
+  const tot=[null,null,null,null,null,null];
+  grupos.forEach(v=>{ for(let j=0;j<6;j++) tot[j]=mSoma(tot[j],v[j]); });
+  const tMeta=tot[0+o], tReal=temReal?tot[2+o]:null, tLy=temLy?tot[4+o]:null;
+  const atg=(tReal!==null&&tMeta)?tReal/tMeta:null;
+  el("mKpis").innerHTML=[
+    `<div class="kpi destaque"><div class="rot">Meta ${mm[1]}</div>
+      <div class="val">${mFmt(tMeta,met)}</div>
+      <div class="cmp">${met.rot}</div></div>`,
+    `<div class="kpi"><div class="rot">Realizado ${mm[1]}</div>
+      <div class="val">${mFmt(tReal,met)}</div>
+      <div class="cmp">${temReal?"sell-in carregado":"sem sell-in do mês ainda"}</div></div>`,
+    `<div class="kpi"><div class="rot">Atingimento</div>
+      <div class="val">${atg===null?'<span class="nd">n/d</span>':fmtNum(atg*100,1)+"%"}</div>
+      <div class="cmp">realizado ÷ meta</div></div>`,
+    `<div class="kpi"><div class="rot">Ano anterior (${mm[3]})</div>
+      <div class="val">${mFmt(tLy,met)}</div>
+      <div class="cmp">mesmo mês do ano anterior</div></div>`,
+    `<div class="kpi"><div class="rot">Meta x ano anterior</div>
+      <div class="val">${fmtPct(varPct(tMeta===null?null:tMeta/met.esc, tLy===null?null:tLy/met.esc))}</div>
+      <div class="cmp">crescimento embutido na meta</div></div>`].join("");
+
+  const linhas=[...grupos.entries()].sort((a,b)=>{
+    const va=a[1][0+o], vb=b[1][0+o];
+    if(va===null&&vb===null) return 0;
+    if(va===null) return 1; if(vb===null) return -1;
+    return vb-va;
+  });
+  const cab=["", "Meta", "Realizado", "Ating.", `Ano ant. (${mm[3]})`,
+             "Real x ano ant.", "Meta x ano ant."];
+  const cols=[MVIS[MF.visao], `Meta (${met.un})`, `Realizado (${met.un})`,
+              "Atingimento %", `Ano anterior (${met.un})`,
+              "Real x ano anterior %", "Meta x ano anterior %"];
+  const raw=[];
+  const tr=linhas.map(([k,v])=>{
+    const vm=v[0+o]===null?null:v[0+o]/met.esc;
+    const vr=(temReal&&v[2+o]!==null)?v[2+o]/met.esc:null;
+    const vl=(temLy&&v[4+o]!==null)?v[4+o]/met.esc:null;
+    const a=(vr!==null&&vm)?vr/vm:null;
+    raw.push([k, nr(vm), nr(vr), nr(pctNum(a)), nr(vl),
+              nr(pctNum(varPct(vr,vl))), nr(pctNum(varPct(vm,vl)))]);
+    return `<tr><td>${k}</td><td>${mFmt(v[0+o],met)}</td><td>${mFmt(temReal?v[2+o]:null,met)}</td>
+      <td>${a===null?'<span class="nd">n/d</span>':fmtNum(a*100,1)+"%"}</td>
+      <td>${mFmt(temLy?v[4+o]:null,met)}</td>
+      <td>${fmtPct(varPct(vr,vl))}</td><td>${fmtPct(varPct(vm,vl))}</td></tr>`;
+  }).join("");
+  el("tabMeta").innerHTML=`<thead><tr>${cab.map(c=>`<th>${c}</th>`).join("")}</tr></thead>
+    <tbody>${tr}</tbody>`;
+  registrarExport("tabMeta", cols, raw);
+  el("sMeta").textContent=` · ${mm[1]} · ${linhas.length} linha(s)`;
+
+  el("mAviso").hidden=temReal;
+  if(!temReal) el("mAviso").innerHTML=
+    `<b>Sem sell-in de ${mm[1]} carregado ainda.</b> Realizado e atingimento
+     aparecem como n/d, nunca como zero; o comparativo com ${mm[3]} já está
+     disponível.`;
+  el("nMeta").innerHTML=
+    `Esta aba <b>não responde aos filtros do painel</b>: o cubo de metas tem
+     eixos próprios (grupo comercial da meta, bandeira e categoria).
+     <b>Atribuição do realizado (rota A)</b>: bandeira nomeada na meta leva o
+     realizado inteiro para o head/gerente/executivo <b>declarados na meta</b>,
+     mesmo quando a hierarquia vigente distribui os clientes dela por outros
+     códigos; o que não tem bandeira nomeada segue a hierarquia vigente e
+     aparece como <b>${CM.rotulo_demais}</b>, onde também está a meta dos
+     baldes (Sem Mudança e Projeto L). Ano anterior = mesmo mês, mesma
+     atribuição. Meta sem par no realizado e mês sem carga aparecem como n/d.`;
+}
+
 /* ==================================================== ordenacao (v2)
    Clique no cabecalho ordena QUALQUER tabela do painel — o cursor:pointer que
    o v1 prometia sem entregar. So reordena a EXIBICAO: a exportacao CSV/XLSX
@@ -2211,7 +2361,8 @@ function aplicarRecorte(r){
   if(CHAVES[r.dimPreco]) F.dimPreco=r.dimPreco;
   if(DB.tops.ban.includes(r.topBan)) F.topBan=r.topBan;
   if(DB.tops.sku.includes(r.topSku)) F.topSku=r.topSku;
-  if(["geral","geo","band","sku","preco"].includes(r.aba)) F.aba=r.aba;
+  if(["geral","geo","band","sku","preco"].includes(r.aba)
+     || (r.aba==="metas" && DB.cubo_meta)) F.aba=r.aba;
   if(r.fAberto) el("fPainel").classList.remove("fechado");
 }
 function gravarRecorte(){
@@ -2329,6 +2480,16 @@ function ligar(){
     preSelecionarMeses(); el("bBan").value=""; el("bSku").value="";
     montarFiltros(); render();
   };
+  // D-44: controles proprios da aba de metas (mes, metrica, visao).
+  if(CM){
+    const religar=()=>{ SUJAS.metas=true; renderAba("metas"); };
+    el("mMes").addEventListener("click",e=>{const c=e.target.closest("[data-mm]");
+      if(c){ MF.mes=+c.dataset.mm; religar(); }});
+    el("mMet").addEventListener("click",e=>{const c=e.target.closest("[data-mt]");
+      if(c){ MF.met=c.dataset.mt; religar(); }});
+    el("mVisao").addEventListener("click",e=>{const c=e.target.closest("[data-mv]");
+      if(c){ MF.visao=c.dataset.mv; religar(); }});
+  }
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
@@ -2349,6 +2510,12 @@ function iniciar(){
     document.title += " · " + DB.meta.recorte_head;
     const sp=document.querySelector("h1 span");
     if(sp) sp.textContent = "· Sell In · " + DB.meta.recorte_head;
+  }
+  // D-44: sem cubo de meta no pacote, a aba nem aparece (meta ausente e
+  // ausente — um painel antigo republicado nao mostra aba vazia).
+  if(!CM){
+    el("tabMetas").remove();
+    el("metas").remove();
   }
   const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
   const anos=[...new Set(CAL.map(c=>c[C_ANO]))];

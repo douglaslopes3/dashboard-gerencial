@@ -392,6 +392,86 @@ def test_meta_reconciliacao_com_a_linha_total_aborta_quando_nao_bate():
     raise AssertionError("meta divergente do proprio Total NAO abortou")
 
 
+# ======================================================== cubo de meta (D-44)
+def test_cubo_meta_rota_a_fusao_e_cauda():
+    """Rota A: o realizado da bandeira NOMEADA segue o dono declarado na meta
+    (nao a hierarquia do cliente); a fusao entra pelo codigo 2; a cauda segue a
+    hierarquia e cai em DEMAIS BANDEIRAS, onde encontra o balde da meta."""
+    from src.load import cubo_meta
+
+    dim_cli = pd.DataFrame([
+        # 1001 esta ASSAI mas a hierarquia dele aponta outro gerente/executivo
+        ["1001", "ASSAI",  "8200056", "30 - KAN", "32000 - G32", "3250 - S2"],
+        ["1002", "ASSAI",  "8200056", "30 - KAN", "31000 - G31", "3110 - S1"],
+        ["1003", "FUSAO2", "777",     "40 - KAR", "41000 - G41", "4110 - S4"],
+        ["1004", "CAUDA",  None,      "20 - ATA", "21000 - G21", "2110 - S3"],
+    ], columns=["COD_CLIENTE", "BANDEIRA", "COD_BANDEIRA",
+                "HEAD", "GERENTE", "SUPERVISOR"])
+    dim_prod = pd.DataFrame([["9001", "BALA"]],
+                            columns=["COD_PRODUTO", "CATEGORIA"])
+    fato = pd.DataFrame([
+        ["2026-09", "1001", "9001", 60.0, 6.0],
+        ["2026-09", "1002", "9001", 40.0, 4.0],
+        ["2026-09", "1003", "9001", 30.0, 3.0],
+        ["2026-09", "1004", "9001", 20.0, 2.0],
+        ["2025-09", "1001", "9001", 50.0, 5.0],     # LY
+    ], columns=["ANO_MES", "COD_CLIENTE", "COD_PRODUTO", "RECEITA", "PESO_KG"])
+    base_meta = ["2026-09", None, None, None, None, None, None, "BALA",
+                 None, None, "OK", 0.0, 0.0, "m.xlsx"]
+    cols = ["ANO_MES", "COD_HEAD", "HEAD_META", "CLUSTER", "BANDEIRA_META",
+            "COD_BANDEIRA", "COD_BANDEIRA_2", "CATEGORIA", "COD_GERENTE",
+            "COD_SUPERVISOR", "STATUS_VINCULO", "META_RECEITA", "META_PESO_KG",
+            "ARQUIVO_ORIGEM"]
+
+    def linha(**kw):
+        d = dict(zip(cols, base_meta))
+        d.update(kw)
+        return d
+
+    fato_meta = pd.DataFrame([
+        linha(COD_HEAD="30", BANDEIRA_META="ASSAI", COD_BANDEIRA="8200056",
+              COD_GERENTE="31000", COD_SUPERVISOR="3110",
+              META_RECEITA=100.0, META_PESO_KG=10.0),
+        linha(COD_HEAD="40", BANDEIRA_META="FUSAO", COD_BANDEIRA="555",
+              COD_BANDEIRA_2="777", COD_GERENTE="41000", COD_SUPERVISOR="4110",
+              META_RECEITA=50.0, META_PESO_KG=5.0),
+        linha(COD_HEAD="20", CLUSTER="Sem Mudança", BANDEIRA_META="SEM MUDANÇA",
+              COD_BANDEIRA="101", COD_GERENTE="21000", COD_SUPERVISOR="2110",
+              META_RECEITA=30.0, META_PESO_KG=3.0),
+    ])
+    c = cubo_meta.construir(fato, dim_cli, dim_prod, fato_meta)
+    assert c is not None
+    am, _, ly_am, _, tem_real, tem_ly = c["meses"][0]
+    assert (am, ly_am, tem_real, tem_ly) == ("2026-09", "2025-09", True, True)
+
+    def achar(band):
+        ib = c["bands"].index(band)
+        return [l for l in c["linhas"] if l[2] == ib]
+
+    # rota A: 1001 (hierarquia 32000/3250) soma no dono da meta 31000/3110
+    (assai,) = achar("ASSAI")
+    assert c["grupos"][assai[1]] == ["30 - KAN", "31000 - G31", "3110 - S1"]
+    assert assai[4] == 100 * 100 and assai[6] == (60 + 40) * 100
+    assert assai[8] == 50 * 100                       # LY do 1001
+    # fusao: cliente do codigo 2 pertence a entidade do codigo 1
+    (fus,) = achar("FUSAO")
+    assert fus[6] == 30 * 100 and fus[4] == 50 * 100
+    # cauda: cliente sem bandeira nomeada cai em DEMAIS, na PROPRIA hierarquia,
+    # e la encontra o balde da meta (mesma linha: meta E realizado)
+    (demais,) = achar(cubo_meta.DEMAIS)
+    assert c["grupos"][demais[1]] == ["20 - ATA", "21000 - G21", "2110 - S3"]
+    assert demais[4] == 30 * 100 and demais[6] == 20 * 100
+    # totais fecham (construir reconcilia e abortaria se nao)
+    assert sum(l[6] or 0 for l in c["linhas"]) == 150 * 100
+
+
+def test_cubo_meta_sem_base_devolve_none():
+    from src.load import cubo_meta
+    vazia = pd.DataFrame(columns=["ANO_MES"])
+    assert cubo_meta.construir(pd.DataFrame(), pd.DataFrame(), pd.DataFrame(),
+                               vazia) is None
+
+
 # ================================================================== runner
 def _rodar_sem_pytest() -> int:
     testes = [(n, o) for n, o in sorted(globals().items())
