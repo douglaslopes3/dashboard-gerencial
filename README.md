@@ -51,11 +51,17 @@ cobertura da estrutura       99,96% da receita
 cobertura de canal           100,00% da receita
 testes                       37/37 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~20 s com cache · exit 0
-painel (v3)                  14,5 MB · zero requisicao de rede · 6 paginas (aba Metas)
+painel (v3, lote 3/D-47)     14,7 MB · zero requisicao de rede · 6 paginas (aba Metas)
                              granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),
                              periodo parcial declarado, filtros em todas as abas
                              exportacao CSV/XLSX em toda tabela
-                             drills: Categoria -> SKU · Head -> Gerente
+                             drills: Categoria -> SKU · Head -> Gerente ·
+                             demais dimensoes -> Categoria (D-47)
+                             Detalhamento com Bandeira (top N + balde) · bloco
+                             Meta x Realizado na Visao Geral (CUBO_META rota A,
+                             Meta|Realizado|Δ|Δ% por mes de meta) · sem rodape
+                             textual · atalhos de Periodo removidos (fica o
+                             "Ver por") · filtro Head oculto no arquivo por head
 por head                     4 arquivos restritos (1,7 a 7,5 MB), recorte fisico
                              na geracao: o arquivo de um head nao contem os
                              dados dos outros squads
@@ -123,20 +129,30 @@ agrupamento das colunas/barras e os rótulos. Grupo com menos meses que a
 granularidade pede sai marcado **(parcial)**, nunca como período cheio.
 
 **Exportação CSV/XLSX em todas as tabelas** (dado cru, respeitando os filtros)
-e **drill-down**: Categoria → SKUs e Head → Gerentes, ordenados pela maior
-queda.
+e **drill-down**: Categoria → SKUs, Head → Gerentes e, nas demais dimensões do
+Detalhamento (canal, gerente, projeto, UF, bandeira), item → **Categorias**
+(D-47). O Detalhamento também quebra por **Bandeira** (top N + balde Σ, o
+mesmo corte da aba Bandeiras).
+
+**Meta x Realizado na Visão Geral** (D-47): bloco próprio lendo o CUBO_META
+(rota A) — dimensão Head/Gerente/Executivo/Bandeira/Categoria, colunas por mês
+de meta com Meta | Realizado | Δ | Δ%, totalizadores, clique abre as categorias
+do item. Só os meses que têm meta; ausência é n/d, nunca zero. Responde aos
+filtros que a meta tem (head, gerente, categoria, bandeira) e avisa quando
+canal/UF/projeto/SKU estão ativos.
 
 **Filtros globais** derivados das dimensões: ano fiscal, ano calendário, meses,
 **canal**, categoria, head, gerente, **projeto**, UF, bandeira e SKU. O painel
-de filtros (com a barra de Período e a linha de estado) existe em todas as
+de filtros (com o "Ver por" e a linha de estado) existe em todas as
 abas: abaixo do gráfico de Evolução na Visão Geral, no topo nas demais.
 
 **Visão por head**: além do painel completo, a geração produz um arquivo por
 head com o recorte aplicado no nível de dados. Os cubos embutidos no arquivo de
 um head contêm somente as linhas do squad dele; não há filtro, link ou
 parâmetro capaz de exibir outro squad, porque o dado não está no arquivo.
-Título, cabeçalho e rodapé declaram a restrição. Configuração em
-`config/config.yaml → dashboard.por_head`.
+Título e cabeçalho declaram a restrição (o rodapé textual saiu em D-47); o
+filtro Head fica oculto — componente preservado, visibilidade por perfil.
+Configuração em `config/config.yaml → dashboard.por_head`.
 
 ---
 

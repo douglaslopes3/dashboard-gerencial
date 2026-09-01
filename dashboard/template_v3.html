@@ -92,6 +92,35 @@
           titulo e o cabecalho declaram o recorte. A seguranca NAO e esta
           marca: e o run_dashboard.py, que so embute no arquivo as linhas de
           cubo do proprio head.
+
+  V3 LOTE 3 (01/09/2026) — ajustes finos da Visao Geral, decisoes Q1-Q8 do
+  pedido do dia:
+    L3-A  grafico de Evolucao sem a serie "Media do periodo". Ficam: ano
+          anterior, atual e meta (barras, eixo primario) e Δ% vs LY (linha,
+          eixo secundario em %) — que ja eram assim.
+    L3-B  os atalhos de Periodo (Mes|Trimestre|Semestre|Acumulado + setas)
+          SAIRAM do layout (Q1-a: redundantes com "Ver por" na leitura do
+          usuario). A selecao de meses continua nos chips "Meses"; o "Ver
+          por" fica na mesma barra.
+    L3-C  o rotulo "sem filtro de dimensao" nao e mais exibido (Q2) — nem na
+          linha de estado, nem no cabecalho do painel; com filtros ativos os
+          textos continuam.
+    L3-D  no arquivo por head (SO_HEAD) a LINHA do filtro Head fica OCULTA,
+          nunca removida (Q4): componente, logica e listeners preservados;
+          visibilidade controlada por perfil.
+    L3-E  Detalhamento: dimensao Bandeira (top N da aba Bandeiras + balde Σ,
+          Q7) e drill -> Categoria em canal/gerente/projeto/UF/bandeira
+          (Q6); cat->SKU e head->gerente continuam como eram.
+    L3-F  bloco "Meta x Realizado" na Visao Geral (Q5-a), lendo o CUBO_META
+          (rota A): meta e realizado PAREADOS pela mesma atribuicao, por
+          dimensao Head/Gerente/Executivo/Bandeira/Categoria, colunas por
+          mes de meta (Meta|Realizado|Δ|Δ%), drill por categoria, n/d para
+          ausencia (Q8). Responde aos filtros que a meta TEM (head, gerente,
+          categoria, bandeira); canal/UF/projeto/SKU nao sao eixos da meta e
+          a tabela avisa quando estao ativos (mesma regra D-45 do grafico).
+    L3-G  rodape textual removido em TODOS os arquivos (Q3-b) — o
+          run_dashboard.py parou de gerar o texto; titulo e cabecalho seguem
+          declarando o recorte por head (P2-D).
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -248,8 +277,7 @@ tr.balde td:first-child::before{content:"Σ ";font-style:normal;font-weight:700;
   padding-top:8px;border-top:1px dashed #d3e0ee}
 .pbar .plab{font-size:11px;font-weight:700;color:var(--azul);margin-right:4px;
   text-transform:uppercase;letter-spacing:.4px}
-.pnav{display:flex;align-items:center;gap:6px;margin-left:6px}
-.prot{font-size:11.5px;color:var(--txt2);min-width:158px}
+/* L3-B: .pnav e .prot sairam com os atalhos de periodo. */
 .mini[disabled]{opacity:.35;cursor:default}
 .mini[disabled]:hover{border-color:#bfd3e6;color:var(--txt2);background:#f7fafd}
 /* v3 lote 2 (P2-A3): o painel de filtros movido para o TOPO de uma aba ganha
@@ -296,8 +324,6 @@ canvas{max-height:280px}
 .vazio{padding:26px;text-align:center;color:var(--txt2);font-size:12.5px}
 .alerta{background:#fff8e6;border-left:3px solid var(--acento);border-radius:4px;
   padding:8px 11px;font-size:11.5px;margin-bottom:12px;line-height:1.5}
-footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
-  color:var(--txt2);font-size:11px;line-height:1.6}
 @media(max-width:900px){.grid{grid-template-columns:1fr !important}
   .flab{min-width:100%}}
 </style>
@@ -358,7 +384,9 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
   </div>
   <div class="frow"><div class="flab">Canal</div><div class="chips" id="fCanal"></div></div>
   <div class="frow"><div class="flab">Categoria</div><div class="chips" id="fCat"></div></div>
-  <div class="frow"><div class="flab">Head</div><div class="chips" id="fHead"></div></div>
+  <!-- L3-D: no arquivo por head esta LINHA fica oculta (iniciar()); o
+       componente e a logica continuam vivos para os demais perfis. -->
+  <div class="frow" id="frowHead"><div class="flab">Head</div><div class="chips" id="fHead"></div></div>
   <div class="frow"><div class="flab">Gerente</div><div class="chips" id="fGer"></div></div>
   <div class="frow"><div class="flab">Projeto</div><div class="chips" id="fProj"></div></div>
   <div class="frow"><div class="flab">UF</div><div class="chips uf-wrap" id="fUF"></div></div>
@@ -377,8 +405,10 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
     <button class="reset" id="limpar">Limpar filtros</button>
   </div>
   </div><!-- /fBody -->
-  <!-- v3 (F1-A): FORA do #fBody, tem de aparecer com o painel fechado. -->
-  <div class="pbar"><span class="plab">Período</span>
+  <!-- v3 (F1-A): FORA do #fBody, tem de aparecer com o painel fechado.
+       L3-B: os atalhos de periodo sairam; a barra carrega so o "Ver por". -->
+  <div class="pbar"><span class="plab"
+      title="Granularidade das colunas da matriz e das barras do gráfico">Ver por</span>
     <span class="chips" id="fPeriodo"></span></div>
   <div class="estado" id="estado"></div>
   </div>
@@ -403,6 +433,22 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
         <span id="drillTitulo"></span><small id="sDrill"></small></h3>
       <div class="scroll"><table id="tabDrill"></table></div>
       <div class="note" id="nDrill"></div></div>
+  </div>
+  <!-- L3-F: Meta x Realizado na Visao Geral (Q5-a, 01/09/2026). Le o
+       CUBO_META (rota A): meta e realizado PAREADOS pela mesma atribuicao —
+       por isso o realizado daqui pode divergir do Detalhamento, que segue a
+       hierarquia vigente; a nota declara. Some quando o pacote nao traz
+       cubo_meta (iniciar()), igual a aba Metas. -->
+  <div class="grid" style="grid-template-columns:1fr" id="mvrWrap">
+    <div class="card"><h3>Meta x Realizado <small>· por:</small>
+        <span class="chips" id="mvrDim"></span>
+        <small style="margin-left:6px">· métrica:</small>
+        <span class="chips" id="mvrMet"></span><small id="sMvr"></small></h3>
+      <div id="mvrCab" style="margin-bottom:6px" hidden>
+        <button class="mini" id="mvrVoltar">← voltar ao agregado</button>
+        <b id="mvrTitulo"></b></div>
+      <div class="scroll"><table id="tabMvr"></table></div>
+      <div class="note" id="nMvr"></div></div>
   </div>
 </div>
 
@@ -490,7 +536,7 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
   </div>
 </div>
 
-<footer id="rodape"></footer>
+<!-- L3-G: o rodape textual saiu (decisao de 01/09/2026, Q3-b). -->
 
 <!--LIB:chart-->
 <script>
@@ -665,84 +711,12 @@ function periodo(){
   return {atual:sel, pareado, ly:pareado.map(i=>CAL[i][C_LY]), ref,
           mesesComPar:comPar.length};
 }
-/* ===================================================== atalho de periodo (v3)
-   F1-A. O painel ja recalculava TUDO a partir de `p.atual`; o que faltava era
-   um jeito de dizer "trimestre" sem desmarcar nove chips de mes na mao. Por
-   isso o atalho ESCREVE em F.meses em vez de ser um segundo mecanismo de
-   periodo: ganhos, perdas, rankings, participacoes, variacoes, exportacao,
-   linha de estado e recorte compartilhavel continuam corretos sem uma linha de
-   calculo nova.
-
-   O atalho ativo NAO e guardado em F: e DERIVADO da selecao de meses a cada
-   render. Selecao manual que coincide com um trimestre acende o chip do
-   trimestre; selecao que nao coincide com nenhum grupo nao acende nada. Assim
-   nao existe estado para dessincronizar da selecao real — e o recorte salvo e
-   os links compartilhados do v2 continuam valendo, sem campo novo nenhum.
-
-   Decisao de 31/08/2026: o atalho NAO atravessa a virada do ano. Os grupos
-   saem sempre de mesesOferecidos(), que e o ano fiscal ou calendario ativo. */
-const ATALHOS = [["mes","Mês"],["tri","Trimestre"],["sem","Semestre"],
-                 ["ac","Acumulado"]];
-function gruposAtalho(tipo){
-  const of = mesesOferecidos();
-  if(!of.length) return [];
-  if(tipo==="ac") return [{rot:"Acumulado", meses:of}];
-  // A7 (auditoria): na base FISCAL o trimestre e o fiscal, igual ao resto da
-  // tela — o mesmo motivo de grupoPeriodo().
-  const fis = F.base==="fis";
-  const chave = i => tipo==="mes" ? CAL[i][C_ROT]
-    : tipo==="tri" ? "T"+CAL[i][fis?C_TFIS:C_TRI]
-                   : "S"+CAL[i][fis?C_SFIS:C_SEM];
-  const m = new Map();
-  for(const i of of){ const k=chave(i); if(!m.has(k)) m.set(k,[]); m.get(k).push(i); }
-  return [...m.entries()].map(([rot,meses])=>({rot,meses}));
-}
-function rotuloGrupo(g){
-  if(!g || !g.meses.length) return "";
-  const a=CAL[g.meses[0]][C_ROT], b=CAL[g.meses[g.meses.length-1]][C_ROT];
-  return g.meses.length>1 ? `${g.rot} · ${a} a ${b}` : a;
-}
-/* Desempate. Num ano PARCIAL o mesmo conjunto de meses pode ser, ao mesmo
-   tempo, o ultimo trimestre e o ultimo semestre — no calendario 2026, que vai
-   ate agosto, jul+ago sao os dois. Sem desempate o chip aceso seria o primeiro
-   da lista, e nao o que a pessoa acabou de clicar: clicar em "Semestre" e ver
-   "Trimestre" aceso. Isto NAO e estado do recorte — so escolhe entre
-   coincidencias EXATAS, e e ignorado assim que a selecao deixa de casar. */
-let ATALHO_PREF = null;
-function atalhoAtivo(){
-  const sel=selecionados();
-  if(!sel.length) return null;
-  const chave=sel.join(",");
-  const tipos=ATALHOS.map(a=>a[0]);
-  const ordem = ATALHO_PREF
-    ? [ATALHO_PREF].concat(tipos.filter(x=>x!==ATALHO_PREF)) : tipos;
-  for(const tipo of ordem){
-    const gs=gruposAtalho(tipo);
-    for(let i=0;i<gs.length;i++)
-      if(gs[i].meses.join(",")===chave) return {tipo, idx:i, grupos:gs};
-  }
-  return null;
-}
-// `idx` omitido = o grupo MAIS RECENTE do tipo (decisao de 31/08/2026).
-function irParaAtalho(tipo, idx){
-  const gs=gruposAtalho(tipo);
-  if(!gs.length) return;
-  const i=Math.max(0, Math.min(idx===undefined?gs.length-1:idx, gs.length-1));
-  ATALHO_PREF = tipo;
-  F.meses.clear();
-  gs[i].meses.forEach(m=>F.meses.add(m));
-  /* L3: a barra de Periodo define TAMBEM a granularidade das colunas da
-     matriz. Ter dois controles com os mesmos rotulos — um recortando o
-     periodo, outro agrupando as colunas, e este escondido atras do botao
-     "Filtros" — era confusao garantida: clicar em "Trimestre" e a matriz
-     continuar em meses nao tem defesa. O chip "Agrupar por" continua no painel
-     de filtros como ajuste fino: mexer nele depois vale ate o proximo clique
-     na barra. Acumulado nao tem granularidade propria — mostra os meses. */
-  F.gran = (tipo==="ac") ? "mes" : tipo;
-  montarFiltros();
-}
 /* P2-A3: a barra vive so dentro do #fPainel, que viaja para a aba ativa —
-   as copias por aba sairam junto com a duplicacao que elas criavam. */
+   as copias por aba sairam junto com a duplicacao que elas criavam.
+   L3-B (01/09/2026, Q1-a): os ATALHOS de periodo (Mes|Trimestre|Semestre|
+   Acumulado + setas de navegacao) sairam do layout — na leitura do usuario
+   eram redundantes com o "Ver por". A selecao de meses continua nos chips
+   "Meses" do painel de filtros; a barra carrega so o "Ver por". */
 const ALVOS_PERIODO = ["fPeriodo"];
 /* O painel de filtros e UM no DOM e muda de lugar com a aba: abaixo do
    grafico de Evolucao na Visao Geral, primeiro elemento nas demais. Mover o
@@ -761,26 +735,11 @@ function posicionarFiltros(aba){
   }
 }
 function montarPeriodo(){
-  const at=atalhoAtivo(), gs=at?at.grupos:null;
-  const nav = at && at.tipo!=="ac" && gs.length>1;
-  /* v3 lote 2 (P2-A): a barra ganhou o seletor "Ver por", que define SO a
-     granularidade das colunas/barras (F.gran) sem mexer na selecao de meses.
-     Os atalhos de Periodo continuam escrevendo a selecao e sincronizando a
-     granularidade (L3); "Ver por" e o ajuste fino que morava escondido no
-     painel de filtros como "Agrupar por". Combinacao com grupo incompleto
-     aparece rotulada como parcial, nunca como periodo cheio. */
-  const h = ATALHOS.map(([k,r])=>
-      `<span class="chip${at&&at.tipo===k?" on":""}" data-t="${k}">${r}</span>`).join("")
-    + `<span class="pnav">`
-    + `<button class="mini" data-nav="-1"${nav&&at.idx>0?"":" disabled"}`
-    + ` title="período anterior">‹</button>`
-    + `<span class="prot">${at?rotuloGrupo(gs[at.idx]):"seleção manual de meses"}</span>`
-    + `<button class="mini" data-nav="1"${nav&&at.idx<gs.length-1?"":" disabled"}`
-    + ` title="próximo período">›</button>`
-    + `</span>`
-    + `<span class="plab" style="margin-left:12px"`
-    + ` title="Granularidade das colunas da matriz e das barras do gráfico">Ver por</span>`
-    + Object.entries(GRANS).map(([k,r])=>
+  /* v3 lote 2 (P2-A): "Ver por" define SO a granularidade das colunas/barras
+     (F.gran), sem mexer na selecao de meses. Grupo incompleto aparece
+     rotulado como parcial, nunca como periodo cheio.
+     L3-B: sobrou so o "Ver por" — os atalhos de periodo sairam do layout. */
+  const h = Object.entries(GRANS).map(([k,r])=>
       `<span class="chip${F.gran===k?" on":""}" data-g="${k}">${r}</span>`).join("");
   ALVOS_PERIODO.forEach(id=>{ const e=el(id); if(e) e.innerHTML=h; });
 }
@@ -954,7 +913,10 @@ function montarFiltros(){
   const dims = [["canal","Canal"],["cat","Categoria"],["head","Head"],
                 ["ger","Gerente"],["proj","Projeto"],["uf","UF"]]
     .filter(([k])=>!(SO_HEAD && k==="head"));
-  el("dimGeral").innerHTML = dims.map(([k,r])=>
+  // L3-E: Bandeira SO no Detalhamento (top N + balde, padrao da aba
+  // Bandeiras). No R$/kg a quebra por bandeira nao foi pedida.
+  const dimsDet = dims.concat([["ban","Bandeira"]]);
+  el("dimGeral").innerHTML = dimsDet.map(([k,r])=>
     `<span class="chip${F.dimGeral===k?" on":""}" data-k="${k}">${r}</span>`).join("");
   el("dimPreco").innerHTML = dims.map(([k,r])=>
     `<span class="chip${F.dimPreco===k?" on":""}" data-k="${k}">${r}</span>`).join("");
@@ -1062,8 +1024,7 @@ function render(){
   MEMO_TOTAL.clear();
   SUJAS = {geral:true, geo:true, band:true, sku:true, preco:true, metas:true};
   atualizarEstado(p);
-  // v3 (F1-A): antes do retorno de "nenhum mes selecionado" — e a barra que
-  // devolve o usuario a um periodo valido quando ele zera os meses.
+  // v3 (F1-A)/L3-B: a barra agora carrega so o "Ver por".
   montarPeriodo();
   marcarChipsVazios(p);       // v2: esmaece opcoes sem dado neste recorte
   gravarRecorte();            // v2: persiste o recorte (hash + localStorage)
@@ -1071,6 +1032,7 @@ function render(){
     ["tabYTD","tabPer","tabDet","tabUF","tabUFper","tabBan","tabSku","tabPreco","tabPrecoPer"]
       .forEach(i=>vazio(i,"Nenhum mês selecionado. Escolha ao menos um mês."));
     el("kpis").innerHTML="";
+    renderMvr();     // L3-F: o bloco de metas nao depende da selecao de meses
     SUJAS = {};                     // nada a renderizar por aba
     return;
   }
@@ -1088,9 +1050,13 @@ function renderAba(aba, p){
   if(!p.atual.length) return;
   if(aba==="geral"){
     renderKPIs(p); renderEvolucao(p); renderYTD(p); renderPeriodo(p); renderDet(p);
+    renderMvr();                                  // L3-F
     if(F.drill){
+      // L3-E: a chave do drill "dimcat" vem do render atual — nao ha estado
+      // persistido que possa apontar para item inexistente.
       const some = F.drill.tipo==="cat" ? D.cat[F.drill.k]===undefined
-                                        : !D.head.includes(F.drill.k);
+                 : F.drill.tipo==="head" ? !D.head.includes(F.drill.k)
+                 : false;
       if(some) fecharDrill(); else renderDrill();
     }
   }
@@ -1121,10 +1087,12 @@ function atualizarEstado(p){
   if(F.uf.size)   d.push(`${F.uf.size} UF(s)`);
   if(F.ban.size)  d.push(`${F.ban.size} bandeira(s)`);
   if(F.sku.size)  d.push(`${F.sku.size} SKU(s)`);
-  partes.push(d.length ? "filtros: "+d.join(" · ") : "sem filtro de dimensão");
+  // L3-C (Q2): sem filtro ativo, nada e exibido — o rotulo "sem filtro de
+  // dimensao" saiu dos dois lugares; com filtros ativos os textos continuam.
+  if(d.length) partes.push("filtros: "+d.join(" · "));
   // v2: contagem no cabecalho recolhivel, visivel mesmo com o painel fechado.
   el("fAtivos").textContent = d.length
-    ? d.length+" filtro(s) de dimensão ativo(s)" : "sem filtro de dimensão";
+    ? d.length+" filtro(s) de dimensão ativo(s)" : "";
   let h = partes.join(" &nbsp;·&nbsp; ");
   if(conflitoSku())
     h += `<br><b style="color:var(--bd)">Atenção: filtro de SKU ativo junto com gerente, bandeira ou projeto.</b>
@@ -1241,9 +1209,8 @@ function renderEvolucao(p){
     const pc=varPct(v,anterior[i]);
     return pc===null?null:pc*100;
   });
-  // Media simples dos periodos exibidos (28/08) — para R$/mes e o mesmo
-  // numero do KPI "Faturamento medio/mes".
-  const media=atual.length?atual.reduce((s,v)=>s+v,0)/atual.length:null;
+  // L3-A (01/09/2026): a serie "Media do periodo" saiu do grafico — o numero
+  // continua no KPI "Faturamento medio/mes", que era a mesma conta.
   el("tEvo").textContent=`Evolução · ${m.rot} · ${GRANS[F.gran]}`;
   // D-45: a nota da meta declara presenca, alcance e ausencia — nada implicito.
   let notaMeta="";
@@ -1263,8 +1230,7 @@ function renderEvolucao(p){
     }
   }
   el("nEvo").innerHTML=`Barra clara (à esquerda) = mesmo período do ano anterior. Barra escura (à direita) = período selecionado.
-    Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita).
-    Linha tracejada = <b>média do período: ${abrev(media,m.un)}</b> por ${GRANS[F.gran].toLowerCase()}.${notaMeta}
+    Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita, em %).${notaMeta}
     ${rotulos.some(r=>r.includes("(parcial)"))?"<b>(parcial)</b> marca grupo com menos meses que a granularidade pede: bordas da série ou seleção parcial. ":""}
     ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara e sem o Δ%</b>, não são exibidos como zero.":""}`;
   const ctx=el("cEvo").getContext("2d");
@@ -1288,7 +1254,6 @@ function renderEvolucao(p){
     c.data.datasets.forEach((ds,di)=>{
       const meta=c.getDatasetMeta(di);
       if(meta.hidden) return;
-      if(ds.label==="Média do período") return;          // linha lisa, sem rotulo
       const ehVar=ds.label==="Δ% vs LY";
       // P2-B: a identidade da barra vem do LABEL, nao da posicao — a ordem
       // dos datasets mudou (ano anterior primeiro) e "di===0" marcaria em
@@ -1325,12 +1290,10 @@ function renderEvolucao(p){
       // So entra quando algum periodo exibido tem meta; null nao vira barra.
       ...(temMeta?[{label:"Meta",data:metaSerie,backgroundColor:"#e9c46a",
        borderRadius:3,maxBarThickness:46,order:5}]:[]),
+      // L3-A: a linha tracejada "Media do periodo" saiu (pedido de 01/09).
       {type:"line",label:"Δ% vs LY",data:variacao,yAxisID:"y1",
        borderColor:"#f5a623",backgroundColor:"#f5a623",borderWidth:2,
-       pointRadius:3,tension:.3,spanGaps:false,order:1},
-      {type:"line",label:"Média do período",
-       data:atual.map(()=>media),borderColor:"#5b6b7c",borderDash:[5,4],
-       borderWidth:1.5,pointRadius:0,pointHitRadius:0,order:2}]},
+       pointRadius:3,tension:.3,spanGaps:false,order:1}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       layout:{padding:{top:18}},
       plugins:{legend:{labels:{boxWidth:12,font:{size:11}}},
@@ -1417,6 +1380,9 @@ const CHAVES = {
   ger  : (l,sku)=> sku ? null : D.perfil[l[3]][1]+"  ·  "+D.perfil[l[3]][0],
   proj : (l,sku)=> sku ? null : D.perfil[l[3]][3],
   uf   : (l,sku)=> sku ? l[3] : l[4],
+  // L3-E: bandeira so existe no cubo principal — na camada de SKU a quebra
+  // devolve null e a tela explica, como gerente e projeto ja faziam.
+  ban  : (l,sku)=> sku ? null : l[1],
 };
 const ROTULOS = {
   cat  : i=>D.cat[i],
@@ -1425,6 +1391,7 @@ const ROTULOS = {
   ger  : v=>v,
   proj : v=>v,
   uf   : i=>D.uf[i]+(DB.nome_uf[D.uf[i]]?" · "+DB.nome_uf[D.uf[i]]:""),
+  ban  : i=>D.ban[i],
 };
 function quebra(p, dim, idTab, idInfo){
   const sku=usaCuboSku();
@@ -1438,20 +1405,34 @@ function quebra(p, dim, idTab, idInfo){
   const a=somar(p.atual,fn,dim), l=somar(p.ly,fn,dim), den=total(p.atual,dim);
   // D-32: o lado "atual" de LY/Δ/Δ% usa so os meses pareados.
   const aP=parcialLy(p)?somar(p.pareado,fn,dim):a;
-  // No Detalhamento, Categoria e Head abrem o nivel de baixo (SKUs / gerentes).
-  const drillTipo = idTab==="tabDet" && (dim==="cat"||dim==="head") ? dim : null;
+  // No Detalhamento, Categoria e Head abrem o nivel de baixo (SKUs /
+  // gerentes) como sempre; L3-E (Q6): nas DEMAIS dimensoes o clique abre as
+  // CATEGORIAS do item ("dimcat" viaja com a dimensao).
+  const drillTipo = idTab!=="tabDet" ? null
+    : (dim==="cat"||dim==="head") ? dim : "dimcat";
   /* v3 (F1-G): o Detalhamento virou matriz. As outras quebras que passam por
      aqui (a de UF, na Geografia) seguem na tabela de sempre — la a matriz por
      periodo ja existe logo abaixo, e duplicar seria ruido. */
   if(idTab==="tabDet"){
+    // L3-E (Q7): bandeira segue o padrao da aba Bandeiras — top N (seletor
+    // "Top" daquela aba; padrao 50) com o balde Σ NA tabela, para o total
+    // continuar fechando com a base.
+    const cB=DB.corte_bandeira;
+    const iBalde = (dim==="ban" && cB && cB.demais)
+      ? D.ban.indexOf(cB.rotulo_demais) : -1;
     const escD=tabelaMatriz({idTab, rotDim:"Dimensão",
       somaFn:ms=>somar(ms,fn,dim), mapA:a, mapL:l, rot:ROTULOS[dim],
-      catDe:null, den:met(den), p, drillTipo, topN:0, baldeK:null});
+      catDe:null, den:met(den), p, drillTipo, drillDim:dim,
+      topN:dim==="ban"?F.topBan:0, baldeK:iBalde>=0?iBalde:null});
     el("nDet").innerHTML=(escD?notaMatriz(escD)+"<br>":"")
       +`Participação % calculada sobre o total do recorte com o filtro desta
       dimensão removido, por isso a coluna soma 100%. Na quebra por
       <b>Categoria</b>, clique numa linha para abrir os SKUs dela; na quebra por
-      <b>Head</b>, para abrir os gerentes dele.`;
+      <b>Head</b>, os gerentes dele; nas demais quebras, as <b>categorias</b>
+      do item.`
+      +(dim==="ban"?` A quebra por bandeira segue o corte da aba Bandeiras
+      (as ${cB.top} maiores nominais; o balde Σ agrega as demais e o corte do
+      "Top" exibido é o daquela aba).`:"");
     return;
   }
   desenharQuebra(a,aP,l,den,ROTULOS[dim],idTab,p, drillTipo);
@@ -1622,7 +1603,8 @@ function tabelaMat(cabec,linhas,rodape,classes){
   return h;
 }
 /* cfg: idTab, rotDim, somaFn(meses)->Map, mapA, mapL, rot(k), catDe(k)|null,
-        den, p, drillTipo|null, topN, baldeK|null                            */
+        den, p, drillTipo|null, drillDim (so p/ drillTipo "dimcat"), topN,
+        baldeK|null                                                          */
 function tabelaMatriz(cfg){
   const cols=colunasSerie();
   const porCol=cols.map(c=>cfg.somaFn(c.meses));
@@ -1669,8 +1651,11 @@ function tabelaMatriz(cfg){
     if(temLy && !i.novo){ sl+=i.l; temAlgumLy=true; }
     const part=razao(i.a,cfg.den);
     const semLy=!temLy||i.novo;
+    const tDrill = cfg.drillTipo==="head" ? "ver os gerentes deste head"
+      : cfg.drillTipo==="cat" ? "ver os SKUs desta categoria"
+      : "ver as categorias deste item";                       // L3-E: dimcat
     const nome = cfg.drillTipo
-      ? `<span class="drill" data-dk="${i.k}" title="${cfg.drillTipo==="head"?"ver os gerentes deste head":"ver os SKUs desta categoria"}">${cfg.rot(i.k)} ▸</span>`
+      ? `<span class="drill" data-dk="${i.k}" title="${tDrill}">${cfg.rot(i.k)} ▸</span>`
       : cfg.rot(i.k);
     classes.push((cfg.baldeK!==null&&cfg.baldeK!==undefined&&i.k===cfg.baldeK)
                  ? "balde" : "");
@@ -1717,7 +1702,15 @@ function tabelaMatriz(cfg){
       .concat(["TOTAL","ATUAL","ANT.","Δ","Δ%","Part. %"]), raw);
   tb.onclick = cfg.drillTipo
     ? (e)=>{const s=e.target.closest(".drill"); if(!s) return;
-        abrirDrill(cfg.drillTipo, cfg.drillTipo==="cat" ? +s.dataset.dk : s.dataset.dk);}
+        // L3-E: no "dimcat" a chave e numerica para UF e bandeira (indice de
+        // dimensao); nas demais e o proprio rotulo.
+        if(cfg.drillTipo==="dimcat")
+          abrirDrill("dimcat",
+            (cfg.drillDim==="uf"||cfg.drillDim==="ban") ? +s.dataset.dk
+                                                        : s.dataset.dk,
+            cfg.drillDim);
+        else
+          abrirDrill(cfg.drillTipo, cfg.drillTipo==="cat" ? +s.dataset.dk : s.dataset.dk);}
     : null;
   return esc;
 }
@@ -1951,8 +1944,11 @@ const NOME_TAB={tabPer:"periodo",tabYTD:"ytd",tabDet:()=>"detalhe-"+F.dimGeral,
   tabPreco:()=>"preco-"+F.dimPreco,tabPrecoPer:"preco-periodo",
   tabDrill:()=> F.drill && F.drill.tipo==="head"
     ? "gerentes-"+slug(F.drill.k)
+    : F.drill && F.drill.tipo==="dimcat"        // L3-E
+    ? "categorias-"+slug(String(ROTULOS[F.drill.dim](F.drill.k)))
     : "sku-"+slug(D.cat[F.drill?.k]??"categoria"),
-  tabMeta:()=>"metas-"+MF.visao+(CM?"_"+CM.meses[MF.mes][0]:"")};
+  tabMeta:()=>"metas-"+MF.visao+(CM?"_"+CM.meses[MF.mes][0]:""),
+  tabMvr:()=>"meta-realizado-"+MV.dim+(MV.item?"-"+slug(MV.item):"")};
 function nr(v,c=2){ if(v===null||v===undefined||!isFinite(v)) return null;
   const f=Math.pow(10,c); return Math.round(v*f)/f; }
 function pctNum(v){ return (v===null||v===undefined||!isFinite(v))?null:v*100; }
@@ -2074,8 +2070,9 @@ function exportarTabela(id,fmt){
    e um recorte, nao uma tela nova. Ordenado pela MAIOR QUEDA, porque o caso de
    uso e achar quem derrubou o agregado. Os demais drill-downs (canal/projeto ->
    cliente) estao BLOQUEADOS por definicao externa (B1-B3 da Solicitacao 02). */
-function abrirDrill(tipo, k){
-  F.drill={tipo, k}; renderDrill();
+// L3-E: `dim` so viaja no tipo "dimcat" (a dimensao do item clicado).
+function abrirDrill(tipo, k, dim){
+  F.drill={tipo, k, dim}; renderDrill();
   el("drillWrap").hidden=false;
   el("drillWrap").scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -2089,6 +2086,7 @@ function fecharDrill(){
 function renderDrill(){
   if(!F.drill) return;
   if(F.drill.tipo==="head") return renderDrillHead();
+  if(F.drill.tipo==="dimcat") return renderDrillDimCat();   // L3-E
   return renderDrillCat();
 }
 
@@ -2198,6 +2196,77 @@ function renderDrillCat(){
     +(ign.length?" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".":"");
 }
 
+/* L3-E (Q6): <item de qualquer dimensao> -> Categoria. Mesmo periodo, base e
+   filtros da tela; sao ignorados o filtro da PROPRIA dimensao (o escopo e o
+   item clicado) e o de categoria (esconderia a categoria que caiu — mesma
+   logica do drill de gerentes com o filtro de gerente). Funciona nas duas
+   camadas: cubo principal e, com filtro de SKU ativo, camada de SKU — onde so
+   canal e UF chegam ate aqui, porque as demais dimensoes nem oferecem a
+   quebra nessa camada. */
+function renderDrillDimCat(){
+  const dim=F.drill.dim, k=F.drill.k, p=periodo();
+  const sku=usaCuboSku();
+  el("drillTitulo").textContent=
+    "Categorias de "+_semHtml(String(ROTULOS[dim](k)));
+  el("sDrill").textContent=" · "+METRICAS[F.metrica].rot;
+  const fnDim=CHAVES[dim];
+  if(fnDim(sku?CUBO_SKU[0]:CUBO[0],sku)===null){
+    vazio("tabDrill","Este detalhe não existe na camada agregada em uso. Remova o filtro de SKU.");
+    el("nDrill").textContent="";
+    return;
+  }
+  // passa = os DEMAIS filtros da tela, sem o da propria dimensao e sem o de
+  // categoria (espelha passaPrincipal/passaSku; categoria fica de fora).
+  const passaP=l=>{
+    const pf=D.perfil[l[3]];
+    if(dim!=="ban"   && F.ban.size  && !F.ban.has(l[1]))    return false;
+    if(dim!=="head"  && F.head.size && !F.head.has(pf[0]))  return false;
+    if(dim!=="ger"   && F.ger.size  && !F.ger.has(pf[1]))   return false;
+    if(dim!=="canal" && F.can.size  && !F.can.has(pf[2]))   return false;
+    if(dim!=="proj"  && F.proj.size && !F.proj.has(pf[3]))  return false;
+    if(dim!=="uf"    && F.uf.size   && !F.uf.has(l[4]))     return false;
+    return true;
+  };
+  const passaS=l=>{
+    if(F.sku.size && !F.sku.has(l[1])) return false;
+    const hc=D.hc[l[2]];
+    if(dim!=="head"  && F.head.size && !F.head.has(hc[0])) return false;
+    if(dim!=="canal" && F.can.size  && !F.can.has(hc[1]))  return false;
+    if(dim!=="uf"    && F.uf.size   && !F.uf.has(l[3]))    return false;
+    return true;
+  };
+  const idx=sku?IDX_SKU:IDX_CUBO, passa=sku?passaS:passaP, base=sku?4:5;
+  const somaFn=meses=>{
+    const out=new Map();
+    for(const mi of meses){
+      const linhas=idx[mi];
+      for(let j=0;j<linhas.length;j++){
+        const l=linhas[j];
+        if(fnDim(l,sku)!==k) continue;
+        if(!passa(l)) continue;
+        const c=sku?D.sku[l[1]][2]:l[2];
+        let v=out.get(c); if(!v){v=MZERO(); out.set(c,v);}
+        v[0]+=l[base]; v[1]+=l[base+1]; v[2]+=l[base+2];
+      }
+    }
+    return out;
+  };
+  const mapA=somaFn(p.atual), mapL=p.ly.length?somaFn(p.ly):new Map();
+  const den=[...mapA.values()].reduce((s,v)=>s+met(v),0);
+  const escK=tabelaMatriz({idTab:"tabDrill", rotDim:"Categoria", somaFn,
+    mapA, mapL, rot:i=>D.cat[i]??"n/d", catDe:null, den, p,
+    drillTipo:null, topN:0, baldeK:null});
+  el("sDrill").textContent=" · "+METRICAS[F.metrica].rot
+    +(escK?" · colunas em "+escK.rot:"");
+  const ign=["o filtro de "+({canal:"canal",ger:"gerente",proj:"projeto",
+    uf:"UF",ban:"bandeira",head:"head"}[dim]||dim)
+    +" (o escopo é o item clicado)"];
+  if(F.cat.size) ign.push("o filtro de categoria");
+  el("nDrill").innerHTML=(escK?notaMatriz(escK)+"<br>":"")
+    +"Mesmo período, mesma base de comparação e mesmos filtros da tela."
+    +" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".";
+}
+
 /* ==================================================== metas (D-44, rota A)
    O cruzamento chega PRONTO do pipeline (DB.cubo_meta): cada linha ja traz
    meta, realizado e LY pareados por (mes, grupo comercial DA META, bandeira,
@@ -2214,11 +2283,14 @@ const MVIS = {head:"Head", ger:"Gerente", exec:"Executivo",
               band:"Bandeira", cat:"Categoria"};
 const MMET = {val:{rot:"Valor (R$)", off:0, esc:100,  un:"R$"},
               vol:{rot:"Volume (t)", off:1, esc:1e6, un:"t"}};
-function mRotulo(l){
-  if(MF.visao==="band") return CM.bands[l[2]];
-  if(MF.visao==="cat")  return CM.cats[l[3]];
+// L3-F: ganhou o parametro opcional `visao` para o bloco Meta x Realizado da
+// Visao Geral reutilizar a mesma regra; sem ele, segue a visao da aba Metas.
+function mRotulo(l, visao){
+  const v=visao||MF.visao;
+  if(v==="band") return CM.bands[l[2]];
+  if(v==="cat")  return CM.cats[l[3]];
   const g=CM.grupos[l[1]];
-  return g[{head:0, ger:1, exec:2}[MF.visao]];
+  return g[{head:0, ger:1, exec:2}[v]];
 }
 function mSoma(a,b){ return b===null||b===undefined ? a : (a===null?0:a)+b; }
 function mAgrupar(){
@@ -2316,6 +2388,149 @@ function renderMetas(){
      atribuição. Meta sem par no realizado e mês sem carga aparecem como n/d.`;
 }
 
+/* ========================= Meta x Realizado na Visao Geral (L3-F, Q5-a)
+   Le o MESMO CUBO_META da aba Metas (rota A): meta e realizado chegam
+   PAREADOS pela mesma atribuicao, entao Δ e Δ% comparam iguais com iguais —
+   e por isso o realizado daqui pode divergir do Detalhamento, que segue a
+   hierarquia vigente (a nota declara). Colunas = os meses QUE TEM meta
+   (independe da selecao de meses do painel); linhas = a dimensao escolhida,
+   e o clique abre as categorias do item (Q6). Responde aos filtros que a
+   meta TEM (head, gerente, categoria, bandeira); com canal/UF/projeto/SKU
+   ativo a tabela avisa em vez de exibir meta que ignora o recorte (mesma
+   regra D-45 do grafico). Ausencia e n/d, nunca zero (Q8). */
+const MV = {dim: SO_HEAD?"ger":"head", met:"val", item:null};
+let MVR_ROTS = [];               // rotulos da ultima renderizacao (p/ clique)
+function renderMvr(){
+  if(!CM) return;
+  const met=MMET[MV.met];
+  // D-46: no arquivo por head a visao "Head" seria uma linha so — sai.
+  const visoes=Object.entries(MVIS).filter(([k])=>!(SO_HEAD&&k==="head"));
+  el("mvrDim").innerHTML=visoes.map(([k,r])=>
+    `<span class="chip${MV.dim===k?" on":""}" data-k="${k}">${r}</span>`).join("");
+  el("mvrMet").innerHTML=Object.entries(MMET).map(([k,m])=>
+    `<span class="chip${MV.met===k?" on":""}" data-k="${k}">${m.rot}</span>`).join("");
+  if(F.can.size||F.uf.size||F.proj.size||F.sku.size){
+    el("mvrCab").hidden=true;
+    vazio("tabMvr","A base de metas não tem os eixos canal, UF, projeto ou SKU. Limpe esses filtros para ver Meta x Realizado.");
+    el("nMvr").textContent=""; el("sMvr").textContent="";
+    return;
+  }
+  const drill=MV.item!==null && MV.dim!=="cat";
+  el("mvrCab").hidden=!drill;
+  if(drill) el("mvrTitulo").textContent="Categorias de "+MV.item;
+  const catsSel=F.cat.size?new Set([...F.cat].map(i=>D.cat[i])):null;
+  const bansSel=F.ban.size?new Set([...F.ban].map(i=>D.ban[i])):null;
+  const nM=CM.meses.length, o=met.off;
+  const porItem=new Map();             // rotulo -> Array(nM) de [meta, real]
+  for(const l of CM.linhas){
+    if(F.head.size && !F.head.has(CM.grupos[l[1]][0])) continue;
+    if(F.ger.size  && !F.ger.has(CM.grupos[l[1]][1]))  continue;
+    if(catsSel && !catsSel.has(CM.cats[l[3]])) continue;
+    if(bansSel && !bansSel.has(CM.bands[l[2]])) continue;
+    if(drill && mRotulo(l, MV.dim)!==MV.item) continue;
+    const k=drill ? CM.cats[l[3]] : mRotulo(l, MV.dim);
+    let v=porItem.get(k);
+    if(!v){ v=Array.from({length:nM},()=>[null,null]); porItem.set(k,v); }
+    const c=v[l[0]];
+    c[0]=mSoma(c[0], l[4+o]);          // meta
+    c[1]=mSoma(c[1], l[6+o]);          // realizado (null = ausencia, Q8)
+  }
+  if(!porItem.size){
+    vazio("tabMvr");
+    el("nMvr").textContent=""; el("sMvr").textContent="";
+    return;
+  }
+  const ND='<span class="nd">n/d</span>';
+  const un=v=>v===null||v===undefined?null:v/met.esc;       // desfaz a escala
+  const fmtD=(vr,vm)=>{
+    if(vr===null||vm===null) return ND;
+    const d=vr-vm, c=d>0?"sobe":(d<0?"desce":"");
+    return `<span class="${c}">${d>0?"+":(d<0?"−":"")}${abrev(Math.abs(d),met.un)}</span>`;
+  };
+  // Ordenacao: meta TOTAL decrescente; linhas SEM meta por ultimo, entre si
+  // pelo realizado — mesma regra da aba Metas.
+  const itens=[...porItem.entries()].map(([k,v])=>{
+    let tm=null,tr=null;
+    v.forEach(c=>{ tm=mSoma(tm,c[0]); tr=mSoma(tr,c[1]); });
+    return {k,v,tm,tr};
+  }).sort((a,b)=>{
+    if(a.tm===null&&b.tm===null) return (b.tr||0)-(a.tr||0);
+    if(a.tm===null) return 1; if(b.tm===null) return -1;
+    return b.tm-a.tm;
+  });
+  const multi=nM>1;                    // TOTAL de linha so com 2+ meses
+  const cab=[drill?"Categoria":MVIS[MV.dim]];
+  CM.meses.forEach(mm=>cab.push(`Meta ${mm[1]}`,`Real. ${mm[1]}`,"Δ","Δ%"));
+  if(multi) cab.push("Meta TOTAL","Real. TOTAL","Δ","Δ%");
+  MVR_ROTS=itens.map(it=>it.k);
+  const raw=[];
+  const somaCol=Array.from({length:nM},()=>[null,null]);
+  const linhas=itens.map((it,pos)=>{
+    const nome=(!drill && MV.dim!=="cat")
+      ? `<span class="drill" data-mi="${pos}" title="ver as categorias deste item">${it.k} ▸</span>`
+      : it.k;
+    const cel=[nome], rw=[it.k];
+    it.v.forEach((c,i)=>{
+      const vm=un(c[0]), vr=un(c[1]);
+      somaCol[i][0]=mSoma(somaCol[i][0],c[0]);
+      somaCol[i][1]=mSoma(somaCol[i][1],c[1]);
+      cel.push(mFmt(c[0],met), mFmt(c[1],met), fmtD(vr,vm), fmtPct(varPct(vr,vm)));
+      rw.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
+              nr(pctNum(varPct(vr,vm))));
+    });
+    if(multi){
+      const vm=un(it.tm), vr=un(it.tr);
+      cel.push(mFmt(it.tm,met), mFmt(it.tr,met), fmtD(vr,vm), fmtPct(varPct(vr,vm)));
+      rw.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
+              nr(pctNum(varPct(vr,vm))));
+    }
+    raw.push(rw);
+    return cel;
+  });
+  // Totalizador de coluna (Q5): soma dos itens exibidos, Δ e Δ% recalculados.
+  let gTm=null,gTr=null;
+  const rodape=["<b>Total</b>"];
+  const rawTot=["Total"];
+  somaCol.forEach(c=>{
+    gTm=mSoma(gTm,c[0]); gTr=mSoma(gTr,c[1]);
+    const vm=un(c[0]), vr=un(c[1]);
+    rodape.push(`<b>${mFmt(c[0],met)}</b>`, `<b>${mFmt(c[1],met)}</b>`,
+                fmtD(vr,vm), fmtPct(varPct(vr,vm)));
+    rawTot.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
+                nr(pctNum(varPct(vr,vm))));
+  });
+  if(multi){
+    const vm=un(gTm), vr=un(gTr);
+    rodape.push(`<b>${mFmt(gTm,met)}</b>`, `<b>${mFmt(gTr,met)}</b>`,
+                fmtD(vr,vm), fmtPct(varPct(vr,vm)));
+    rawTot.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
+                nr(pctNum(varPct(vr,vm))));
+  }
+  raw.push(rawTot);
+  el("tabMvr").innerHTML=tabela(cab,linhas,rodape);
+  registrarExport("tabMvr",cab.map(_semHtml),raw);
+  el("sMvr").textContent=` · ${CM.meses.map(m=>m[1]).join(", ")} · ${itens.length} linha(s)`;
+  const semReal=CM.meses.filter(mm=>!mm[4]).map(mm=>mm[1]);
+  el("nMvr").innerHTML=
+    `Meta e realizado saem do <b>cubo de metas (rota A)</b>: bandeira nomeada
+     leva o realizado para o dono <b>declarado na meta</b>; a cauda segue a
+     hierarquia vigente e entra em <b>${CM.rotulo_demais}</b>. Por isso o
+     realizado daqui pode diferir do Detalhamento acima, que segue sempre a
+     hierarquia vigente. Só aparecem os <b>meses que têm meta</b>; linha sem
+     meta e mês sem sell-in carregado mostram n/d, nunca zero.
+     <b>Δ</b> = Realizado − Meta; <b>Δ%</b> = variação do realizado sobre a
+     meta (atingimento = 100% + Δ%).
+     ${semReal.length?`<b>Sem sell-in de ${semReal.join(", ")} carregado
+     ainda</b>: realizado como n/d. `:""}
+     Este bloco responde aos filtros de head, gerente, categoria e bandeira;
+     canal, UF, projeto e SKU não são eixos da base de metas.
+     ${(!drill && MV.dim!=="cat")?"Clique numa linha para abrir as categorias do item.":""}`;
+  el("tabMvr").onclick=(!drill && MV.dim!=="cat")
+    ? (e)=>{const s=e.target.closest(".drill"); if(!s) return;
+        MV.item=MVR_ROTS[+s.dataset.mi]; renderMvr(); gravarRecorte();}
+    : null;
+}
+
 /* ==================================================== ordenacao (v2)
    Clique no cabecalho ordena QUALQUER tabela do painel — o cursor:pointer que
    o v1 prometia sem entregar. So reordena a EXIBICAO: a exportacao CSV/XLSX
@@ -2386,6 +2601,7 @@ function recorteAtual(){
     sku:[...F.sku].map(i=>D.sku[i][0]),        // codigo do SKU, estavel
     dimGeral:F.dimGeral, dimPreco:F.dimPreco,
     topBan:F.topBan, topSku:F.topSku, aba:F.aba,
+    mvrDim:MV.dim, mvrMet:MV.met,           // L3-F
     fAberto:!el("fPainel").classList.contains("fechado")
   };
 }
@@ -2427,6 +2643,10 @@ function aplicarRecorte(r){
   }
   if(DB.tops.ban.includes(r.topBan)) F.topBan=r.topBan;
   if(DB.tops.sku.includes(r.topSku)) F.topSku=r.topSku;
+  // L3-F: estado do bloco Meta x Realizado (o drill de categoria nao e
+  // persistido, como o drill do Detalhamento tambem nunca foi).
+  if(MVIS[r.mvrDim] && !(SO_HEAD && r.mvrDim==="head")) MV.dim=r.mvrDim;
+  if(MMET[r.mvrMet]) MV.met=r.mvrMet;
   if(["geral","geo","band","sku","preco"].includes(r.aba)
      || (r.aba==="metas" && DB.cubo_meta)) F.aba=r.aba;
   if(r.fAberto) el("fPainel").classList.remove("fechado");
@@ -2502,24 +2722,14 @@ function ligar(){
   ligarChips("dimPreco", k=>{ F.dimPreco=k; montarFiltros(); });
   ligarChips("topBan", k=>{ F.topBan=+k; montarFiltros(); });
   ligarChips("topSku", k=>{ F.topSku=+k; montarFiltros(); });
-  /* v3 (F1-A): a mesma barra existe em tres lugares e um so tratador serve os
-     tres, por delegacao no container — que montarPeriodo() nunca substitui. */
+  /* v3 (F1-A): delegacao no container, que montarPeriodo() nunca substitui.
+     L3-B: sobrou so o "Ver por" (muda a granularidade da exibicao). */
   ALVOS_PERIODO.forEach(id=>{
     const e=el(id); if(!e) return;
     e.addEventListener("click", ev=>{
-      const nav=ev.target.closest("[data-nav]");
-      if(nav){
-        if(nav.disabled) return;
-        const at=atalhoAtivo();
-        if(at) irParaAtalho(at.tipo, at.idx + (+nav.dataset.nav));
-        render(); return;
-      }
       const c=ev.target.closest(".chip");
       if(!c || c.classList.contains("off")) return;
-      // v3 lote 2 (P2-A): "Ver por" muda so a granularidade da exibicao.
-      if(c.dataset.g){ F.gran=c.dataset.g; render(); return; }
-      irParaAtalho(c.dataset.t);
-      render();
+      if(c.dataset.g){ F.gran=c.dataset.g; render(); }
     });
   });
   el("drillVoltar").onclick=fecharDrill;
@@ -2555,6 +2765,13 @@ function ligar(){
       if(c){ MF.met=c.dataset.mt; religar(); }});
     el("mVisao").addEventListener("click",e=>{const c=e.target.closest("[data-mv]");
       if(c){ MF.visao=c.dataset.mv; religar(); }});
+    // L3-F: controles do bloco Meta x Realizado da Visao Geral. Trocar de
+    // dimensao fecha o drill de categoria (o item pertence a dimensao velha).
+    el("mvrDim").addEventListener("click",e=>{const c=e.target.closest(".chip");
+      if(c){ MV.dim=c.dataset.k; MV.item=null; renderMvr(); gravarRecorte(); }});
+    el("mvrMet").addEventListener("click",e=>{const c=e.target.closest(".chip");
+      if(c){ MV.met=c.dataset.k; renderMvr(); gravarRecorte(); }});
+    el("mvrVoltar").onclick=()=>{ MV.item=null; renderMvr(); };
   }
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
@@ -2577,11 +2794,17 @@ function iniciar(){
     const sp=document.querySelector("h1 span");
     if(sp) sp.textContent = "· Sell In · " + DB.meta.recorte_head;
   }
+  // L3-D (Q4): no arquivo por head a LINHA do filtro Head fica oculta — o
+  // componente, a logica e os listeners continuam; e visibilidade por perfil,
+  // nunca remocao. Nos demais perfis nada muda.
+  if(SO_HEAD) el("frowHead").hidden=true;
   // D-44: sem cubo de meta no pacote, a aba nem aparece (meta ausente e
   // ausente — um painel antigo republicado nao mostra aba vazia).
+  // L3-F: o bloco Meta x Realizado da Visao Geral segue a mesma regra.
   if(!CM){
     el("tabMetas").remove();
     el("metas").remove();
+    el("mvrWrap").remove();
   }
   const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
   const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
@@ -2590,7 +2813,8 @@ function iniciar(){
   // v2: reabre no recorte do link (#r=…) ou, sem link, no ultimo recorte
   // salvo neste navegador. Sem nenhum dos dois, fica o padrao acima.
   aplicarRecorte(lerRecorteInicial());
-  el("rodape").innerHTML=DB.meta.rodape;
+  // L3-G (Q3-b): o rodape textual saiu de todos os arquivos — o contexto da
+  // carga continua em resumo.json e em data/quality/relatorio_qualidade.md.
   montarFiltros(); ligar();
   document.querySelectorAll(".tab").forEach(t=>{   // restaura a aba do recorte
     const on=t.dataset.p===F.aba;

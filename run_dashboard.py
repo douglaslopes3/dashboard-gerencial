@@ -148,28 +148,11 @@ def main() -> int:
     def br(v: float, casas: int = 2) -> str:
         return f"{v:,.{casas}f}".replace(",", "@").replace(".", ",").replace("@", ".")
 
-    c = pacote["corte_bandeira"]
-    rodape = (
-        f"<b>{R['arquivos']}</b> arquivos de Sell In · "
-        f"<b>{br(R['linhas'], 0)}</b> linhas · período <b>{meses[0]} a {meses[-1]}</b> "
-        f"({len(meses)} meses) · receita líquida <b>R$ {br(R['receita'])}</b> · "
-        f"<b>{br(R['peso_t'])} t</b> · <b>{br(R['caixas'], 0)}</b> caixas<br>"
-        f"Processado em {R['gerado_em']} · execução <code>{R['execucao']}</code><br>"
-        "<b>Ressalvas medidas, declaradas de propósito:</b> "
-        "(1) <b>Caixas é métrica bruta</b>: Valor e Volume são líquidos de devolução, "
-        f"Caixas não; {br(R['caixas_sem_info'], 0)} linhas não têm caixa informada na origem. "
-        f"(2) <b>Canal</b> vem de <code>bases/Canais/Canais.xlsx</code>, com "
-        f"<b>{br(R.get('cobertura_canal', 0) * 100, 2)}%</b> da receita classificada; "
-        "clientes sem canal sairiam em <code>data/quality/clientes_sem_canal.csv</code>. "
-        f"(3) Ranking de bandeiras nominal nas {c['top']} maiores "
-        f"({br(c['cobertura'] * 100, 1)}% do faturamento); as demais entram agregadas, "
-        "o total continua fechando. "
-        "(4) A camada de SKU cruza com head, canal, categoria e UF, não com gerente, "
-        "bandeira nem projeto; a tela avisa quando esses filtros ficam ativos juntos.<br>"
-        "Gaps, donos e tamanhos em <code>docs/04_GAPS_E_RISCOS.md</code> · "
-        "qualidade desta carga em <code>data/quality/relatorio_qualidade.md</code>"
-    )
-
+    # L3-G (01/09/2026, Q3-b): o rodape textual saiu de TODOS os arquivos do
+    # painel — os Heads nao precisam dessa informacao. As mesmas medidas
+    # continuam em resumo.json e em data/quality/relatorio_qualidade.md; as
+    # ressalvas (caixas bruta, corte de bandeiras, camada de SKU) seguem
+    # declaradas nas proprias telas que elas afetam.
     pacote["meta"] = {
         "periodo": f"{meses[0]} a {meses[-1]}",
         "meses": len(meses),
@@ -177,7 +160,6 @@ def main() -> int:
         "arquivos": R["arquivos"],
         "gerado_em": R["gerado_em"],
         "execucao": R["execucao"],
-        "rodape": rodape,
     }
     pacote["tops"] = {"ban": _DASH["tops_bandeira"], "sku": _DASH["tops_sku"]}
     pacote["top_ranking"] = int(_DASH["top_ranking"])
@@ -253,12 +235,10 @@ def main() -> int:
                 assert all(cm["grupos"][l[1]][0] == head for l in cm["linhas"])
             rec_head = sum(l[5] for l in pac["cubo"])      # centavos, exato
             soma_heads += rec_head
-            pac["meta"] = {**pacote["meta"], "recorte_head": head,
-                           "rodape": (
-                f"<b>Arquivo restrito ao head {head}.</b> Contém apenas os "
-                "dados do próprio squad comercial; o recorte é aplicado na "
-                "geração do arquivo, não na interface. Números de contexto "
-                "abaixo referem-se à base completa.<br>" + rodape)}
+            # L3-G: sem rodape; titulo e cabecalho seguem declarando o
+            # recorte (P2-D) — a restricao de verdade continua sendo o
+            # recorte fisico das linhas de cubo, feito acima.
+            pac["meta"] = {**pacote["meta"], "recorte_head": head}
             escrever(pac, f"{prefixo}{_slug(head)}.html")
         # Reconciliacao do particionamento: heads + sem-estrutura = base.
         rec_total = sum(l[5] for l in pacote["cubo"])

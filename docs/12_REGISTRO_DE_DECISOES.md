@@ -1024,3 +1024,58 @@ em vez de quebrar. O painel completo não muda.
 **Validação.** Arquivo do head 20: seletores sem "Head" nas duas abas;
 localStorage com `dimGeral:"head"` recai em Categoria; painel completo com o
 chip intacto; zero erros de console. 5 HTMLs republicados (md5 5/5).
+
+---
+
+## D-47 · Lote 3 da Visão Geral: metas na tela, Bandeira no Detalhamento, layout enxuto (01/09/2026)
+
+**Contexto.** Pedido do Douglas com protocolo explícito (plano + dúvidas antes
+de editar). As 8 dúvidas levantadas (Q1–Q8) foram respondidas antes de
+qualquer alteração. Validação prévia medida no parquet: a FATO_META tem grão
+`mês × head × bandeira × categoria` (3.282 linhas, 10 categorias, zero
+duplicados, zero nulos, R$ 122.279.463,48 reconciliado) — **meta é por
+Categoria**, e toda agregação é soma das metas de categoria.
+
+**Decisões (com a resposta que as fixou):**
+
+1. **(Q1-a)** Os atalhos de Período (Mês|Trimestre|Semestre|Acumulado + setas)
+   saíram do layout — redundantes com o "Ver por" na leitura do usuário. A
+   seleção de meses continua nos chips "Meses"; o "Ver por" fica.
+2. **(Q2)** O rótulo "sem filtro de dimensão" não é mais exibido (linha de
+   estado e cabeçalho do painel); com filtros ativos os textos continuam.
+3. **(Q3-b)** O rodapé textual saiu de TODOS os arquivos. O contexto da carga
+   continua em `resumo.json` e no relatório de qualidade; as ressalvas seguem
+   declaradas nas telas que elas afetam; título e cabeçalho continuam
+   declarando o recorte por head (P2-D).
+4. **(Q4)** "Perfil de Head" = arquivo por head (`SO_HEAD`). A LINHA do filtro
+   Head fica `hidden` — componente, lógica e listeners preservados; painel
+   completo intacto.
+5. **(Q5-a)** Meta no painel = **bloco separado "Meta x Realizado"** na Visão
+   Geral, lendo o CUBO_META (rota A) — não tabela única no Detalhamento.
+   Motivos: meta não tem os eixos canal/projeto/UF; rota A × hierarquia
+   vigente na mesma linha compararia donos diferentes; a matriz já tem ~19
+   colunas. Dimensões: Head, Gerente, Executivo, Bandeira, Categoria (Canal
+   não existe na base de metas — declarado). Colunas por mês de meta:
+   Meta | Realizado | Δ | Δ%, com totalizadores; TOTAL de linha só quando
+   houver 2+ meses de meta. Responde aos filtros que a meta TEM (head,
+   gerente, categoria, bandeira); com canal/UF/projeto/SKU ativo a tabela
+   avisa (mesma regra D-45). Grafico de Evolução perdeu a série "Média do
+   período" (o número segue no KPI Faturamento médio/mês).
+6. **(Q6)** Drills: cat→SKU e head→gerente continuam; nas demais dimensões do
+   Detalhamento o clique abre as **categorias** do item (tipo "dimcat",
+   ignorando o filtro da própria dimensão e o de categoria). No bloco de
+   metas, o clique abre as categorias do item (CUBO_META).
+7. **(Q7)** Bandeira no Detalhamento segue o padrão da aba Bandeiras: top N
+   (seletor daquela aba, padrão 50) com o balde Σ na tabela — total fecha.
+8. **(Q8)** Ausência é o `n/d` padrão do painel, nunca zero nem célula
+   inventada.
+
+**Validação.** 37/37 unitários · 6/6 cenários · pipeline exit 0. No navegador
+(painel completo, FY2027): meta R$ 122,28 mi no bloco = FATO_META ao centavo;
+realizado do bloco (R$ 1,28 mi) = KPI do painel; drill do Atacado (10
+categorias) soma a linha do agregado; Canal→Categoria, Head→Gerente,
+Categoria→SKU e Bandeira→Categoria conferidos; filtro de canal esconde meta
+com aviso nos dois lugares (gráfico e bloco). Arquivo do head 20: filtro Head
+oculto, seletores sem "Head", bloco de metas abrindo por Gerente com total
+R$ 48,62 mi (= a meta do próprio head no painel completo), sem rodapé. Zero
+erros de console nos dois arquivos. 5 HTMLs republicados.
