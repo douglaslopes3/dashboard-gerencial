@@ -12,16 +12,19 @@ python run_dashboard.py     # Parquet -> painel v3 + um arquivo por head
 
 ---
 
-## Estado atual — medido em 01/09/2026
+## Estado atual — medido em 01/09/2026 (fim do dia: ago/26 fechado + set/26 parcial)
 
 ```
-28 arquivos de Sell In       3.114.298 linhas de origem   24 meses (2024-09 a 2026-08)
-receita liquida              R$ 2.309.797.874,70
-peso                         164.510,21 t
-caixas                       33.384.067
-fato                         3.110.907 linhas (3.391 100% zeradas descartadas, D-36;
-                             T-36 corrigiu o registro: o descarte estava subtraido
-                             duas vezes no texto anterior)
+29 arquivos de Sell In       3.121.445 linhas de origem   25 meses (2024-09 a 2026-09)
+receita liquida              R$ 2.318.751.361,89
+peso                         165.122,14 t
+caixas                       33.516.211
+fato                         3.117.999 linhas (3.446 100% zeradas descartadas, D-36)
+ATENCAO (aviso do detector)  ago/26 e set/26 vieram com RECORTE de extracao
+                             diferente dos 19 meses anteriores ("tipo mercado
+                             original", sem excluir "diversos") - ago/26 fechado
+                             subiu R$ 7,68 mi sobre o parcial (105,06 -> 112,74 mi);
+                             conferir com o BI se o recorte novo e o oficial
 SKUs 400 · categorias 12 · canais 7 · heads 4 · bandeiras 300 nominais + balde de 10.989
 cod. de bandeira (D-42)      13.101 de 16.122 clientes (81,3% · 93,5% da receita),
                              lido da Hierarquia_Consolidada: ponte por codigo com a
