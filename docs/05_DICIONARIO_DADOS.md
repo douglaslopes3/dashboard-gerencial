@@ -45,11 +45,18 @@ concatenando `código - papel - nome` com `" - "` (parte vazia é omitida).
 | `(N2) CÓDIGO GERENTE` + `(N2) GERENTE` + `(N2) NOME GERENTE` | `GERENTE` | rótulo concatenado + `correcoes_gerente` |
 | `(N3) CÓDIGO SUP./EXEC.` + `(N3) SUP./EXEC.` + `(N3) NOME SUP./EXEC.` | `SUPERVISOR` | rótulo concatenado + `correcoes_supervisor` |
 | `PROJETO` | `PROJETO` | `texto(maiuscula=False)` |
+| `CÓDIGO BANDEIRA` | `COD_BANDEIRA` | `digitos()` (D-42, série 82xxxxx da base de metas) |
+| `BANDEIRA` | `BANDEIRA_ESTRUTURA` | `texto()` (D-42, só conferência/rótulo de código) |
 
-Nível N4 (vendedor/RCA), `CLIENTE`, `BANDEIRA`/`REDE`: **não ingeridos** (a
+Nível N4 (vendedor/RCA), `CLIENTE`, `REDE`: **não ingeridos** (a
 granularidade do arquivo é cliente × vendedor; a deduplicação por cliente
-acontece depois das correções, com checagem de conflito N1–N3).
-`ATENDIMENTO_PONTA` deixou de existir com a troca da base.
+acontece depois das correções, com checagem de conflito N1–N3 e de
+`COD_BANDEIRA`). `ATENDIMENTO_PONTA` deixou de existir com a troca da base.
+`COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` são a ponte por CÓDIGO com a base de
+metas FY 26/27 (o sell-in não traz código de bandeira; a `BANDEIRA` da tela
+segue vindo do sell-in). O complemento não tem as colunas: cliente dele fica
+`<NA>`, nunca inventado. Medido em 01/09/2026: 13.101 de 16.122 clientes com
+código (81,3%; 93,5% da receita de 24 meses).
 
 O **complemento** (`Hierarquia_Complemento.xlsx`, mesmo layout) entra pelo
 mesmo leitor; linha cujo cliente já está na oficial é descartada com log.

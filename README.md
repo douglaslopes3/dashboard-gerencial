@@ -15,18 +15,23 @@ python run_dashboard.py     # Parquet -> painel v3 + um arquivo por head
 ## Estado atual — medido em 01/09/2026
 
 ```
-28 arquivos de Sell In       3.110.907 linhas de origem   24 meses (2024-09 a 2026-08)
+28 arquivos de Sell In       3.114.298 linhas de origem   24 meses (2024-09 a 2026-08)
 receita liquida              R$ 2.309.797.874,70
 peso                         164.510,21 t
 caixas                       33.384.067
-fato                         3.107.516 linhas (3.391 100% zeradas descartadas, D-36)
+fato                         3.110.907 linhas (3.391 100% zeradas descartadas, D-36;
+                             T-36 corrigiu o registro: o descarte estava subtraido
+                             duas vezes no texto anterior)
 SKUs 400 · categorias 12 · canais 7 · heads 4 · bandeiras 300 nominais + balde de 10.989
+cod. de bandeira (D-42)      13.101 de 16.122 clientes (81,3% · 93,5% da receita),
+                             lido da Hierarquia_Consolidada: ponte por codigo com a
+                             base de metas FY 26/27 (cruzamento em construcao)
 
 reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
 grao                         zero duplicados
 cobertura da estrutura       99,96% da receita
 cobertura de canal           100,00% da receita
-testes                       30/30 unitarios · 6/6 cenarios ponta a ponta
+testes                       31/31 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~20 s com cache · exit 0
 painel (v3)                  14,4 MB · zero requisicao de rede · 5 paginas
                              granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),

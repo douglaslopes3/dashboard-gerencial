@@ -165,8 +165,13 @@ níveis N1–N3 não conflitam (medido: zero conflitos).
 Colunas por nível (os cabeçalhos têm **quebra de linha interna** — o leitor
 normaliza todo espaçamento): `CÓDIGO CLIENTE`, N1 head (`(N1) CÓDIGO HEAD`,
 `CRIAR NO BI (N1) HEAD`, `(N1) NOME HEAD`), N2 gerente, N3 sup./exec.,
-N4 vend./RCA (não ingerido), `PROJETO`, e ainda `CLIENTE`, `BANDEIRA`/`REDE`
-com códigos (não ingeridos — bandeira segue vindo do sell-in).
+N4 vend./RCA (não ingerido), `PROJETO`, e ainda `CLIENTE` e `REDE` com código
+(não ingeridos). `CÓDIGO BANDEIRA`/`BANDEIRA` são ingeridos desde 01/09/2026
+(D-42, colunas opcionais): viram `COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` na
+DIM_CLIENTE e são a ponte por código com a base de metas FY 26/27 — a
+`BANDEIRA` de tela segue vindo do sell-in. O complemento NÃO traz as colunas
+(pedido ao Comercial aberto); cobertura medida: 81,3% dos clientes, 93,5% da
+receita.
 
 Cada nível vira **um rótulo concatenado** `código - papel - nome` (parte vazia
 omitida): `20 - ATACADO - ADEMIR TAVARES`. O código vem SEM zeros à esquerda

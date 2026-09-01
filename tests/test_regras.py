@@ -197,6 +197,25 @@ def test_cliente_sem_estrutura_entra_e_nao_e_descartado():
     assert b["HEAD"] == "NÃO ATRIBUÍDO"
 
 
+def test_codigo_de_bandeira_entra_e_ausencia_fica_nula():
+    """D-42: COD_BANDEIRA vem da hierarquia (ponte por codigo com a meta).
+    Cliente do complemento (sem as colunas) fica <NA> — nunca inventado — e o
+    esquema da DIM e estavel mesmo quando a estrutura inteira nao as traz."""
+    est = pd.DataFrame(
+        [["1001", "Ademir", "Gerente SP", "Sup 1", "8200475", "MART MINAS"]],
+        columns=["COD_CLIENTE", "HEAD", "GERENTE", "SUPERVISOR",
+                 "COD_BANDEIRA", "BANDEIRA_ESTRUTURA"])
+    d = dimensoes.dim_cliente(_sellin(BASE), est).set_index("COD_CLIENTE")
+    assert d.at["1001", "COD_BANDEIRA"] == "8200475"
+    assert d.at["1001", "BANDEIRA_ESTRUTURA"] == "MART MINAS"
+    assert pd.isna(d.at["1002", "COD_BANDEIRA"])        # fora da estrutura
+    # Estrutura SEM as colunas (ex.: so o complemento): colunas existem, nulas.
+    d2 = dimensoes.dim_cliente(_sellin(BASE), pd.DataFrame(
+        columns=["COD_CLIENTE", "HEAD", "GERENTE", "SUPERVISOR"]))
+    assert d2["COD_BANDEIRA"].isna().all()
+    assert d2["BANDEIRA_ESTRUTURA"].isna().all()
+
+
 def test_nome_do_cliente_mais_recente_vence():
     """Cliente renomeado no meio da série apareceria duas vezes no ranking."""
     d = dimensoes.dim_cliente(_sellin(BASE), pd.DataFrame(

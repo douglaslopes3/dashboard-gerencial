@@ -88,6 +88,17 @@ def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
 
     d["BANDEIRA"] = d["BANDEIRA"].fillna(SEM_BANDEIRA)
     d["UF"] = d["UF"].fillna(SEM_UF)
+
+    # D-42: codigo de bandeira vindo da Hierarquia_Consolidada — a ponte por
+    # codigo com a base de metas. Ausencia fica <NA> (esquema estavel mesmo
+    # sem estrutura); cobertura no log porque o join da meta depende dela.
+    for c in ("COD_BANDEIRA", "BANDEIRA_ESTRUTURA"):
+        if c not in d.columns:
+            d[c] = pd.Series(pd.NA, index=d.index, dtype="string")
+    com_cod = int(d["COD_BANDEIRA"].notna().sum())
+    if com_cod:
+        log(f"codigo de bandeira (hierarquia): {com_cod:,} de {len(d):,} "
+            f"clientes ({com_cod / len(d):.1%})", "ok")
     return d.sort_values("COD_CLIENTE").reset_index(drop=True)
 
 

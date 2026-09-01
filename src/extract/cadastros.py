@@ -200,6 +200,17 @@ def _ler_estrutura(arq: Path) -> tuple[pd.DataFrame, dict]:
         out[destino] = _rotulo_concatenado(df, cols)
     if "PROJETO" in df.columns:
         out["PROJETO"] = texto(df["PROJETO"], maiuscula=False)
+    # D-42: a hierarquia carrega o cadastro de bandeiras do Comercial (serie
+    # 82xxxxx — a MESMA da base de metas FY 26/27). O sell-in nao traz codigo
+    # de bandeira nenhum, entao esta e a unica ponte por CODIGO entre meta e
+    # realizado. O nome vai junto como BANDEIRA_ESTRUTURA para nao colidir com
+    # a BANDEIRA do sell-in (grafias divergem em 9% dos clientes — o rotulo de
+    # tela continua sendo o do sell-in). O complemento nao tem as colunas:
+    # cliente sem elas fica <NA>, nunca inventado.
+    if "CÓDIGO BANDEIRA" in df.columns:
+        out["COD_BANDEIRA"] = digitos(df["CÓDIGO BANDEIRA"])
+    if "BANDEIRA" in df.columns:
+        out["BANDEIRA_ESTRUTURA"] = texto(df["BANDEIRA"])
 
     sem_chave = out["COD_CLIENTE"].isna()
     if sem_chave.any():
@@ -293,7 +304,12 @@ def ler_estrutura() -> tuple[pd.DataFrame, list[str]]:
         est = est[~(alvo & (est["SUPERVISOR"] != sup))]
 
     # ---- conflito NAO resolvido ------------------------------------------
-    for coluna in ("HEAD", "SUPERVISOR"):
+    # COD_BANDEIRA entra na checagem (medido em 01/09/2026: zero clientes com
+    # dois codigos) — se um dia conflitar, vale a 1a linha COM AVISO, igual aos
+    # niveis da estrutura.
+    for coluna in ("HEAD", "SUPERVISOR", "COD_BANDEIRA"):
+        if coluna not in est.columns:
+            continue
         n_por_cli = est.groupby("COD_CLIENTE")[coluna].nunique()
         conflito = n_por_cli[n_por_cli > 1]
         if len(conflito):

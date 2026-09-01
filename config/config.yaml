@@ -94,7 +94,11 @@ fontes:
       - "(N3) CÓDIGO SUP./EXEC."
       - "(N3) SUP./EXEC."
       - "(N3) NOME SUP./EXEC."
-    colunas_opcionais: ["PROJETO"]
+    # CÓDIGO BANDEIRA/BANDEIRA (D-42): cadastro de bandeiras do Comercial
+    # (serie 82xxxxx, a mesma da base de metas FY 26/27) — unica ponte por
+    # codigo entre meta e realizado, ja que o sell-in nao traz codigo de
+    # bandeira. O complemento nao tem as colunas (pedido ao Comercial aberto).
+    colunas_opcionais: ["PROJETO", "CÓDIGO BANDEIRA", "BANDEIRA"]
     # A ausência deste arquivo NÃO derruba o pipeline: o painel roda sem
     # hierarquia, com todo mundo em "NÃO ATRIBUÍDO" e um aviso na tela.
     obrigatorio: false

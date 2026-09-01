@@ -640,3 +640,26 @@ trocas conferidas na tela          "Copiar recorte" (sem 🔗) · "↓ CSV/XLSX"
                                    "set/25 a ago/26" · "SP · São Paulo"
 simbolos tipograficos mantidos     ▸ ▾ ▲ ▼ ‹ › Σ ✓ · (nao sao emoji)
 ```
+
+## T-36 · Código de bandeira da hierarquia na DIM_CLIENTE (D-42)
+
+```
+teste novo (test_codigo_de_bandeira_entra_e_ausencia_fica_nula)
+  cliente na estrutura           COD_BANDEIRA e BANDEIRA_ESTRUTURA presentes
+  cliente fora da estrutura      <NA> (nunca inventado)
+  estrutura sem as colunas       colunas existem na DIM, nulas (esquema estavel)
+unitarios                        31/31 (30 anteriores + este)
+cenarios ponta a ponta           6/6
+pipeline completo (cache v6)     28 Excel relidos · 75 s · exit 0
+  receita/peso/caixas            R$ 2.309.797.874,70 · 164.510,21 t ·
+                                 33.384.067 cx (IDENTICOS ao centavo)
+  cobertura do codigo            13.101 de 16.122 clientes (81,3%)
+                                 93,5% da receita de 24 meses
+painel regenerado                5 arquivos, tamanhos identicos, particiona-
+                                 mento fecha (2.308.856.707,70 + 941.167,11)
+correcao de registro             o README dizia "3.110.907 linhas de origem ·
+                                 fato 3.107.516": medido nos logs, a origem e
+                                 3.114.298 e a fato (pos-descarte D-36) e
+                                 3.110.907 - o descarte tinha sido subtraido
+                                 duas vezes no texto
+```

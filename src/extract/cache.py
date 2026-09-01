@@ -19,6 +19,9 @@ Checagem que não roda é pior do que checagem que não existe, porque dá a sen
 de proteção.
 
 v1 (26/08/2026) — versão inicial deste projeto.
+v6 (01/09/2026) — D-42: o leitor da estrutura comercial passou a ler CÓDIGO
+   BANDEIRA/BANDEIRA da Hierarquia_Consolidada (ponte por código com a base
+   de metas). Um cache v5 entregaria a estrutura sem as colunas novas.
 v5 (28/08/2026) — D-36: o leitor de sell-in passou a descartar (e contar no
    `extra["linhas_zeradas"]`) as linhas com as três métricas zeradas/nulas.
    Um cache v4 entregaria as linhas fantasma e o `extra` sem o campo.
@@ -50,7 +53,7 @@ import pandas as pd
 from ..utils.config import PASTA_STAGING, RAIZ
 from ..utils.log import log
 
-VERSAO_CACHE = 5
+VERSAO_CACHE = 6
 
 _KB64 = 65536
 

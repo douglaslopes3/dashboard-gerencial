@@ -841,3 +841,45 @@ cresceu R$ 48,9 mi.
 
 **Validação.** Varredura do texto renderizado da página inteira: zero emoji,
 zero travessão. 30/30 regras e 6/6 cenários após a troca do T-05.
+
+---
+
+## D-42 · Código de bandeira lido da Hierarquia_Consolidada: a ponte com a base de metas (01/09/2026)
+
+**Contexto.** As metas de set/26 chegaram no `FY 26-27_Meta Set_TT BRASIL.xlsx`
+(grão head x bandeira x categoria, R$ 122,28 mi e 7.824 t, hierarquia N2 a N4
+por linha). O cruzamento por NOME de bandeira cobre 250 de 259, mas depende de
+grafia (7 órfãs) e quebra em fusão/renomeação. A meta traz `CÓD. BANDEIRA 1/2`
+(série 82xxxxx do Comercial), que o sell-in não tem, e a medição de 01/09
+mostrou que a Hierarquia_Consolidada JÁ CARREGA esse cadastro nas colunas
+`CÓDIGO BANDEIRA`/`BANDEIRA`, que o leitor ignorava.
+
+**Decisão.**
+
+1. O leitor da estrutura passa a ler as duas colunas (opcionais no config):
+   `COD_BANDEIRA` (via `digitos()`) e `BANDEIRA_ESTRUTURA` (via `texto()`)
+   entram na DIM_CLIENTE. A `BANDEIRA` de tela segue vindo do sell-in: as
+   grafias divergem em 9% dos clientes (39,6% da receita), e trocar o rótulo
+   mexeria no eixo do painel sem necessidade.
+2. O cruzamento meta x realizado (fase seguinte) será por CÓDIGO primeiro e
+   nome como fallback declarado. Medido com a hierarquia de hoje: 240 dos 256
+   códigos nomeados da meta existem, 97,6% do RL nomeado casa por código; o
+   código já resolve sozinho a duplicidade Passarela/Via Atacadista (8200734
+   dos dois lados) e a fusão BH+Minas Diet (8201079, Minas Diet já está na
+   bandeira SBH na hierarquia).
+3. `COD_BANDEIRA` entra na checagem de conflito por cliente (zero conflitos
+   medidos; se surgir, vale a 1a linha com aviso). Ausência fica `<NA>`,
+   nunca inventada; esquema da DIM é estável mesmo sem estrutura.
+4. `VERSAO_CACHE` 5 → 6 (leitor mudou de colunas).
+
+**Aberto (pedidos ao Comercial).** `Hierarquia_Complemento` sem as colunas de
+bandeira (2.612 clientes ficam sem código, cobertura para em 81,3% dos
+clientes/93,5% da receita); 16 códigos da meta sem par na hierarquia
+(R$ 2,17 mi, 2,4% do RL nomeado, série 8202xxx nova); executivo 4210
+inexistente; cód. 8200372 cobre LASA e HORTIFRUTTI juntas (meta só tem
+HORTIFRUTTI, confirmar se o grupo fundido é intencional).
+
+**Validação.** 31/31 regras + 6/6 cenários; pipeline com totais IDÊNTICOS ao
+centavo (R$ 2.309.797.874,70 · 164.510,21 t · 33.384.067 cx); painel
+regenerado byte-idêntico em tamanho; log novo: "codigo de bandeira
+(hierarquia): 13.101 de 16.122 clientes (81,3%)".
