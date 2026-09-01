@@ -13,9 +13,10 @@
 </style></head><body>
 <h1>Fluxo de geração do painel — do Excel bruto ao HTML publicado</h1>
 <div class="sub">Dashboard Gerencial de Canais (Sell In) · medido em 26/08/2026 ·
+publicação (coluna 5) atualizada em 31/08/2026: painel v3 + arquivos por head ·
 explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
 <div class="wrap">
-<svg viewBox="0 0 1180 640" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
+<svg viewBox="0 0 1180 660" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
   <defs>
     <marker id="seta" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
       <path d="M0,0 L9,4.5 L0,9 z" fill="#5b6b7c"/>
@@ -133,18 +134,25 @@ explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
 
   <!-- ============ coluna 5: publicacao ============ -->
   <rect class="box" x="920" y="346" width="240" height="86" rx="8"/>
-  <text class="t" x="932" y="366">template.html (interface, à mão)</text>
+  <text class="t" x="932" y="366">template_v3.html (interface, à mão)</text>
   <text class="d" x="932" y="384">2 substituições de texto:</text>
   <text class="d" x="932" y="398">· JSON dos cubos → marcador de dados</text>
   <text class="d" x="932" y="412">· Chart.js 200 KB → marcador de lib</text>
   <text class="d" x="932" y="426">marcador duplicado/ausente → aborta</text>
 
-  <rect class="box pub" x="920" y="452" width="240" height="96" rx="8"/>
-  <text class="tp" x="932" y="474">Dashboard_Gerencial_Canais.html</text>
-  <text class="dp" x="932" y="492">dashboard/build/ · 14,3 MB · 1 arquivo</text>
-  <text class="dp" x="932" y="506">zero rede · abre por duplo clique (file://)</text>
-  <text class="dp" x="932" y="520">5 páginas · exportação CSV/XLSX · drills</text>
-  <text class="dp" x="932" y="534">rodapé gerado: totais, execução, ressalvas</text>
+  <rect class="box pub" x="920" y="446" width="240" height="90" rx="8"/>
+  <text class="tp" x="932" y="466">Dashboard_Gerencial_Canais_v3.html</text>
+  <text class="dp" x="932" y="483">dashboard/build/ · 14,4 MB · 1 arquivo</text>
+  <text class="dp" x="932" y="497">zero rede · abre por duplo clique (file://)</text>
+  <text class="dp" x="932" y="511">5 páginas · exportação CSV/XLSX · drills</text>
+  <text class="dp" x="932" y="525">rodapé gerado: totais, execução, ressalvas</text>
+
+  <rect class="box pub" x="920" y="548" width="240" height="86" rx="8"/>
+  <text class="tp" x="932" y="568">..._v3_HEAD_&lt;head&gt;.html · um por head</text>
+  <text class="dp" x="932" y="585">recorte FÍSICO: só o cubo do próprio squad</text>
+  <text class="dp" x="932" y="599">entra no arquivo; partição confere no log</text>
+  <text class="dp" x="932" y="613">NÃO ATRIBUÍDO fica de fora (não é squad)</text>
+  <text class="dp" x="932" y="627">distribuição: cada head só recebe o seu</text>
 
   <!-- ============ fios ============ -->
   <path class="fio" d="M290 83  L330 83"/>
@@ -161,7 +169,8 @@ explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
   <path class="fio" d="M765 316 L765 346"/>
   <path class="fio" d="M765 436 L765 452"/>
   <path class="fio" d="M890 479 L905 479 L905 389 L920 389"/>
-  <path class="fio" d="M1040 432 L1040 452"/>
+  <path class="fio" d="M1040 432 L1040 446"/>
+  <path class="fio" d="M1040 536 L1040 548"/>
 
   <text class="nota" x="330" y="415">comandos: python run_pipeline.py  →  python run_dashboard.py</text>
   <text class="nota" x="330" y="431">2 min a frio · ~20 s com cache · exit 0/1 sempre explícito</text>
