@@ -2,18 +2,21 @@
 
 > Para entender o caminho do dado bruto até o painel publicado **sem ler
 > código**. Diagrama navegável em [`fluxo_geracao_painel.html`](fluxo_geracao_painel.html)
-> (abre por duplo clique). Estado medido em 26/08/2026.
+> (abre por duplo clique). Estado medido em 26/08/2026; publicação (seção 5)
+> atualizada em 31/08/2026 com o painel v3 e os arquivos por head.
 
 ## O fluxo em uma linha
 
 ```
  4 bases Excel ──► run_pipeline.py (6 passos) ──► modelo estrela (Parquet)
                                                        │
-                     dashboard/template.html ◄─────────┤ cubos.json + resumo.json
+                     dashboard/template_v3.html ◄──────┤ cubos.json + resumo.json
                      + Chart.js embutido               │
                                 ▼                      ▼
-                     run_dashboard.py ──► dashboard/build/Dashboard_Gerencial_Canais.html
-                                          (14,3 MB · um arquivo · abre por duplo clique)
+                     run_dashboard.py ──► dashboard/build/Dashboard_Gerencial_Canais_v3.html
+                                          (14,4 MB · um arquivo · abre por duplo clique)
+                                     └──► Dashboard_Gerencial_Canais_v3_HEAD_<head>.html
+                                          (um por head · so os dados do proprio squad)
 ```
 
 ---
@@ -117,21 +120,35 @@ agregado; e camada agregada que não reconcilia com a fato **não é publicada**
 
 ## 5. Publicação — como o painel final nasce
 
-`python run_dashboard.py` (~1 s):
+`python run_dashboard.py` (~1,3 s):
 
-1. Lê `data/curated/cubos.json` e `resumo.json`.
-2. Abre `dashboard/template.html` — **a interface inteira vive aqui**, editada à
-   mão; nenhuma linha de HTML/CSS/JS nasce em Python.
-3. Faz **duas substituições de texto**: injeta o JSON dos cubos entre os
-   marcadores de dados e embute o `dashboard/lib/chart.umd.min.js` no marcador
-   de biblioteca (cada marcador precisa existir exatamente 1 vez, senão aborta).
-4. Grava **`dashboard/build/Dashboard_Gerencial_Canais.html`** — 14,3 MB, um
-   arquivo só, **zero requisições de rede**. Abre por duplo clique, inclusive
-   em `file://` no OneDrive, sem servidor e sem internet.
+1. Lê `data/curated/cubos.json` e `resumo.json` (e confere que os dois vêm da
+   **mesma execução**; par trocado aborta).
+2. Abre o template apontado no config (hoje `dashboard/template_v3.html`) —
+   **a interface inteira vive aqui**, editada à mão; nenhuma linha de
+   HTML/CSS/JS nasce em Python.
+3. Faz **duas substituições de texto**: embute o
+   `dashboard/lib/chart.umd.min.js` no marcador de biblioteca e injeta o JSON
+   dos cubos entre os marcadores de dados (cada marcador precisa existir
+   exatamente 1 vez, senão aborta).
+4. Grava **`dashboard/build/Dashboard_Gerencial_Canais_v3.html`** — 14,4 MB,
+   um arquivo só, **zero requisições de rede**. Abre por duplo clique,
+   inclusive em `file://` no OneDrive, sem servidor e sem internet.
+5. **Arquivos por head** (config `dashboard.por_head`, 31/08/2026): para cada
+   head da base (menos `NÃO ATRIBUÍDO`, que não é squad de ninguém), gera
+   `..._HEAD_<head>.html` com o **recorte aplicado no nível de dados**: os
+   dois cubos são filtrados pelo perfil do squad antes de entrar no arquivo e
+   os índices são remapeados. O que é de outro head **não existe** dentro do
+   arquivo, então nenhuma manipulação de interface ou de parâmetro o traz de
+   volta. A geração confere por assert que nenhuma linha de outro head vazou
+   e loga a reconciliação do particionamento (soma dos heads + não atribuído
+   = base completa). Título, cabeçalho e rodapé de cada arquivo declaram a
+   restrição. **Distribuição: cada head recebe só o próprio arquivo.**
 
 O rodapé do painel é gerado nesta etapa a partir do `resumo.json` — nada é
 digitado à mão: nº de arquivos, linhas, período, totais, execução e as
-ressalvas medidas.
+ressalvas medidas. Nos arquivos por head, uma linha inicial declara o recorte;
+os números de contexto do rodapé seguem sendo os da base completa.
 
 > Distribuição para os heads (SharePoint): plano e decisões em
 > [`15_PLANO_SHAREPOINT.md`](15_PLANO_SHAREPOINT.md).

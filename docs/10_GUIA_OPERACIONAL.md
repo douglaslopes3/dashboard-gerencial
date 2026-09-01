@@ -53,8 +53,28 @@ Abra `data\quality\relatorio_qualidade.md`. Olhe três coisas:
 python run_dashboard.py
 ```
 
-Sai em `dashboard\build\Dashboard_Gerencial_Canais.html` (~9 MB).
+Sai em `dashboard\build\` (template e nome do arquivo vêm do config; hoje o
+v3):
+
+```
+Dashboard_Gerencial_Canais_v3.html                          painel completo (~14 MB)
+Dashboard_Gerencial_Canais_v3_HEAD_<head>.html              um por head (4 arquivos)
+```
+
 **Abra por duplo clique.** Não precisa de servidor nem de internet.
+
+**Os arquivos por head** (config `dashboard.por_head`) carregam **somente os
+dados do squad do próprio head**: o recorte é aplicado na geração do arquivo,
+não na interface. O que é de outro squad não existe dentro do arquivo, então
+não há filtro, link ou parâmetro capaz de trazê-lo de volta. Título, cabeçalho
+e rodapé declaram a restrição. `NÃO ATRIBUÍDO` não gera arquivo (não é squad
+de ninguém); o log da geração confere que heads + não atribuído fecham com a
+base completa.
+
+**Regra de distribuição: cada head recebe apenas o SEU arquivo `_HEAD_`.**
+O painel completo e os arquivos dos demais heads não devem ser compartilhados
+com eles. Quem envia o arquivo errado entrega o dado errado; a segregação é
+por arquivo.
 
 ---
 
@@ -92,6 +112,7 @@ O log completo de cada execução fica em `logs\pipeline_<execução>.log`
 | Desempatar um cliente com dois supervisores | `dimensoes.estrutura_comercial.desempate_cliente` |
 | Mostrar mais bandeiras no ranking | `dashboard.top_bandeiras` (300 = 73,4% da receita; 500 = 78,9% e +1,9 MB) |
 | Mudar quantos itens aparecem em ganhos/quedas | `dashboard.top_ranking` |
+| Ligar/desligar os arquivos por head, ou trocar o prefixo do nome | `dashboard.por_head` (`ativo`, `prefixo`) |
 | Afrouxar/apertar a tolerância de reconciliação | `validacao.tolerancia_*` |
 | Adicionar uma pasta de entrada | `fontes.sellin.pastas` |
 
@@ -107,9 +128,13 @@ filtra, não corrige e não ordena nada.)
 **Seletores globais** — métrica (Valor R$ / Volume t / Caixas), base de
 comparação (YTD Fiscal / YTD Calendário — a comparação com o ano anterior está
 **embutida**: o painel compara os meses selecionados com os mesmos meses do LY)
-e granularidade (Mês / Trimestre / Semestre).
+e, na barra de **Período** (no v3, logo abaixo do gráfico de Evolução), a
+seleção de período com setas e o seletor **Ver por** (Mês / Trimestre /
+Semestre / Ano), que define a granularidade das colunas e das barras. Grupo
+com menos meses que a granularidade pede sai rotulado **(parcial)** (ou `*`
+nas colunas da matriz), nunca como período cheio.
 
-**Exportar** — toda tabela tem botões `⬇ CSV` / `⬇ XLSX` no cabeçalho do card.
+**Exportar** — toda tabela tem botões `↓ CSV` / `↓ XLSX` no cabeçalho do card.
 Sai o que está na tela (todos os filtros valem), com **número como número**
 (sem "R$", decimal com ponto) e o nome dizendo tabela, recorte, base e mês
 (`sku-amendoim_ytd-fiscal_2026-08.xlsx`).
@@ -119,9 +144,10 @@ da categoria clicada e a quebra por **Head** abre os gerentes do head, sempre
 ordenados pela **maior queda** ("quem puxou o resultado para baixo"), com o
 mesmo período, base e filtros da tela, botão "← voltar" e exportação própria.
 
-**A linha azul de estado**, logo abaixo dos filtros, sempre diz o que está
-ativo: métrica, base, período, **quantos meses do ano anterior estão cobertos** e
-quais filtros de dimensão estão ligados.
+**A linha azul de estado**, no bloco de controles (no v3, abaixo do gráfico de
+Evolução), sempre diz o que está ativo: métrica, base, período, **quantos
+meses do ano anterior estão cobertos** e quais filtros de dimensão estão
+ligados.
 
 **Cinco coisas que o painel declara de propósito** (rodapé):
 
@@ -147,7 +173,7 @@ sinal (+/−).
 ## Rodar os testes
 
 ```bash
-python tests/test_regras.py      # 29 testes de regra critica
+python tests/test_regras.py      # 30 testes de regra critica
 python tests/cenarios.py         # 6 cenarios de ponta a ponta (roda o pipeline)
 ```
 
@@ -165,8 +191,8 @@ data/staging/           cache de leitura (pode apagar; sera refeito)
 data/curated/           modelo estrela + cubos  <- o que o painel consome
 data/quality/           relatorio e CSVs de excecao da ultima execucao
 logs/                   log completo, um por execucao
-dashboard/template.html interface (editada a mao)
-dashboard/build/        o painel gerado
+dashboard/template_v3.html  interface (editada a mao; v1 e v2 ficam como retorno rapido)
+dashboard/build/            o painel gerado + os arquivos por head
 config/config.yaml      todos os parametros
 docs/                   esta documentacao
 ```
