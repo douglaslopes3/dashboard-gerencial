@@ -7,31 +7,35 @@ Roda **100% local**, sem servidor, sem internet e **sem nenhuma IA**.
 
 ```
 python run_pipeline.py      # bases -> Parquet -> relatorio de qualidade
-python run_dashboard.py     # Parquet -> Dashboard_Gerencial_Canais.html
+python run_dashboard.py     # Parquet -> painel v3 + um arquivo por head
 ```
 
 ---
 
-## Estado no encerramento do ciclo — medido em 26/08/2026
+## Estado atual — medido em 01/09/2026
 
 ```
-28 arquivos de Sell In       3.085.119 linhas       24 meses (2024-09 a 2026-08)
-receita liquida              R$ 2.260.853.914,86
-peso                         161.321,49 t
-caixas                       32.659.819
-clientes 16.131              SKUs 494               bandeiras 11.296  canais 8
+28 arquivos de Sell In       3.110.907 linhas de origem   24 meses (2024-09 a 2026-08)
+receita liquida              R$ 2.309.797.874,70
+peso                         164.510,21 t
+caixas                       33.384.067
+fato                         3.107.516 linhas (3.391 100% zeradas descartadas, D-36)
+SKUs 400 · categorias 12 · canais 7 · heads 4 · bandeiras 300 nominais + balde de 10.989
 
 reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
-grao                         zero duplicados em 3,08 mi de linhas
-cobertura da estrutura       99,98% da receita
+grao                         zero duplicados
+cobertura da estrutura       99,96% da receita
 cobertura de canal           100,00% da receita
-testes                       29/29 unitarios · 6/6 cenarios ponta a ponta
+testes                       30/30 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~20 s com cache · exit 0
-fato em disco                20,3 MB (zstd) · JSONs atomicos e carimbados
-painel                       14,3 MB · zero requisicao de rede · 5 paginas
-                             render 44 ms (motor com indice + memo + aba ativa)
+painel (v3)                  14,4 MB · zero requisicao de rede · 5 paginas
+                             granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),
+                             periodo parcial declarado, filtros em todas as abas
                              exportacao CSV/XLSX em toda tabela
                              drills: Categoria -> SKU · Head -> Gerente
+por head                     4 arquivos restritos (1,7 a 7,5 MB), recorte fisico
+                             na geracao: o arquivo de um head nao contem os
+                             dados dos outros squads
 ```
 
 **Auditoria completa** (26–27/08, cinco camadas, tudo medido): [`AUDIT.md`](AUDIT.md)
@@ -44,8 +48,10 @@ O caminho do dado bruto ao painel, sem ler código:
 em [docs/fluxo_geracao_painel.html](docs/fluxo_geracao_painel.html)). Cadência
 de atualização (Sell In diário; o resto estático):
 **[docs/14](docs/14_CADENCIA_DE_ATUALIZACAO.md)**. Saída do ambiente de IA para
-o SharePoint: **[docs/15](docs/15_PLANO_SHAREPOINT.md)** — com 5 decisões em
-aberto.
+o SharePoint: **[docs/15](docs/15_PLANO_SHAREPOINT.md)**. Primeiro passo
+executado em 01/09/2026 (painéis publicados em `Documentos\Painéis
+Comerciais\Gerencial\`, permissões pendentes com o Douglas); as 5 decisões
+D-a a D-e seguem em aberto.
 
 ---
 
@@ -54,8 +60,11 @@ aberto.
 1. Largue o arquivo novo de Sell In em `bases\Sell In\` **ou** `data\raw\sell_in\`.
 2. `python run_pipeline.py`
 3. Confira `data\quality\relatorio_qualidade.md`.
-4. `python run_dashboard.py` → abra `dashboard\build\Dashboard_Gerencial_Canais.html`
-   por **duplo clique**.
+4. `python run_dashboard.py` → abra
+   `dashboard\build\Dashboard_Gerencial_Canais_v3.html` por **duplo clique**.
+   Saem também os 4 arquivos `..._v3_HEAD_<head>.html`, um por head, cada um
+   contendo apenas os dados do próprio squad. Regra de distribuição: cada head
+   recebe só o seu.
 
 Nenhuma edição de código em nenhuma etapa. Detalhes e mensagens de erro em
 **[docs/10_GUIA_OPERACIONAL.md](docs/10_GUIA_OPERACIONAL.md)**.
@@ -82,14 +91,29 @@ e **Preço Médio R$/kg**, calculado sempre como `SUM(receita) / SUM(peso_kg)`
 **2 bases de comparação** — YTD Fiscal (set→ago) e YTD Calendário (jan→dez),
 com a comparação contra o mesmo período do ano anterior **embutida** (o período
 é a seleção de meses; o anterior são os mesmos meses do LY). Variação absoluta,
-variação % e participação % em toda tabela.
+variação % e participação % em toda tabela. No gráfico de Evolução, as barras
+seguem a ordem cronológica: ano anterior à esquerda, atual à direita.
+
+**4 granularidades** no seletor **Ver por** da barra de Período: Mês, Trimestre,
+Semestre e Ano. Mesma tela e mesma conta nos quatro modos; muda só o
+agrupamento das colunas/barras e os rótulos. Grupo com menos meses que a
+granularidade pede sai marcado **(parcial)**, nunca como período cheio.
 
 **Exportação CSV/XLSX em todas as tabelas** (dado cru, respeitando os filtros)
 e **drill-down**: Categoria → SKUs e Head → Gerentes, ordenados pela maior
 queda.
 
 **Filtros globais** derivados das dimensões: ano fiscal, ano calendário, meses,
-**canal**, categoria, head, gerente, **projeto**, UF, bandeira e SKU.
+**canal**, categoria, head, gerente, **projeto**, UF, bandeira e SKU. O painel
+de filtros (com a barra de Período e a linha de estado) existe em todas as
+abas: abaixo do gráfico de Evolução na Visão Geral, no topo nas demais.
+
+**Visão por head**: além do painel completo, a geração produz um arquivo por
+head com o recorte aplicado no nível de dados. Os cubos embutidos no arquivo de
+um head contêm somente as linhas do squad dele; não há filtro, link ou
+parâmetro capaz de exibir outro squad, porque o dado não está no arquivo.
+Título, cabeçalho e rodapé declaram a restrição. Configuração em
+`config/config.yaml → dashboard.por_head`.
 
 ---
 
@@ -107,9 +131,10 @@ queda.
 1. **Caixas é métrica bruta.** Valor e Volume são líquidos de devolução; Caixas
    não — 93,7% das linhas de devolução não têm quantidade na origem. Desvio
    medido: **0,28%**.
-2. **O ranking de bandeiras é nominal nas 300 maiores** (73,4% do faturamento).
-   As outras 10.996 **não somem**: entram agregadas, e todo total continua
-   reconciliando com a base.
+2. **O ranking de bandeiras é nominal nas 300 maiores** (73,7% do faturamento,
+   medido em 01/09/2026; na tela do v3 a cobertura é recalculada sob o recorte
+   ativo). As outras 10.989 **não somem**: entram agregadas, e todo total
+   continua reconciliando com a base.
 3. **A camada de SKU cruza com head, canal, categoria e UF — não com gerente,
    bandeira nem projeto.** Quando esses filtros ficam ativos junto com um filtro
    de SKU, a tela avisa em vez de fingir que aplicou.
@@ -144,7 +169,7 @@ vem do **conteúdo**, nunca do nome do arquivo.
 bases/                     origem (somente leitura)
 data/{raw,staging,curated,quality}/
 src/{extract,transform,load,utils}/
-dashboard/{lib,template.html,build/}
+dashboard/{lib,template_v3.html,build/}   (template.html e template_v2.html: retorno rapido)
 config/{config.yaml,geografia.yaml}
 docs/  logs/  tests/
 run_pipeline.py  run_dashboard.py
@@ -182,7 +207,7 @@ run_pipeline.py  run_dashboard.py
 | P4 | Caixas na devolução: pedir `Qtde` negativa ao BI (opção A), estimar pelo fator kg/caixa (B, cobre 98,6%) ou manter bruta (C, atual) | **Douglas decide** + BI | 0,28% das caixas | GAP-04 e a tabela de opções na conversa de 26/08 |
 | P5 | 7 SKUs fora do `Produtos.xlsx` | **Cadastro de Produtos** | R$ 910 mil (0,04%) | `data/quality/skus_sem_cadastro.csv` |
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
-| P7 | As **5 decisões do SharePoint** (D-a a D-e) | **Douglas decide** | — | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
+| P7 | As **5 decisões do SharePoint** (D-a a D-e). Primeiro passo já executado em 01/09/2026: painéis publicados em `Painéis Comerciais\Gerencial\`; **falta o Douglas configurar as permissões** (cada `_HEAD_` só para o próprio head) | **Douglas decide** | — | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
 
 ---
 
