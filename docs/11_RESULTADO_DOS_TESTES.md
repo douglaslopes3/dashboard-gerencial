@@ -505,3 +505,138 @@ B1c abas sob demanda                          sujas apos filtro; renderizam no
 render()                                      44 ms · modo SKU 51 ms (era o
                                               cenario de segundos em maquina fraca)
 ```
+
+---
+
+# Reteste do painel V3 (lotes 1 e 2) e arquivos por head — 31/08 a 01/09/2026
+
+Cobre a varredura de diagnóstico de 31/08, a fase 2 aprovada (D-38 a D-41) e a
+geração por head. Todo número veio de execução real, a maior parte lida do
+painel em execução no navegador.
+
+## T-29 · Suites, pipeline e geração
+
+```
+python tests/test_regras.py    30 de 30
+python tests/cenarios.py       6 de 6 · T-05 reescrito: o esperado agora e
+                               MEDIDO na hora (receita do resumo.json antes do
+                               cenario + R$ 1.000,00 do arquivo sintetico,
+                               tolerancia de 1 centavo). O literal antigo
+                               (R$ 2.260.854.914,86) quebrou sozinho quando o
+                               sell-in de ago/26 chegou: base +R$ 48,9 mi sem
+                               defeito nenhum (D-41)
+python run_pipeline.py         exit 0 · 28 arquivos · 3.110.907 linhas de origem
+                               receita R$ 2.309.797.874,70 · 164.510,21 t
+                               · 33.384.067 cx · coberturas 99,96% / 100,00%
+python run_dashboard.py        exit 0 · ~1,3 s · 5 arquivos:
+  Dashboard_Gerencial_Canais_v3.html                            14,39 MB
+  ..._v3_HEAD_10-distribuicao-michel-meira.html                  3,90 MB
+  ..._v3_HEAD_20-atacado-ademir-tavares.html                     7,52 MB
+  ..._v3_HEAD_30-ka-nacional-vago.html                           1,67 MB
+  ..._v3_HEAD_40-ka-regional-izabela-santos.html                 2,09 MB
+particionamento (log)          heads R$ 2.308.856.707,70 + NAO ATRIBUIDO
+                               R$ 941.167,11 = R$ 2.309.797.874,81 (fecha;
+                               os 11 centavos vs resumo sao o residuo ja
+                               documentado do escalonamento em centavos)
+```
+
+## T-30 · Varredura do build no navegador (diagnóstico de 31/08)
+
+```
+build antigo em disco          continha "**template_v2.html**" ANTES do
+                               <!DOCTYPE> (artefato de colagem: quirks mode e
+                               texto visivel no topo). O template commitado ja
+                               estava limpo; o build era anterior. Regenerado
+                               e conferido: DOCTYPE na primeira linha
+carga + interacoes             zero erros de console em: carga, 5 abas, 6
+                               dimensoes do Detalhamento, drill Categoria->SKU
+                               (108 linhas) e Head->Gerentes (4), ordenacao
+                               por cabecalho (desc/asc), filtros, aviso F1-C
+                               da pagina de SKU, link de recorte restaurado
+                               apos reload (aba SKU + 1 gerente voltaram)
+ids referenciados no JS        60 de 60 existem · zero id duplicado no DOM
+v1 x v2 x v3                   payload embutido identico nos tres builds
+                               (mesma execucao, mesmo tamanho de blob)
+```
+
+## T-31 · "Ver por" nas 4 granularidades e período parcial (D-38)
+
+```
+Ver por: Trimestre (FY cheio)  grafico FY2026-T1..T4 · titulo "· Trimestre"
+Ver por: Ano                   grafico [FY2026] · tabela de periodo [FY2026]
+                               · colunas da matriz [FY2025, FY2026]
+cenario do bug (antes: alto)   Periodo=Mes (ago/26) + Ver por=Trimestre
+                               -> rotulo "FY2026-T4 (parcial)" com
+                               R$ 105.058.120,79 (1 mes); a nota explica o
+                               "(parcial)". Antes rotulava T4 cheio
+                               (R$ 313,5 mi reais no T4)
+chips                          Periodo "Mes" aceso + Ver por "Trimestre"
+                               aceso ao mesmo tempo: estados independentes e
+                               ambos visiveis
+sync L3 mantida                clicar num atalho de Periodo realinha a
+                               granularidade (Acumulado -> colunas por mes)
+barras locais nas abas         removidas; a barra vive no painel de filtros
+                               que viaja (T-34)
+```
+
+## T-32 · Ordem das barras do comparativo (D-39)
+
+```
+posicao renderizada            Ano anterior x=78 (esquerda) · Atual x=85
+                               (direita), lidas do Chart.js em execucao
+legenda                        [Δ% vs LY, Media do periodo, Ano anterior,
+                               Atual] — ano anterior antes do atual
+detalhe que pegou              trocar so a ordem do ARRAY de datasets nao
+                               muda nada: posicao/legenda/tooltip seguem a
+                               propriedade `order` (LY:3, Atual:4; linhas 1
+                               e 2 continuam por cima)
+rotulo em negrito              segue o LABEL "Atual", nao a posicao di===0
+                               (senao o negrito trocaria de barra)
+```
+
+## T-33 · Arquivos por head: recorte físico conferido (D-40)
+
+Arquivo do head 20 (ATACADO, Ademir Tavares) aberto no navegador:
+
+```
+soma do cubo DO ARQUIVO        92.823.291.482 centavos
+mesmo recorte no painel        92.823.291.482 centavos  <- identicos
+completo (filtro por perfil)   (R$ 928.232.914,82)
+dims.head                      ["20 - ATACADO - ADEMIR TAVARES"] (so ele)
+perfil / hc                    nenhuma tupla de outro head
+"MICHEL MEIRA" no HTML inteiro ausente (innerHTML varrido)
+titulo / h1 / rodape           declaram "Arquivo restrito ao head ..."
+console                        zero erros
+```
+
+Publicação em `Painéis Comerciais\Gerencial\` (01/09): os 5 arquivos copiados
+com nome temporário + renome e conferidos por md5 contra o build, 5 de 5
+idênticos byte a byte.
+
+## T-34 · Painel de filtros em todas as abas (D-38, pedido seguinte)
+
+```
+posicao por aba                geral: depois do #gridEvo · geo/band/sku/preco:
+                               primeiro elemento do panel (medido via DOM nas
+                               5 abas, ida e volta)
+filtro aplicado de outra aba   na aba Bandeiras, abrir o painel e clicar
+                               CASH & CARRY: 1a linha da tabela muda de
+                               "DEMAIS BANDEIRAS 29.251" para "ATACADAO
+                               6.107" na hora; linha de estado mostra
+                               "1 canal(is)" na propria aba
+Ver por de dentro da aba SKU   Trimestre reagrupa a matriz (T1/25, T2/25...)
+listeners                      preservados na viagem do no (nada re-ligado);
+                               zero erros de console no ciclo completo
+```
+
+## T-35 · Interface sem emoji e sem travessão (D-41)
+
+```
+varredura do texto renderizado (document.body.innerText, pagina inteira):
+  emojis (U+1F300..1FAFF, ⬇, ⚠)   0 ocorrencias
+  travessao (—)                    0 ocorrencias
+trocas conferidas na tela          "Copiar recorte" (sem 🔗) · "↓ CSV/XLSX"
+                                   · "Atenção:" nos avisos · intervalos
+                                   "set/25 a ago/26" · "SP · São Paulo"
+simbolos tipograficos mantidos     ▸ ▾ ▲ ▼ ‹ › Σ ✓ · (nao sao emoji)
+```
