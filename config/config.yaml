@@ -197,8 +197,8 @@ validacao:
 # DASHBOARD
 # -----------------------------------------------------------------------------
 dashboard:
-  arquivo_saida: "Dashboard_Gerencial_Canais.html"
-  template: "dashboard/template.html"
+  arquivo_saida: "Dashboard_Gerencial_Canais_v3.html"
+  template: "dashboard/template_v3.html"
   pasta_saida: "dashboard/build"
   libs:
     chart: "dashboard/lib/chart.umd.min.js"
