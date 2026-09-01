@@ -39,6 +39,41 @@ _DASH = CFG["dashboard"]
 RE_LIB = re.compile(r"<!--LIB:([a-zA-Z0-9_-]+)-->")
 
 
+def _slug(s: str) -> str:
+    import unicodedata
+    t = unicodedata.normalize("NFD", str(s))
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
+    t = re.sub(r"[^a-z0-9]+", "-", t).strip("-")
+    return t[:60]
+
+
+def filtrar_por_head(pacote: dict, head: str) -> dict:
+    """Recorte FISICO por head: o pacote devolvido so contem as linhas de cubo
+    cujo perfil (cubo principal) ou par head/canal (cubo de SKU) pertencem ao
+    head pedido. E o filtro no nivel de DADOS: o que nao esta no arquivo nao
+    existe para quem o abre, nao ha parametro de interface que traga de volta.
+    Os indices de perfil/hc sao remapeados porque as listas encolhem."""
+    dims = pacote["dims"]
+    manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[0] == head]
+    mapa_perf = {i: j for j, i in enumerate(manter_perf)}
+    manter_hc = [i for i, p in enumerate(dims["hc"]) if p[0] == head]
+    mapa_hc = {i: j for j, i in enumerate(manter_hc)}
+
+    cubo = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6], l[7]]
+            for l in pacote["cubo"] if l[3] in mapa_perf]
+    cubo_sku = [[l[0], l[1], mapa_hc[l[2]], l[3], l[4], l[5], l[6]]
+                for l in pacote["cubo_sku"] if l[2] in mapa_hc]
+
+    novo = dict(pacote)
+    novo["dims"] = {**dims,
+                    "head": [head],
+                    "perfil": [dims["perfil"][i] for i in manter_perf],
+                    "hc": [dims["hc"][i] for i in manter_hc]}
+    novo["cubo"] = cubo
+    novo["cubo_sku"] = cubo_sku
+    return novo
+
+
 def embutir_libs(html: str) -> str:
     libs = _DASH.get("libs") or {}
     faltando: list[str] = []
@@ -107,7 +142,7 @@ def main() -> int:
         f"<b>{br(R['peso_t'])} t</b> · <b>{br(R['caixas'], 0)}</b> caixas<br>"
         f"Processado em {R['gerado_em']} · execução <code>{R['execucao']}</code><br>"
         "<b>Ressalvas medidas, declaradas de propósito:</b> "
-        "(1) <b>Caixas é métrica bruta</b> — Valor e Volume são líquidos de devolução, "
+        "(1) <b>Caixas é métrica bruta</b>: Valor e Volume são líquidos de devolução, "
         f"Caixas não; {br(R['caixas_sem_info'], 0)} linhas não têm caixa informada na origem. "
         f"(2) <b>Canal</b> vem de <code>bases/Canais/Canais.xlsx</code>, com "
         f"<b>{br(R.get('cobertura_canal', 0) * 100, 2)}%</b> da receita classificada; "
@@ -115,7 +150,7 @@ def main() -> int:
         f"(3) Ranking de bandeiras nominal nas {c['top']} maiores "
         f"({br(c['cobertura'] * 100, 1)}% do faturamento); as demais entram agregadas, "
         "o total continua fechando. "
-        "(4) A camada de SKU cruza com head, canal, categoria e UF — não com gerente, "
+        "(4) A camada de SKU cruza com head, canal, categoria e UF, não com gerente, "
         "bandeira nem projeto; a tela avisa quando esses filtros ficam ativos juntos.<br>"
         "Gaps, donos e tamanhos em <code>docs/04_GAPS_E_RISCOS.md</code> · "
         "qualidade desta carga em <code>data/quality/relatorio_qualidade.md</code>"
@@ -154,25 +189,68 @@ def main() -> int:
         abortar(f"o marcador de biblioteca aparece {n_lib} vez(es) em "
                 f"{template.name}; tem de aparecer exatamente 1.")
 
-    dados = json.dumps(pacote, ensure_ascii=False, separators=(",", ":"))
-    # C1 (auditoria): descricao de SKU vem de Excel de terceiros. Um "</script>"
-    # futuro dentro de um valor encerraria o bloco no parse e quebraria o painel
-    # inteiro. "<\/" e escape JSON valido — o valor lido nao muda.
-    dados = dados.replace("</script>", "<\\/script>")
-    antes, resto = html.split(ini, 1)
+    # A lib entra UMA vez na base; os marcadores de dados sobrevivem (o bundle
+    # do Chart.js nao os contem — os checks acima ja rodaram sobre o template).
+    base = embutir_libs(html)
+    antes, resto = base.split(ini, 1)
     _, depois = resto.split(fim, 1)
-    html = antes + ini + dados + fim + depois
-    html = embutir_libs(html)
 
     saida_dir = caminho(_DASH["pasta_saida"])
     saida_dir.mkdir(parents=True, exist_ok=True)
-    alvo = saida_dir / _DASH["arquivo_saida"]
-    alvo.write_text(html, encoding="utf-8")
 
-    tam = alvo.stat().st_size / 1024 / 1024
+    def escrever(pac: dict, nome_arquivo: str) -> Path:
+        dados = json.dumps(pac, ensure_ascii=False, separators=(",", ":"))
+        # C1 (auditoria): descricao de SKU vem de Excel de terceiros. Um
+        # "</script>" dentro de um valor encerraria o bloco no parse e
+        # quebraria o painel inteiro. "<\/" e escape JSON valido.
+        dados = dados.replace("</script>", "<\\/script>")
+        alvo = saida_dir / nome_arquivo
+        alvo.write_text(antes + ini + dados + fim + depois, encoding="utf-8")
+        tam = alvo.stat().st_size / 1024 / 1024
+        log(f"painel ................. {alvo.name} ({tam:,.2f} MB)", "ok")
+        return alvo
+
     log("")
-    log(f"dados embutidos ........ {len(dados) / 1024 / 1024:,.2f} MB")
-    log(f"painel ................. {alvo} ({tam:,.2f} MB)", "ok")
+    alvo = escrever(pacote, _DASH["arquivo_saida"])
+
+    # ---------------------------------------------- arquivos por head (bloco C)
+    # Um arquivo por head, com o recorte aplicado no NIVEL DE DADOS: o arquivo
+    # do head so carrega as linhas de cubo do proprio squad. Nao e filtro de
+    # interface — o que nao esta no arquivo nao pode ser exibido nem recuperado
+    # por manipulacao de parametros.
+    ph = _DASH.get("por_head") or {}
+    if ph.get("ativo"):
+        sem_estrutura = CFG["dimensoes"]["rotulo_sem_estrutura"]
+        heads = [h for h in pacote["dims"]["head"] if h != sem_estrutura]
+        prefixo = ph.get("prefixo", "Dashboard_Gerencial_Canais_v3_HEAD_")
+        soma_heads = 0
+        log("")
+        log(f"recortes por head ({len(heads)}) — '{sem_estrutura}' fica de "
+            "fora: nao e squad de ninguem")
+        for head in heads:
+            pac = filtrar_por_head(pacote, head)
+            # Prova do recorte, nao confianca: nenhuma linha de outro head.
+            perf = pac["dims"]["perfil"]
+            hc = pac["dims"]["hc"]
+            assert all(perf[l[3]][0] == head for l in pac["cubo"])
+            assert all(hc[l[2]][0] == head for l in pac["cubo_sku"])
+            rec_head = sum(l[5] for l in pac["cubo"])      # centavos, exato
+            soma_heads += rec_head
+            pac["meta"] = {**pacote["meta"], "recorte_head": head,
+                           "rodape": (
+                f"<b>Arquivo restrito ao head {head}.</b> Contém apenas os "
+                "dados do próprio squad comercial; o recorte é aplicado na "
+                "geração do arquivo, não na interface. Números de contexto "
+                "abaixo referem-se à base completa.<br>" + rodape)}
+            escrever(pac, f"{prefixo}{_slug(head)}.html")
+        # Reconciliacao do particionamento: heads + sem-estrutura = base.
+        rec_total = sum(l[5] for l in pacote["cubo"])
+        rec_resto = rec_total - soma_heads
+        log(f"particionamento fecha: heads R$ {br(soma_heads / 100)} + "
+            f"'{sem_estrutura}' R$ {br(rec_resto / 100)} = "
+            f"R$ {br(rec_total / 100)}", "ok")
+
+    log("")
     log(f"tempo total ............ {time.time() - t0:.1f}s")
     log("")
     log("Abra por duplo clique. Nao precisa de servidor nem de internet.", "ok")

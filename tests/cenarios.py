@@ -13,6 +13,7 @@ o pipeline limpo para deixar os Parquets consistentes com as bases reais.
 """
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -99,16 +100,31 @@ def main() -> int:
     print("=" * 78)
 
     # ---------------------------------------------------------------- T-05
+    # A receita esperada e MEDIDA na hora (base atual + os R$ 1.000,00 do
+    # arquivo sintetico), nunca um literal: a base cresce a cada carga mensal
+    # e um valor cravado quebraria o teste todo mes sem defeito nenhum
+    # (aconteceu em 31/08/2026, com a chegada do sell-in de ago/26).
+    resumo_arq = RAIZ / "data" / "curated" / "resumo.json"
+    receita_base = json.loads(resumo_arq.read_text(encoding="utf-8"))["receita"]
+
     def prep_novo():
         _planilha(ENTRADA / f"sellin{MARCA}2026-09.xlsx",
                   [_linha(rec=1000.0, peso=100.0, cx=10.0)])
 
     def val_novo(code, s):
         achou = "2026-09" in s and code == 0
-        rec = "2,260,854,914.86" in s.replace("−", "-")
-        return achou and rec, ("mes 2026-09 entrou e a receita subiu exatamente "
-                               "os R$ 1.000,00 do arquivo novo" if achou and rec
-                               else "arquivo novo NAO foi absorvido corretamente")
+        try:
+            receita_nova = json.loads(
+                resumo_arq.read_text(encoding="utf-8"))["receita"]
+        except (OSError, ValueError, KeyError):
+            receita_nova = None
+        rec = (receita_nova is not None
+               and abs(receita_nova - (receita_base + 1000.0)) < 0.01)
+        if achou and rec:
+            return True, ("mes 2026-09 entrou e a receita subiu exatamente "
+                          "os R$ 1.000,00 do arquivo novo")
+        return False, ("arquivo novo NAO foi absorvido corretamente "
+                       f"(base {receita_base:,.2f}, apos {receita_nova})")
 
     cenario("T-05", "nova base de Sell In largada em data/raw/sell_in/",
             "exit 0, mes novo aparece, total sobe exatamente o valor do arquivo",

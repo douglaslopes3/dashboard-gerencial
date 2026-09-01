@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard Gerencial de Canais — Dori (v3)</title>
+<title>Dashboard Gerencial de Canais · Dori (v3)</title>
 <!--
   ============================================================================
-  Este arquivo e o TEMPLATE **V2** (29/08/2026). O template.html original fica
-  intacto como retorno rapido. Diferencas do v2 sobre o v1:
+  Este arquivo e o TEMPLATE **V3**. O template.html (v1) e o template_v2.html
+  ficam intactos como retorno rapido. Heranca do V2 (29/08/2026) sobre o v1:
     1. filtros recolhiveis (fechados por padrao) — os numeros abrem acima da
        dobra; a linha de estado continua sempre visivel;
     2. chips cientes do recorte: opcao sem NENHUMA linha no periodo/filtros
@@ -63,6 +63,29 @@
   NENHUM numero de negocio muda por causa do lote 1. As trocas de F1-E sao
   reescrita de laco com resultado identico; as de F1-C e F1-D corrigem o que a
   tela DIZ (aviso e cobertura), nao o que ela soma.
+
+  V3 LOTE 2 (31/08/2026), pedido do dia:
+    P2-A  quarta granularidade: "Ano", alem de mes/trimestre/semestre. O
+          seletor "Ver por" mora na barra de Periodo; o chip "Agrupar por"
+          SAIU do painel de filtros (era um segundo controle com os mesmos
+          rotulos e dessincronizava da barra: com Periodo=Mes e Agrupar=
+          Trimestre a tela rotulava 1 mes como um trimestre cheio). Grupo com
+          menos meses que o tamanho da granularidade e marcado como parcial,
+          nunca exibido como periodo completo.
+    P2-A2 o bloco de filtros + barra de Periodo + linha de estado desceu para
+          logo abaixo do grafico de Evolucao, perto do conteudo que controla
+          (pedido de 31/08). As abas Geografia e R$/kg ganharam a barra de
+          Periodo que Bandeiras e SKU ja tinham.
+    P2-B  no grafico de Evolucao, a barra do ANO ANTERIOR vem a esquerda e a
+          do ATUAL a direita (ordem cronologica, pedido de 31/08); legenda,
+          rotulos e tooltip seguem a mesma ordem.
+    P2-C  emojis substituidos por texto ou simbolo tipografico e travessao
+          removido dos TEXTOS DA INTERFACE (comentarios antigos do codigo
+          ficam como estao).
+    P2-D  quando DB.meta.recorte_head existe (arquivo gerado por head), o
+          titulo e o cabecalho declaram o recorte. A seguranca NAO e esta
+          marca: e o run_dashboard.py, que so embute no arquivo as linhas de
+          cubo do proprio head.
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -277,12 +300,31 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 <h1>Dashboard Gerencial de Canais <span>· Sell In</span></h1>
 <div class="sub" id="sub"></div>
 
-<div class="filters fechado" id="fPainel">
+<!-- v3 lote 2 (P2-A2): o bloco de filtros #fPainel desceu para dentro da
+     Visao Geral, logo abaixo do grafico de Evolucao. Ele continua GLOBAL no
+     comportamento (os filtros valem para todas as abas); so a posicao mudou.
+     Bandeiras, SKU, Geografia e R$/kg tem copia da barra de Periodo. -->
+<div class="tabs">
+  <div class="tab active" data-p="geral">Visão Geral</div>
+  <div class="tab" data-p="geo">Geografia</div>
+  <div class="tab" data-p="band">Bandeiras</div>
+  <div class="tab" data-p="sku">SKU</div>
+  <div class="tab" data-p="preco">R$/kg</div>
+</div>
+
+<div class="panel active" id="geral">
+  <div class="kpis" id="kpis"></div>
+  <div class="grid" style="grid-template-columns:1fr">
+    <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas>
+      <div class="note" id="nEvo"></div></div>
+  </div>
+  <!-- v3 lote 2 (P2-A2): controles logo abaixo da visao que eles comandam. -->
+  <div class="filters fechado" id="fPainel">
   <div class="fcab">
     <button class="ftog" id="fToggle">▸ Filtros</button>
     <span class="fnum" id="fAtivos"></span>
     <button class="mini" id="copiarLink"
-      title="Copia um link que reabre o painel exatamente neste recorte">🔗 Copiar recorte</button>
+      title="Copia um link que reabre o painel exatamente neste recorte">Copiar recorte</button>
   </div>
   <div id="fBody">
   <div class="frow">
@@ -292,11 +334,9 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
   <div class="frow">
     <div class="flab">Comparar</div>
     <div class="chips" id="fBase"></div>
-    <!-- v3 (F1-A): estes chips AGRUPAM as colunas das tabelas de serie
-         temporal — nunca recortaram o periodo. Chamar os dois de "Período"
-         era o que fazia parecer que o painel ja tinha visao por mes. -->
-    <div class="flab" style="min-width:96px" title="Define a granularidade das colunas da matriz. A barra de Período já ajusta isto; mexa aqui só para combinações fora do padrão.">Agrupar por</div>
-    <div class="chips" id="fGran"></div>
+    <!-- v3 lote 2 (P2-A): o chip "Agrupar por" saiu daqui. A granularidade
+         das colunas agora e SO o seletor "Ver por" da barra de Periodo:
+         dois controles com os mesmos rotulos dessincronizavam. -->
   </div>
   <div class="frow">
     <div class="flab">Ano</div>
@@ -326,28 +366,13 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
   </div>
   <div class="frow">
     <div class="flab">&nbsp;</div>
-    <button class="reset" id="limpar">✕ Limpar filtros</button>
+    <button class="reset" id="limpar">Limpar filtros</button>
   </div>
   </div><!-- /fBody -->
-  <!-- v3 (F1-A): FORA do #fBody — tem de aparecer com o painel fechado. -->
+  <!-- v3 (F1-A): FORA do #fBody, tem de aparecer com o painel fechado. -->
   <div class="pbar"><span class="plab">Período</span>
     <span class="chips" id="fPeriodo"></span></div>
   <div class="estado" id="estado"></div>
-</div>
-
-<div class="tabs">
-  <div class="tab active" data-p="geral">Visão Geral</div>
-  <div class="tab" data-p="geo">Geografia</div>
-  <div class="tab" data-p="band">Bandeiras</div>
-  <div class="tab" data-p="sku">SKU</div>
-  <div class="tab" data-p="preco">R$/kg</div>
-</div>
-
-<div class="panel active" id="geral">
-  <div class="kpis" id="kpis"></div>
-  <div class="grid" style="grid-template-columns:1fr">
-    <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas>
-      <div class="note" id="nEvo"></div></div>
   </div>
   <div class="grid" style="grid-template-columns:1fr 1fr">
     <div class="card"><h3>Comparativo YTD <small id="sYTD"></small></h3>
@@ -358,7 +383,7 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
       <div class="scroll"><table id="tabPer"></table></div></div>
   </div>
   <div class="grid" style="grid-template-columns:1fr">
-    <div class="card"><h3>Detalhamento <small>— por:</small>
+    <div class="card"><h3>Detalhamento <small>· por:</small>
         <span class="chips" id="dimGeral"></span><small id="sDet"></small></h3>
       <div class="scroll"><table id="tabDet"></table></div>
       <!-- v3 (F1-G): a nota passou a ser montada em JS — agora ela declara a
@@ -374,6 +399,9 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="geo">
+  <!-- v3 lote 2 (P2-A2): a mesma barra de Periodo das demais abas. -->
+  <div class="pbar solta"><span class="plab">Período</span>
+    <span class="chips" id="fPeriodoGeo"></span></div>
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Performance por UF <small id="sUF"></small></h3>
       <div class="scroll"><table id="tabUF"></table></div></div>
@@ -429,11 +457,14 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="preco">
-  <div class="alerta"><b>R$/kg = soma da receita líquida ÷ soma do peso em kg</b>
-    — razão das somas, nunca média das linhas, sempre com guarda contra divisor
+  <!-- v3 lote 2 (P2-A2): a mesma barra de Periodo das demais abas. -->
+  <div class="pbar solta"><span class="plab">Período</span>
+    <span class="chips" id="fPeriodoPreco"></span></div>
+  <div class="alerta"><b>R$/kg = soma da receita líquida ÷ soma do peso em kg</b>:
+    razão das somas, nunca média das linhas, sempre com guarda contra divisor
     zero. O seletor global de métrica <b>não altera</b> esta definição.</div>
   <div class="grid" style="grid-template-columns:1fr">
-    <div class="card"><h3>Preço médio R$/kg <small>— por:</small>
+    <div class="card"><h3>Preço médio R$/kg <small>· por:</small>
         <span class="chips" id="dimPreco"></span></h3>
       <div class="scroll"><table id="tabPreco"></table></div></div>
   </div>
@@ -484,7 +515,15 @@ const METRICAS = {
 const BASES = {
   fis:{rot:"YTD Fiscal (set→)"}, cal:{rot:"YTD Calendário (jan→)"}
 };
-const GRANS = {mes:"Mês", tri:"Trimestre", sem:"Semestre"};
+/* v3 lote 2 (P2-A): quarta granularidade, "Ano". O grupo segue a base ativa
+   (ano fiscal ou calendario), como trimestre e semestre ja faziam. */
+const GRANS = {mes:"Mês", tri:"Trimestre", sem:"Semestre", ano:"Ano"};
+// Tamanho cheio de um grupo, em meses. Grupo com menos meses que isso e
+// PARCIAL e a tela diz — rotular 1 mes como "FY2026-T4" era numero enganoso.
+const TAM_GRUPO = {mes:1, tri:3, sem:6, ano:12};
+function sufixoParcial(nMeses){
+  return nMeses < (TAM_GRUPO[F.gran]||1) ? " (parcial)" : "";
+}
 
 const F = {
   metrica:"val", base:"fis", gran:"mes",
@@ -642,7 +681,7 @@ function gruposAtalho(tipo){
 function rotuloGrupo(g){
   if(!g || !g.meses.length) return "";
   const a=CAL[g.meses[0]][C_ROT], b=CAL[g.meses[g.meses.length-1]][C_ROT];
-  return g.meses.length>1 ? `${g.rot} · ${a}–${b}` : a;
+  return g.meses.length>1 ? `${g.rot} · ${a} a ${b}` : a;
 }
 /* Desempate. Num ano PARCIAL o mesmo conjunto de meses pode ser, ao mesmo
    tempo, o ultimo trimestre e o ultimo semestre — no calendario 2026, que vai
@@ -683,10 +722,17 @@ function irParaAtalho(tipo, idx){
   F.gran = (tipo==="ac") ? "mes" : tipo;
   montarFiltros();
 }
-const ALVOS_PERIODO = ["fPeriodo","fPeriodoBan","fPeriodoSku"];
+const ALVOS_PERIODO = ["fPeriodo","fPeriodoBan","fPeriodoSku",
+                       "fPeriodoGeo","fPeriodoPreco"];
 function montarPeriodo(){
   const at=atalhoAtivo(), gs=at?at.grupos:null;
   const nav = at && at.tipo!=="ac" && gs.length>1;
+  /* v3 lote 2 (P2-A): a barra ganhou o seletor "Ver por", que define SO a
+     granularidade das colunas/barras (F.gran) sem mexer na selecao de meses.
+     Os atalhos de Periodo continuam escrevendo a selecao e sincronizando a
+     granularidade (L3); "Ver por" e o ajuste fino que morava escondido no
+     painel de filtros como "Agrupar por". Combinacao com grupo incompleto
+     aparece rotulada como parcial, nunca como periodo cheio. */
   const h = ATALHOS.map(([k,r])=>
       `<span class="chip${at&&at.tipo===k?" on":""}" data-t="${k}">${r}</span>`).join("")
     + `<span class="pnav">`
@@ -695,7 +741,11 @@ function montarPeriodo(){
     + `<span class="prot">${at?rotuloGrupo(gs[at.idx]):"seleção manual de meses"}</span>`
     + `<button class="mini" data-nav="1"${nav&&at.idx<gs.length-1?"":" disabled"}`
     + ` title="próximo período">›</button>`
-    + `</span>`;
+    + `</span>`
+    + `<span class="plab" style="margin-left:12px"`
+    + ` title="Granularidade das colunas da matriz e das barras do gráfico">Ver por</span>`
+    + Object.entries(GRANS).map(([k,r])=>
+      `<span class="chip${F.gran===k?" on":""}" data-g="${k}">${r}</span>`).join("");
   ALVOS_PERIODO.forEach(id=>{ const e=el(id); if(e) e.innerHTML=h; });
 }
 
@@ -840,8 +890,8 @@ function montarFiltros(){
     .map(([k,v])=>`<span class="chip${F.metrica===k?" on":""}" data-k="${k}">${v.rot}</span>`).join("");
   el("fBase").innerHTML = Object.entries(BASES)
     .map(([k,v])=>`<span class="chip${F.base===k?" on":""}" data-k="${k}">${v.rot}</span>`).join("");
-  el("fGran").innerHTML = Object.entries(GRANS)
-    .map(([k,v])=>`<span class="chip${F.gran===k?" on":""}" data-k="${k}">${v}</span>`).join("");
+  // v3 lote 2 (P2-A): a granularidade agora e montada em montarPeriodo()
+  // ("Ver por"), nao ha mais chips "Agrupar por" no painel de filtros.
   montarAno(); montarMeses();
   el("fCat").innerHTML = D.cat.map((c,i)=>[c,i])
     .sort(ausenciaPorUltimo(x=>x[0])).map(([c,i])=>
@@ -937,7 +987,7 @@ function marcarChipsVazios(p){
       const k=cfg.num ? +c.dataset.k : c.dataset.k;
       const semDado=!tem.has(k);
       c.classList.toggle("semdado", semDado);
-      if(semDado) c.title="Sem dado no período/filtros atuais — clicar mostra o recorte vazio.";
+      if(semDado) c.title="Sem dado no período/filtros atuais. Clicar mostra o recorte vazio.";
       else c.removeAttribute("title");
     });
   }
@@ -1011,12 +1061,12 @@ function atualizarEstado(p){
   const partes=[];
   partes.push(`<b>${m.rot}</b>`);
   partes.push(BASES[F.base].rot);
-  if(p.atual.length) partes.push(`período: <b>${CAL[p.atual[0]][C_ROT]}–${CAL[p.atual[p.atual.length-1]][C_ROT]}</b> (${p.atual.length} meses)`);
+  if(p.atual.length) partes.push(`período: <b>${CAL[p.atual[0]][C_ROT]} a ${CAL[p.atual[p.atual.length-1]][C_ROT]}</b> (${p.atual.length} meses)`);
   partes.push(`LY: ${p.ly.length ? `<b>${p.ly.length}</b> de ${p.atual.length} meses cobertos` : "<b>sem base</b>"}`);
   // D-35: par incompleto = comparativo agregado DESLIGADO, com o caminho para
   // religa-lo dito na propria tela.
   if(!p.ly.length && p.mesesComPar>0)
-    partes.push(`<b>comparativo desligado</b>: só ${p.mesesComPar} de ${p.atual.length} meses têm par no ano anterior — para comparar par a par, selecione apenas esses meses`);
+    partes.push(`<b>comparativo desligado</b>: só ${p.mesesComPar} de ${p.atual.length} meses têm par no ano anterior. Para comparar par a par, selecione apenas esses meses`);
   const d=[];
   if(F.can.size)  d.push(`${F.can.size} canal(is)`);
   if(F.cat.size)  d.push(`${F.cat.size} categoria(s)`);
@@ -1032,8 +1082,8 @@ function atualizarEstado(p){
     ? d.length+" filtro(s) de dimensão ativo(s)" : "sem filtro de dimensão";
   let h = partes.join(" &nbsp;·&nbsp; ");
   if(conflitoSku())
-    h += `<br><b style="color:var(--bd)">⚠ Filtro de SKU ativo junto com gerente, bandeira ou projeto:</b>
-          a camada agregada de SKU cruza com head, canal, categoria e UF — não com
+    h += `<br><b style="color:var(--bd)">Atenção: filtro de SKU ativo junto com gerente, bandeira ou projeto.</b>
+          A camada agregada de SKU cruza com head, canal, categoria e UF, não com
           gerente, bandeira nem projeto. Esses filtros estão sendo <b>ignorados</b>
           enquanto houver SKU selecionado.`;
   el("estado").innerHTML=h;
@@ -1047,7 +1097,7 @@ function renderKPIs(p){
   // comparativo inteiro vira n/d — o sufixo diz o porquê.
   const aP=a;
   const sufP=(!p.ly.length && p.mesesComPar>0)
-    ? ` <small title="só ${p.mesesComPar} de ${p.atual.length} meses têm par no ano anterior — comparativo desligado; selecione apenas os meses pareados para comparar">(par incompleto)</small>` : "";
+    ? ` <small title="só ${p.mesesComPar} de ${p.atual.length} meses têm par no ano anterior: comparativo desligado; selecione apenas os meses pareados para comparar">(par incompleto)</small>` : "";
   const itens=[];
   for(const [k,mt] of Object.entries(METRICAS)){
     const va=a[mt.col-5]/mt.esc, vl=l[mt.col-5]/mt.esc, vaP=aP[mt.col-5]/mt.esc;
@@ -1080,6 +1130,8 @@ function grupoPeriodo(i){
   // Agrupar set/25 como "2025-T3" rasgava o trimestre fiscal que o resto da
   // aba usa; as colunas fiscais ja viajavam no payload e nao eram lidas.
   if(F.gran==="mes") return CAL[i][C_ROT];
+  if(F.gran==="ano")
+    return F.base==="fis" ? CAL[i][C_FYROT] : String(CAL[i][C_ANO]);
   if(F.base==="fis"){
     if(F.gran==="tri") return CAL[i][C_FYROT]+"-T"+CAL[i][C_TFIS];
     return CAL[i][C_FYROT]+"-S"+CAL[i][C_SFIS];
@@ -1097,7 +1149,8 @@ function renderEvolucao(p){
     const ly=CAL[i][C_LY]; if(ly>=0) vistos.get(g)[1].push(ly);
   });
   for(const [g,[ms,ls]] of vistos){
-    rotulos.push(g);
+    // P2-A: grupo com menos meses que a granularidade pede e dito PARCIAL.
+    rotulos.push(g+sufixoParcial(ms.length));
     atual.push(met(total(ms)));
     // D-32: o ponto de LY so existe quando TODOS os meses do grupo tem par —
     // comparar um trimestre inteiro com 1/3 dele seria comparacao falsa.
@@ -1113,11 +1166,12 @@ function renderEvolucao(p){
   // Media simples dos periodos exibidos (28/08) — para R$/mes e o mesmo
   // numero do KPI "Faturamento medio/mes".
   const media=atual.length?atual.reduce((s,v)=>s+v,0)/atual.length:null;
-  el("tEvo").textContent=`Evolução — ${m.rot} · ${GRANS[F.gran]}`;
-  el("nEvo").innerHTML=`Barra escura = período selecionado. Barra clara = mesmo período do ano anterior.
+  el("tEvo").textContent=`Evolução · ${m.rot} · ${GRANS[F.gran]}`;
+  el("nEvo").innerHTML=`Barra clara (à esquerda) = mesmo período do ano anterior. Barra escura (à direita) = período selecionado.
     Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita).
     Linha tracejada = <b>média do período: ${abrev(media,m.un)}</b> por ${GRANS[F.gran].toLowerCase()}.
-    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara e sem o Δ%</b> — não são exibidos como zero.":""}`;
+    ${rotulos.some(r=>r.includes("(parcial)"))?"<b>(parcial)</b> marca grupo com menos meses que a granularidade pede: bordas da série ou seleção parcial. ":""}
+    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara e sem o Δ%</b>, não são exibidos como zero.":""}`;
   const ctx=el("cEvo").getContext("2d");
   if(chart) chart.destroy();
   // Rotulo de dados desenhado a mao (afterDatasetsDraw): o bundle embutido e
@@ -1141,7 +1195,11 @@ function renderEvolucao(p){
       if(meta.hidden) return;
       if(ds.label==="Média do período") return;          // linha lisa, sem rotulo
       const ehVar=ds.label==="Δ% vs LY";
-      g.font=(di===0||ehVar?"600 ":"")+"9.5px 'Segoe UI',Arial";
+      // P2-B: a identidade da barra vem do LABEL, nao da posicao — a ordem
+      // dos datasets mudou (ano anterior primeiro) e "di===0" marcaria em
+      // negrito a barra errada.
+      const ehAtual=ds.label==="Atual";
+      g.font=(ehAtual||ehVar?"600 ":"")+"9.5px 'Segoe UI',Arial";
       meta.data.forEach((elb,i)=>{
         const v=ds.data[i];
         if(v===null||v===undefined) return;
@@ -1150,7 +1208,7 @@ function renderEvolucao(p){
           g.textBaseline="bottom";
           g.fillText(fmtVar(v), elb.x, elb.y-5);
         }else{
-          g.fillStyle=di===0?"#003a70":"#7d8fa1";
+          g.fillStyle=ehAtual?"#003a70":"#7d8fa1";
           g.textBaseline=v<0?"top":"bottom";
           g.fillText(rotCurto(v), elb.x, v<0?elb.y+3:elb.y-3);
         }
@@ -1158,10 +1216,15 @@ function renderEvolucao(p){
     });
     g.restore();
   }};
+  /* P2-B (31/08): ordem CRONOLOGICA das barras — ano anterior a ESQUERDA,
+     atual a DIREITA. No Chart.js a posicao lado a lado, a legenda e o tooltip
+     seguem a propriedade `order` (ascendente), nao a ordem do array — por
+     isso o ano anterior recebe order menor que o atual; as linhas ficam com
+     order 1 e 2 para continuarem desenhadas por cima das barras. */
   chart=new Chart(ctx,{type:"bar",data:{labels:rotulos,datasets:[
-      {label:"Atual",data:atual,backgroundColor:"#00539f",borderRadius:3,
-       maxBarThickness:46,order:3},
       {label:"Ano anterior",data:anterior,backgroundColor:"#c2cfdc",borderRadius:3,
+       maxBarThickness:46,order:3},
+      {label:"Atual",data:atual,backgroundColor:"#00539f",borderRadius:3,
        maxBarThickness:46,order:4},
       {type:"line",label:"Δ% vs LY",data:variacao,yAxisID:"y1",
        borderColor:"#f5a623",backgroundColor:"#f5a623",borderWidth:2,
@@ -1200,7 +1263,7 @@ function renderYTD(p){
       ? ` · sem comparativo: o ano anterior cobre só ${nPar} de ${ma.length} meses` : "";
     rawYTD.push([rot+" "+CAL[ma[0]][C_ROT]+"-"+CAL[ma[ma.length-1]][C_ROT]+par,
                  nr(a),nr(l),l===null?null:nr(aP-l),nr(pctNum(varPct(aP,l)))]);
-    linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]}–${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]}–${CAL[ml[ml.length-1]][C_ROT]}`:par}</small>`,
+    linhas.push([`<b>${rot}</b><br><small style="color:var(--txt2)">${CAL[ma[0]][C_ROT]} a ${CAL[ma[ma.length-1]][C_ROT]}${ml.length?` vs ${CAL[ml[0]][C_ROT]} a ${CAL[ml[ml.length-1]][C_ROT]}`:par}</small>`,
       fmtMetrica(a), l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
       l===null?'<span class="nd">n/d</span>':fmtDelta(aP-l), fmtPct(varPct(aP,l))]);
   }
@@ -1224,8 +1287,9 @@ function renderPeriodo(p){
     const l=(ls.length && ls.length===ms.length)?met(total(ls)):null;
     ta+=a;
     if(l!==null){ tl+=l; taP+=a; temLy=true; }
-    raw.push([g,nr(a),nr(l),l===null?null:nr(a-l),nr(pctNum(varPct(a,l)))]);
-    linhas.push([g,fmtMetrica(a),l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
+    const rot=g+sufixoParcial(ms.length);              // P2-A
+    raw.push([rot,nr(a),nr(l),l===null?null:nr(a-l),nr(pctNum(varPct(a,l)))]);
+    linhas.push([rot,fmtMetrica(a),l===null?'<span class="nd">n/d</span>':fmtMetrica(l),
                  l===null?'<span class="nd">n/d</span>':fmtDelta(a-l),fmtPct(varPct(a,l))]);
   }
   // D-35: o TOTAL so compara quando TODOS os periodos exibidos tem par —
@@ -1261,7 +1325,7 @@ const ROTULOS = {
   canal: v=>v,
   ger  : v=>v,
   proj : v=>v,
-  uf   : i=>D.uf[i]+(DB.nome_uf[D.uf[i]]?" — "+DB.nome_uf[D.uf[i]]:""),
+  uf   : i=>D.uf[i]+(DB.nome_uf[D.uf[i]]?" · "+DB.nome_uf[D.uf[i]]:""),
 };
 function quebra(p, dim, idTab, idInfo){
   const sku=usaCuboSku();
@@ -1286,7 +1350,7 @@ function quebra(p, dim, idTab, idInfo){
       catDe:null, den:met(den), p, drillTipo, topN:0, baldeK:null});
     el("nDet").innerHTML=(escD?notaMatriz(escD)+"<br>":"")
       +`Participação % calculada sobre o total do recorte com o filtro desta
-      dimensão removido — por isso a coluna soma 100%. Na quebra por
+      dimensão removido, por isso a coluna soma 100%. Na quebra por
       <b>Categoria</b>, clique numa linha para abrir os SKUs dela; na quebra por
       <b>Head</b>, para abrir os gerentes dele.`;
     return;
@@ -1327,7 +1391,7 @@ function desenharQuebra(mapA,mapAP,mapL,den,rot,idTab,p,drillTipo){
     ["<b>Total</b>"+(par?` <small title="LY, Δ e Δ% comparam só os ${p.pareado.length} meses com par no ano anterior">*</small>`:""),
      fmtMetrica(ta),temLy?fmtMetrica(tl):'<span class="nd">n/d</span>',
      temLy?fmtDelta(taP-tl):'<span class="nd">n/d</span>',fmtPct(temLy?varPct(taP,tl):null),
-     denV?fmtParte(ta/denV):"—"]);
+     denV?fmtParte(ta/denV):"n/d"]);
   registrarExport(idTab,["Dimensão","Atual","LY","Δ","Δ%","Part. %"],raw);
   el(idTab).onclick = drillTipo
     ? (e)=>{const s=e.target.closest(".drill"); if(!s) return;
@@ -1358,12 +1422,13 @@ function renderGeo(p){
     .sort((a,b)=>b.t-a.t);
   const linhas=ordem.map(r=>[D.uf[r.k]].concat(cols.map(c=>fmtMetrica(r.o[c]||0))).concat([`<b>${fmtMetrica(r.t)}</b>`]));
   const tot=cols.map(c=>ordem.reduce((a,r)=>a+(r.o[c]||0),0));
+  const rotCols=cols.map(c=>c+sufixoParcial(grupos.get(c).length));   // P2-A
   el("sUFper").textContent="· "+GRANS[F.gran]+" · "+METRICAS[F.metrica].rot;
-  el("tabUFper").innerHTML=tabela(["UF"].concat(cols).concat(["Total"]),linhas,
+  el("tabUFper").innerHTML=tabela(["UF"].concat(rotCols).concat(["Total"]),linhas,
     ["<b>Total</b>"].concat(tot.map(v=>fmtMetrica(v))).concat([`<b>${fmtMetrica(tot.reduce((a,b)=>a+b,0))}</b>`]));
   const rawM=ordem.map(r=>[D.uf[r.k]].concat(cols.map(c=>nr(r.o[c]||0))).concat([nr(r.t)]));
   rawM.push(["Total"].concat(tot.map(v=>nr(v))).concat([nr(tot.reduce((a,b)=>a+b,0))]));
-  registrarExport("tabUFper",["UF"].concat(cols).concat(["Total"]),rawM);
+  registrarExport("tabUFper",["UF"].concat(rotCols).concat(["Total"]),rawM);
 }
 
 /* ------------------------------------------------------ rankings genericos */
@@ -1381,7 +1446,7 @@ function ranking(mapA,mapAP,mapL,rot,n,temLy,excluirK){
     return {k,a,aP,l,d:temLy?aP-l:null,novo:temLy&&!mapL.has(k),sumiu:!mapA.has(k)};
   });
   if(!temLy){
-    const msg='<div class="vazio">Sem base completa no ano anterior para este período — não há como medir ganho ou queda.</div>';
+    const msg='<div class="vazio">Sem base completa no ano anterior para este período: não há como medir ganho ou queda.</div>';
     return [msg,msg,itens];
   }
   /* v3 (F1-D): `excluirK` tira uma chave dos DESTAQUES sem tirar da tabela —
@@ -1487,9 +1552,13 @@ function tabelaMatriz(cfg){
   const num=v=>v===0 ? '<span class="zero">–</span>'
                      : fmtNum(v/esc.div,esc.casas);
 
+  // P2-A: coluna truncada (menos meses que a granularidade pede — bordas da
+  // serie ou selecao parcial) leva "*"; a nota explica o simbolo.
+  const rotCol=c=>rotuloColuna(c.rot)
+    +(c.meses.length<(TAM_GRUPO[F.gran]||1)?"*":"");
   const cabec=[{v:"#",c:"pos"},{v:cfg.rotDim,t:1}]
     .concat(cfg.catDe?[{v:"CAT.",t:1}]:[])
-    .concat(cols.map(c=>({v:rotuloColuna(c.rot),c:"serie"})))
+    .concat(cols.map(c=>({v:rotCol(c),c:"serie"})))
     .concat([{v:"TOTAL",c:"serie corte"},{v:"ATUAL"},{v:"ANT."},
              {v:"Δ"},{v:"Δ%"},{v:"Part. %"}]);
   const linhas=[], raw=[], classes=[];
@@ -1532,7 +1601,7 @@ function tabelaMatriz(cfg){
              {v:temAlgumLy?fmtMetrica(sl):ND},
              {v:temAlgumLy?fmtDelta(saP-sl):ND},
              {v:fmtPct(temAlgumLy?varPct(saP,sl):null)},
-             {v:cfg.den?fmtParte(sa/cfg.den):"—"}]);
+             {v:cfg.den?fmtParte(sa/cfg.den):"n/d"}]);
   raw.push(["",`Exibidos (${itens.length} de ${universo})`]
     .concat(cfg.catDe?[""]:[])
     .concat(somaCol.map(v=>nr(v)))
@@ -1545,7 +1614,7 @@ function tabelaMatriz(cfg){
   tb.innerHTML=tabelaMat(cabec,linhas,rodape,classes);
   registrarExport(cfg.idTab,
     ["#",cfg.rotDim].concat(cfg.catDe?["CAT."]:[])
-      .concat(cols.map(c=>rotuloColuna(c.rot)))
+      .concat(cols.map(rotCol))
       .concat(["TOTAL","ATUAL","ANT.","Δ","Δ%","Part. %"]), raw);
   tb.onclick = cfg.drillTipo
     ? (e)=>{const s=e.target.closest(".drill"); if(!s) return;
@@ -1554,17 +1623,21 @@ function tabelaMatriz(cfg){
   return esc;
 }
 // "Mês" + "s" = "mêss". Plural declarado, em vez de deduzido.
-const GRANS_PL = {mes:"meses", tri:"trimestres", sem:"semestres"};
+const GRANS_PL = {mes:"meses", tri:"trimestres", sem:"semestres", ano:"anos"};
 function notaMatriz(esc){
-  const n=colunasSerie().length, todas=gruposSerie().length;
+  const cols=colunasSerie();
+  const n=cols.length, todas=gruposSerie().length;
   const g=GRANS_PL[F.gran]||GRANS[F.gran].toLowerCase();
+  const temParcial=cols.some(c=>c.meses.length<(TAM_GRUPO[F.gran]||1));
   return `Colunas: os <b>${n} últimos ${g}</b>${todas>n?` da série (de ${todas}
-    disponíveis)`:""}, em <b>${esc.rot}</b> — a granularidade acompanha a barra
-    de <b>Período</b>. <b>TOTAL</b> é a soma das colunas exibidas.
+    disponíveis)`:""}, em <b>${esc.rot}</b>. A granularidade é o seletor
+    <b>Ver por</b> da barra de Período.
+    ${temParcial?"<b>*</b> marca período parcial: a série não cobre todos os meses dele. ":""}
+    <b>TOTAL</b> é a soma das colunas exibidas.
     <b>ATUAL</b> e <b>ANT.</b> são o período selecionado e os mesmos meses do
     ano anterior; <b>Δ</b> e <b>Δ%</b> comparam esses dois, não a série.
     Ordenado pelo <b>TOTAL</b>, para as linhas não trocarem quando você muda o
-    período — clique em qualquer cabeçalho para reordenar. <b>–</b> é ausência
+    período. Clique em qualquer cabeçalho para reordenar. <b>–</b> é ausência
     de faturamento.`;
 }
 
@@ -1592,7 +1665,7 @@ function tabelaRanking(itens,rot,den,n,idTab,temLy,baldeK){
     [`<b>Exibidos (${corte.length} de ${lista.length})</b>`,fmtMetrica(sa),
      temLy?fmtMetrica(sl):ND,
      temLy?fmtDelta(saP-sl):ND,fmtPct(varPct(saP,temLy?sl:null)),
-     den?fmtParte(sa/den):"—"],classes);
+     den?fmtParte(sa/den):"n/d"],classes);
   const rawR=corte.map(i=>{const semLy=!temLy||i.novo;
     return [rot(i.k),nr(i.a),semLy?null:nr(i.l),
       semLy?null:nr(i.d),nr(pctNum(varPct(semLy?null:i.aP,semLy?null:i.l))),
@@ -1642,8 +1715,8 @@ function renderBandeiras(p){
     nominalmente. As outras <b>${c.demais.toLocaleString("pt-BR")}</b> <b>não somem</b>:
     entram agregadas na linha “${c.rotulo_demais}”, então o total continua batendo
     com a base. <b>Neste recorte</b>, as bandeiras nominais somam
-    <b>${cobRec===null?"—":fmtNum(cobRec*100,1)+"%"}</b> de ${METRICAS[F.metrica].rot}.
-    O balde fica <b>fora</b> dos destaques de ganho e queda — continua na tabela,
+    <b>${cobRec===null?"n/d":fmtNum(cobRec*100,1)+"%"}</b> de ${METRICAS[F.metrica].rot}.
+    O balde fica <b>fora</b> dos destaques de ganho e queda: continua na tabela,
     marcado com Σ. Ordenação dos destaques por <b>variação absoluta</b>, não percentual.
     <br><b>Atenção:</b> o corte das ${c.top} maiores é calculado sobre a base inteira,
     <b>antes</b> dos filtros. Sob um recorte estreito, uma bandeira relevante aqui pode
@@ -1660,9 +1733,9 @@ function renderSkus(p){
      silencio, e a pagina mostrava o universo inteiro do head/canal como se
      fosse o recorte pedido. O aviso agora e da PAGINA, nao do filtro de SKU. */
   const fora=filtrosForaDoCuboSku();
-  el("avisoSku").innerHTML = fora.length ? `<div class="alerta erro">⚠ <b>Filtro de
+  el("avisoSku").innerHTML = fora.length ? `<div class="alerta erro"><b>Atenção: filtro de
     ${fora.join(", ")} ativo e ignorado nesta página.</b> A camada agregada de SKU
-    cruza com <b>categoria, head, canal e UF</b> — não com gerente, bandeira nem
+    cruza com <b>categoria, head, canal e UF</b>, não com gerente, bandeira nem
     projeto. Os números abaixo valem para o recorte <b>sem</b> ${fora.join(" / ")},
     e por isso <b>não fecham</b> com a Visão Geral enquanto esse filtro estiver
     ligado.</div>` : "";
@@ -1696,14 +1769,14 @@ function renderSkus(p){
   const den=[...a.values()].reduce((s,v)=>s+met(v),0);
   // v3 (F1-G): o ranking de SKU virou matriz item x periodo.
   const escS=tabelaMatriz({idTab:"tabSku", rotDim:"SKU", somaFn:somaSku,
-    mapA:a, mapL:l, rot:i=>D.sku[i][0]+" — "+D.sku[i][1],
-    catDe:i=>D.cat[D.sku[i][2]]??"—", den, p, drillTipo:null,
+    mapA:a, mapL:l, rot:i=>D.sku[i][0]+" · "+D.sku[i][1],
+    catDe:i=>D.cat[D.sku[i][2]]??"n/d", den, p, drillTipo:null,
     topN:F.topSku, baldeK:null});
   el("sSku").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot
     +(escS?" · colunas em "+escS.rot:"");
   el("nSku").innerHTML=(escS?notaMatriz(escS)+"<br>":"")
     +`Todos os <b>${D.sku.length}</b> SKUs, sem corte de cobertura.
-    A camada de SKU cruza com <b>categoria, head, canal e UF</b> — <b>não</b> com
+    A camada de SKU cruza com <b>categoria, head, canal e UF</b>, <b>não</b> com
     gerente, bandeira nem projeto. Ordenação dos destaques por <b>variação absoluta</b>.`;
 }
 
@@ -1757,8 +1830,9 @@ function renderPreco(p){
     const va=total(ms), vl=(ls.length && ls.length===ms.length)?total(ls):null;
     const pa=razao(receita(va),pesoKg(va));
     const pl=vl?razao(receita(vl),pesoKg(vl)):null;
-    rawPP.push([g,nr(pa,4),nr(pl,4),nr(pctNum(varPct(pa,pl)))]);
-    linhas.push([g,fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
+    const rot=g+sufixoParcial(ms.length);              // P2-A
+    rawPP.push([rot,nr(pa,4),nr(pl,4),nr(pctNum(varPct(pa,pl)))]);
+    linhas.push([rot,fmtPreco(pa),pl===null?'<span class="nd">n/d</span>':fmtPreco(pl),
       fmtPct(varPct(pa,pl))]);
   }
   el("sPrecoPer").textContent="· "+GRANS[F.gran];
@@ -1805,8 +1879,8 @@ function registrarExport(id, cols, rows){
   const h3=card.querySelector("h3");
   if(!h3||h3.querySelector(".expbtns")) return;
   const sp=document.createElement("span"); sp.className="expbtns";
-  sp.innerHTML='<button class="mini" data-exp="csv">⬇ CSV</button>'
-              +'<button class="mini" data-exp="xlsx">⬇ XLSX</button>';
+  sp.innerHTML='<button class="mini" data-exp="csv">↓ CSV</button>'
+              +'<button class="mini" data-exp="xlsx">↓ XLSX</button>';
   sp.addEventListener("click",e=>{const b=e.target.closest("[data-exp]");
     if(b) exportarTabela(id,b.dataset.exp);});
   h3.appendChild(sp);
@@ -2011,7 +2085,7 @@ function renderDrillCat(){
   const mapA=somaFn(p.atual), mapL=p.ly.length?somaFn(p.ly):new Map();
   const den=[...mapA.values()].reduce((s,v)=>s+met(v),0);
   const escC=tabelaMatriz({idTab:"tabDrill", rotDim:"SKU", somaFn,
-    mapA, mapL, rot:i=>D.sku[i][0]+" — "+D.sku[i][1], catDe:null, den, p,
+    mapA, mapL, rot:i=>D.sku[i][0]+" · "+D.sku[i][1], catDe:null, den, p,
     drillTipo:null, topN:0, baldeK:null});
   el("sDrill").textContent=" · "+METRICAS[F.metrica].rot
     +(escC?" · colunas em "+escC.rot:"");
@@ -2078,7 +2152,11 @@ function ordenarTabela(tab, col){
    Vai para dois lugares: o hash da URL (#r=…, compartilhavel por link) e o
    localStorage (reabrir por duplo clique volta onde parou). Hash presente
    vence o localStorage.                                                     */
-const CHAVE_LS="dashDoriCanais.recorte.v2";
+// P2-D: cada arquivo por head guarda o proprio recorte — sem o sufixo, o
+// arquivo do head A clobberaria o recorte salvo do painel completo (mesma
+// origem, mesma chave de localStorage).
+const CHAVE_LS="dashDoriCanais.recorte.v2"
+  +(DB.meta && DB.meta.recorte_head ? ".head."+DB.meta.recorte_head : "");
 function recorteAtual(){
   return {
     metrica:F.metrica, base:F.base, gran:F.gran, fy:F.fy, ano:F.ano,
@@ -2158,7 +2236,7 @@ async function copiarRecorte(){
     try{ ok=document.execCommand("copy"); }catch(e){}
     ta.remove();
   }
-  const b=el("copiarLink"), original="🔗 Copiar recorte";
+  const b=el("copiarLink"), original="Copiar recorte";
   b.textContent = ok ? "✓ link copiado" : "copie da barra de endereço";
   setTimeout(()=>{ b.textContent=original; }, 1800);
 }
@@ -2177,7 +2255,6 @@ function alterna(conj, v){ conj.has(v) ? conj.delete(v) : conj.add(v); }
 function ligar(){
   ligarChips("fMetrica", k=>{ F.metrica=k; montarFiltros(); });
   ligarChips("fBase", k=>{ F.base=k; preSelecionarMeses(); montarFiltros(); });
-  ligarChips("fGran", k=>{ F.gran=k; montarFiltros(); });
   el("fAno").addEventListener("click", e=>{
     const c=e.target.closest(".chip"); if(!c||c.classList.contains("off")) return;
     if(c.dataset.t==="fy") F.fy=c.dataset.k; else F.ano=+c.dataset.k;
@@ -2214,6 +2291,8 @@ function ligar(){
       }
       const c=ev.target.closest(".chip");
       if(!c || c.classList.contains("off")) return;
+      // v3 lote 2 (P2-A): "Ver por" muda so a granularidade da exibicao.
+      if(c.dataset.g){ F.gran=c.dataset.g; render(); return; }
       irParaAtalho(c.dataset.t);
       render();
     });
@@ -2254,6 +2333,14 @@ function ligar(){
 }
 
 function iniciar(){
+  /* P2-D: arquivo gerado por head. A marca so DECLARA o recorte no titulo e
+     no cabecalho; a restricao de verdade e do run_dashboard.py, que nao
+     embute neste arquivo nenhuma linha de cubo de outro head. */
+  if(DB.meta.recorte_head){
+    document.title += " · " + DB.meta.recorte_head;
+    const sp=document.querySelector("h1 span");
+    if(sp) sp.textContent = "· Sell In · " + DB.meta.recorte_head;
+  }
   const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
   const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
   F.fy=fys[fys.length-1]; F.ano=anos[anos.length-1];

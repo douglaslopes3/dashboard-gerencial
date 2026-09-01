@@ -218,6 +218,13 @@ dashboard:
   tops_bandeira: [10, 50, 100, 200, 300]
   tops_sku: [25, 50, 100, 0]      # 0 = todos
 
+  # Um arquivo por head, com o recorte aplicado na GERAÇÃO (o arquivo do head
+  # só carrega as linhas de cubo do próprio squad; não é filtro de interface).
+  # "NÃO ATRIBUÍDO" fica de fora: não é squad de ninguém.
+  por_head:
+    ativo: true
+    prefixo: "Dashboard_Gerencial_Canais_v3_HEAD_"
+
 logs:
   nivel: "info"
   # Um arquivo por execução, nomeado pelo EXECUCAO_ID.
