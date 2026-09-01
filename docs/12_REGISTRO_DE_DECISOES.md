@@ -977,3 +977,33 @@ painel completo e 4 por head conferidos no navegador (KPIs R$ 122,28 mi meta,
 R$ 103,47 mi LY, +18,2%; visão head bate a régua por head; arquivo da
 Izabela só com executivos 4xxx; zero erros de console). cubos.json +136 KB;
 painel v3 14,53 MB.
+
+---
+
+## D-45 · Meta no gráfico de Evolução da Visão Geral (01/09/2026)
+
+**Contexto.** Com a aba Metas no ar, Douglas pediu a meta TAMBÉM na Evolução
+da Visão Geral, nos meses que possuem meta.
+
+**Decisão.**
+
+1. Barra "Meta" (âmbar, `order` 5, à direita do Atual: passado, presente,
+   alvo) só nos períodos que possuem meta; grupo sem mês de meta fica sem
+   barra (null), nunca com zero. Na granularidade Tri/Sem/Ano, a meta do
+   grupo é a soma dos meses do grupo QUE TÊM meta.
+2. **A série só existe onde a base de metas alcança**: métrica R$ ou t
+   (caixas não existe na meta) e filtros que o cubo de meta TEM (categoria,
+   head, gerente, bandeira). Com canal, UF, projeto ou SKU ativos a barra
+   SOME e a nota diz o motivo e o caminho ("limpe esses filtros") — nunca
+   uma meta que finge respeitar um recorte que ela não tem.
+3. Com filtro de head/gerente, a nota declara a assimetria: a meta segue o
+   dono da rota A (D-44) e as barras seguem a hierarquia vigente. Com filtro
+   de bandeira, os baldes (DEMAIS BANDEIRAS) ficam de fora, dito na nota.
+4. Rótulo da barra em âmbar escuro pelo mesmo desenhador (afterDatasetsDraw);
+   tooltip e legenda herdam o padrão. Média do período continua calculada só
+   sobre o Atual.
+
+**Validação.** Conferido no navegador (FY2027/set/26): LY 103,47 mi · Atual
+1,28 mi · Meta 122,28 mi; filtro de canal esconde com nota; filtro da
+Izabela mostra a meta dela (20,30 mi) com a nota da rota A; FY2026 sem barra
+e sem nota de meta. Zero erros de console. 5 HTMLs republicados (md5 5/5).

@@ -716,3 +716,18 @@ arquivo por head (Izabela)       so grupos dela (18 executivos 4xxx), meta
                                  no arquivo dela (rota A, decisao declarada)
 console                          zero erros nas duas paginas
 ```
+
+## T-39 · Meta na Evolução (D-45)
+
+```
+FY2027 · set/26 (sem filtro)     LY 103,47 mi | Atual 1,28 mi | Meta 122,28 mi
+                                 legenda ganha "Meta"; nota declara a barra
+filtro de canal                  barra some; nota "Meta oculta: a base de
+                                 metas nao tem os eixos canal, UF, projeto ou
+                                 SKU - limpe esses filtros para ver a meta"
+filtro head Izabela              Meta 20,30 mi (rota A) + nota da assimetria
+FY2026 (sem mes de meta)         sem barra e sem nota de meta
+console                          zero erros
+republicacao                     5/5 HTMLs no SharePoint com md5 conferido
+                                 (so os do v3; licao da publicacao anterior)
+```

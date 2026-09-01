@@ -34,6 +34,9 @@ FATO_META (D-43)             meta set/26 ingerida de bases/Metas: 3.282 linhas Â
                              com a linha Total do proprio arquivo; 73,3% do R$ casa
                              por codigo + 0,7% por nome (sem par: baldes do Atacado
                              + 3 codigos novos, pedidos ao Comercial abertos)
+meta na Evolucao (D-45)      barra ambar nos periodos com meta, na Visao Geral;
+                             some (com nota do motivo) sob filtros que a base de
+                             metas nao tem (canal, UF, projeto, SKU, caixas)
 aba Metas (D-44, rota A)     CUBO_META cruzado na geracao (2.547 linhas, 54 grupos,
                              257 bandeiras, reconciliado): Meta x Realizado x ano
                              anterior por head/gerente/executivo/bandeira/categoria

@@ -1178,8 +1178,35 @@ function grupoPeriodo(i){
   if(F.gran==="tri") return CAL[i][C_ANO]+"-T"+CAL[i][C_TRI];
   return CAL[i][C_ANO]+"-S"+CAL[i][C_SEM];
 }
+/* D-45: meta na Evolucao. A serie so existe onde a base de metas alcanca:
+   meses com meta, metrica R$ ou t (caixas nao existe na meta) e filtros que o
+   cubo de meta TEM (categoria, head, gerente, bandeira). Canal, UF, projeto e
+   SKU nao sao eixos da meta — com qualquer um deles ativo a serie SOME e a
+   nota diz o motivo, em vez de exibir uma meta que ignora o recorte. */
+function metaPorMesCal(){
+  if(!CM || F.metrica==="cx") return null;
+  if(F.can.size || F.uf.size || F.proj.size || F.sku.size) return null;
+  const catsSel=F.cat.size?new Set([...F.cat].map(i=>D.cat[i])):null;
+  const bansSel=F.ban.size?new Set([...F.ban].map(i=>D.ban[i])):null;
+  const idxCal=new Map(CAL.map((c,i)=>[c[C_AM],i]));
+  const esc=F.metrica==="val"?CM.escala.R:CM.escala.P*1000;
+  const off=F.metrica==="val"?4:5;
+  const porMes=new Map();                 // indice do CAL -> meta na metrica
+  for(const l of CM.linhas){
+    const ic=idxCal.get(CM.meses[l[0]][0]);
+    if(ic===undefined || l[off]===null) continue;
+    if(F.head.size && !F.head.has(CM.grupos[l[1]][0])) continue;
+    if(F.ger.size  && !F.ger.has(CM.grupos[l[1]][1]))  continue;
+    if(catsSel && !catsSel.has(CM.cats[l[3]])) continue;
+    if(bansSel && !bansSel.has(CM.bands[l[2]])) continue;
+    porMes.set(ic,(porMes.get(ic)||0)+l[off]/esc);
+  }
+  return porMes;
+}
 function renderEvolucao(p){
-  const rotulos=[], atual=[], anterior=[];
+  const rotulos=[], atual=[], anterior=[], metaSerie=[];
+  const pm=metaPorMesCal();
+  let temMeta=false;
   const vistos=new Map();
   p.atual.forEach(i=>{
     const g=grupoPeriodo(i);
@@ -1194,6 +1221,12 @@ function renderEvolucao(p){
     // D-32: o ponto de LY so existe quando TODOS os meses do grupo tem par —
     // comparar um trimestre inteiro com 1/3 dele seria comparacao falsa.
     anterior.push(ls.length===ms.length?met(total(ls)):null);
+    // D-45: meta do grupo = soma dos meses do grupo QUE TEM meta; grupo sem
+    // nenhum mes de meta fica sem barra (null), nunca com zero.
+    let mv=null;
+    if(pm) ms.forEach(i=>{ if(pm.has(i)) mv=(mv||0)+pm.get(i); });
+    metaSerie.push(mv);
+    if(mv!==null) temMeta=true;
   }
   const m=METRICAS[F.metrica];
   // Δ% de cada periodo contra o MESMO periodo do LY (28/08) — so onde o par
@@ -1206,9 +1239,26 @@ function renderEvolucao(p){
   // numero do KPI "Faturamento medio/mes".
   const media=atual.length?atual.reduce((s,v)=>s+v,0)/atual.length:null;
   el("tEvo").textContent=`Evolução · ${m.rot} · ${GRANS[F.gran]}`;
+  // D-45: a nota da meta declara presenca, alcance e ausencia — nada implicito.
+  let notaMeta="";
+  if(temMeta){
+    notaMeta=" Barra âmbar = <b>meta</b> (base FY 26/27), só nos períodos que possuem meta.";
+    if(F.head.size||F.ger.size)
+      notaMeta+=" Com filtro de head/gerente, a meta segue o dono <b>declarado na base de metas</b> (rota A) e as barras seguem a hierarquia vigente: pequenas diferenças de atribuição são esperadas.";
+    if(F.ban.size)
+      notaMeta+=" Com filtro de bandeira, a meta dos baldes (DEMAIS BANDEIRAS) fica de fora.";
+  }else if(CM){
+    const mesesMeta=new Set(CM.meses.map(mm=>mm[0]));
+    if(p.atual.some(i=>mesesMeta.has(CAL[i][C_AM]))){
+      if(F.metrica==="cx")
+        notaMeta=" <b>Meta oculta</b>: a base de metas não tem a métrica Caixas.";
+      else if(F.can.size||F.uf.size||F.proj.size||F.sku.size)
+        notaMeta=" <b>Meta oculta</b>: a base de metas não tem os eixos canal, UF, projeto ou SKU — limpe esses filtros para ver a meta.";
+    }
+  }
   el("nEvo").innerHTML=`Barra clara (à esquerda) = mesmo período do ano anterior. Barra escura (à direita) = período selecionado.
     Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita).
-    Linha tracejada = <b>média do período: ${abrev(media,m.un)}</b> por ${GRANS[F.gran].toLowerCase()}.
+    Linha tracejada = <b>média do período: ${abrev(media,m.un)}</b> por ${GRANS[F.gran].toLowerCase()}.${notaMeta}
     ${rotulos.some(r=>r.includes("(parcial)"))?"<b>(parcial)</b> marca grupo com menos meses que a granularidade pede: bordas da série ou seleção parcial. ":""}
     ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara e sem o Δ%</b>, não são exibidos como zero.":""}`;
   const ctx=el("cEvo").getContext("2d");
@@ -1237,7 +1287,7 @@ function renderEvolucao(p){
       // P2-B: a identidade da barra vem do LABEL, nao da posicao — a ordem
       // dos datasets mudou (ano anterior primeiro) e "di===0" marcaria em
       // negrito a barra errada.
-      const ehAtual=ds.label==="Atual";
+      const ehAtual=ds.label==="Atual", ehMeta=ds.label==="Meta";
       g.font=(ehAtual||ehVar?"600 ":"")+"9.5px 'Segoe UI',Arial";
       meta.data.forEach((elb,i)=>{
         const v=ds.data[i];
@@ -1247,7 +1297,7 @@ function renderEvolucao(p){
           g.textBaseline="bottom";
           g.fillText(fmtVar(v), elb.x, elb.y-5);
         }else{
-          g.fillStyle=ehAtual?"#003a70":"#7d8fa1";
+          g.fillStyle=ehAtual?"#003a70":(ehMeta?"#8a6d1a":"#7d8fa1");
           g.textBaseline=v<0?"top":"bottom";
           g.fillText(rotCurto(v), elb.x, v<0?elb.y+3:elb.y-3);
         }
@@ -1265,6 +1315,10 @@ function renderEvolucao(p){
        maxBarThickness:46,order:3},
       {label:"Atual",data:atual,backgroundColor:"#00539f",borderRadius:3,
        maxBarThickness:46,order:4},
+      // D-45: meta a DIREITA do atual (order 5) — passado, presente, alvo.
+      // So entra quando algum periodo exibido tem meta; null nao vira barra.
+      ...(temMeta?[{label:"Meta",data:metaSerie,backgroundColor:"#e9c46a",
+       borderRadius:3,maxBarThickness:46,order:5}]:[]),
       {type:"line",label:"Δ% vs LY",data:variacao,yAxisID:"y1",
        borderColor:"#f5a623",backgroundColor:"#f5a623",borderWidth:2,
        pointRadius:3,tension:.3,spanGaps:false,order:1},
