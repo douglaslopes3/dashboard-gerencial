@@ -4,6 +4,16 @@ Objetivo: os heads consumirem os painéis **sem depender do ambiente de
 desenvolvimento**. O que segue é plano + **decisões em aberto para o Douglas**
 — nada aqui foi decidido nem executado.
 
+> **Executado em 01/09/2026 (primeiro passo, a pedido do Douglas):** criada a
+> pasta `Documentos\Painéis Comerciais\Gerencial\` no OneDrive corporativo e
+> publicados o painel completo v3 + os 4 arquivos por head (cópia com nome
+> temporário e renome, hashes conferidos contra o build). **Pendente e
+> importante:** as permissões são ação do Douglas na interface do
+> SharePoint/OneDrive — compartilhar cada arquivo `_HEAD_` **somente com o
+> próprio head** e restringir o painel completo à diretoria; sem isso a
+> segregação por arquivo não está em vigor. As decisões D-a a D-e continuam
+> abertas; os Scorecards não foram tocados.
+
 ## 0. O que existe hoje, medido (26/08/2026)
 
 | Painel | Arquivo | Tamanho | Onde está |
