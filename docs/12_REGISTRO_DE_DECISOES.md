@@ -1007,3 +1007,20 @@ da Visão Geral, nos meses que possuem meta.
 1,28 mi · Meta 122,28 mi; filtro de canal esconde com nota; filtro da
 Izabela mostra a meta dela (20,30 mi) com a nota da rota A; FY2026 sem barra
 e sem nota de meta. Zero erros de console. 5 HTMLs republicados (md5 5/5).
+
+---
+
+## D-46 · Arquivo por head sem a opção "Head" nos seletores "por:" (01/09/2026)
+
+**Contexto.** No arquivo restrito a um head, "Detalhamento por Head" é uma
+tabela de uma linha — redundância apontada pelo Douglas.
+
+**Decisão.** Quando `DB.meta.recorte_head` existe (flag `SO_HEAD`), a opção
+"Head" sai dos DOIS seletores que compartilham a lista de dimensões
+(Detalhamento da Visão Geral e "por:" da aba R$/kg). Recorte salvo antes da
+mudança que aponte `dimGeral`/`dimPreco` = "head" cai no padrão (Categoria)
+em vez de quebrar. O painel completo não muda.
+
+**Validação.** Arquivo do head 20: seletores sem "Head" nas duas abas;
+localStorage com `dimGeral:"head"` recai em Categoria; painel completo com o
+chip intacto; zero erros de console. 5 HTMLs republicados (md5 5/5).

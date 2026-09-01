@@ -508,6 +508,9 @@ const DB = /*DADOS_INICIO*/null/*DADOS_FIM*/;
 const ESC = DB.escala, CAL = DB.cal, D = DB.dims;
 const CUBO = DB.cubo, CUBO_SKU = DB.cubo_sku;
 const NM = CAL.length;
+// D-46: arquivo gerado por head (P2-D). Num arquivo de head unico, detalhar
+// "por Head" e uma tabela de uma linha — a opcao sai dos seletores.
+const SO_HEAD = !!(DB.meta && DB.meta.recorte_head);
 
 /* B1 (auditoria): indice por mes, construido UMA vez. Uma passada de mes unico
    visitava as 90.644 linhas do cubo para usar ~3.777 (96% de desperdicio);
@@ -946,8 +949,11 @@ function montarFiltros(){
     `<span class="chip${F.topBan===n?" on":""}" data-k="${n}">${n}</span>`).join("");
   el("topSku").innerHTML = DB.tops.sku.map(n=>
     `<span class="chip${F.topSku===n?" on":""}" data-k="${n}">${n===0?"Todos":n}</span>`).join("");
+  // D-46: no arquivo por head a opcao "Head" some dos DOIS seletores
+  // (Detalhamento e R$/kg) — detalhe de uma linha so nao e detalhe.
   const dims = [["canal","Canal"],["cat","Categoria"],["head","Head"],
-                ["ger","Gerente"],["proj","Projeto"],["uf","UF"]];
+                ["ger","Gerente"],["proj","Projeto"],["uf","UF"]]
+    .filter(([k])=>!(SO_HEAD && k==="head"));
   el("dimGeral").innerHTML = dims.map(([k,r])=>
     `<span class="chip${F.dimGeral===k?" on":""}" data-k="${k}">${r}</span>`).join("");
   el("dimPreco").innerHTML = dims.map(([k,r])=>
@@ -2413,6 +2419,12 @@ function aplicarRecorte(r){
   setDe(F.sku, r.sku, x=>idx(codSku,x));
   if(CHAVES[r.dimGeral]) F.dimGeral=r.dimGeral;
   if(CHAVES[r.dimPreco]) F.dimPreco=r.dimPreco;
+  // D-46: recorte salvo antes da mudanca pode apontar para "head" — no
+  // arquivo por head a opcao nao existe mais, cai no padrao (categoria).
+  if(SO_HEAD){
+    if(F.dimGeral==="head") F.dimGeral="cat";
+    if(F.dimPreco==="head") F.dimPreco="cat";
+  }
   if(DB.tops.ban.includes(r.topBan)) F.topBan=r.topBan;
   if(DB.tops.sku.includes(r.topSku)) F.topSku=r.topSku;
   if(["geral","geo","band","sku","preco"].includes(r.aba)

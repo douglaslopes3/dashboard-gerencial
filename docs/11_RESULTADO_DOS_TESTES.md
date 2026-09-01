@@ -731,3 +731,13 @@ console                          zero erros
 republicacao                     5/5 HTMLs no SharePoint com md5 conferido
                                  (so os do v3; licao da publicacao anterior)
 ```
+
+## T-40 · Seletores sem "Head" no arquivo por head (D-46)
+
+```
+arquivo do head 20               Detalhamento: Canal/Categoria/Gerente/
+                                 Projeto/UF (sem Head) · R$/kg idem
+recorte salvo com dimGeral=head  recai em Categoria, sem erro
+painel completo                  chip Head intacto nos dois seletores
+console                          zero erros · republicacao 5/5 md5 ok
+```
