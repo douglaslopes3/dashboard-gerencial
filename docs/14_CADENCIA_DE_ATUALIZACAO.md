@@ -49,16 +49,38 @@ As proteções automáticas que já travam sozinhas: soma × linha `Total` do
 próprio arquivo (3 métricas), grão, filtro da extração comparado entre meses,
 cobertura de estrutura (≥95%) e de canal (≥95%).
 
-**4. Gerar o painel.**
+**4. Gerar o painel (e os arquivos por head).**
 
 ```bash
 python run_dashboard.py
 ```
 
-Sai em `dashboard\build\Dashboard_Gerencial_Canais.html`. Distribuição para os
-heads: ver o [plano SharePoint](15_PLANO_SHAREPOINT.md) (decisões em aberto).
+Uma execução só (~1,3 s) gera os 5 arquivos em `dashboard\build\`:
 
-**Tempo total do ciclo diário: ~1 minuto.**
+```
+Dashboard_Gerencial_Canais_v3.html              painel completo
+Dashboard_Gerencial_Canais_v3_HEAD_<head>.html  um por head (4 arquivos)
+```
+
+O recorte por head é aplicado na geração (o arquivo de um head não contém os
+dados dos outros squads); o log confere o particionamento: soma dos heads +
+`NÃO ATRIBUÍDO` = base completa. Configuração em
+`config → dashboard.por_head` (D-40).
+
+**5. Publicar (quando for distribuir).**
+
+Copie os arquivos de `dashboard\build\` para
+`Documentos\Painéis Comerciais\Gerencial\` (pasta publicada em 01/09/2026; o
+OneDrive sobe sozinho). Duas regras:
+
+1. **Gravar com nome temporário e renomear**, nunca sobrescrever direto: o
+   OneDrive segura arquivos durante a sincronização.
+2. **Cada head recebe só o próprio arquivo `_HEAD_`.** O painel completo não
+   vai para os heads. A segregação é por arquivo e depende das permissões
+   configuradas no SharePoint (pendência do Douglas; ver o
+   [plano SharePoint](15_PLANO_SHAREPOINT.md), decisões D-a a D-e em aberto).
+
+**Tempo total do ciclo diário: ~1 minuto (sem contar a publicação).**
 
 ---
 
@@ -98,13 +120,13 @@ arquivo — não há passo manual de limpeza. O que muda é **o que conferir** d
 | **O que caracteriza alteração** | decisão de negócio: mês de início do fiscal, tolerâncias, pisos de cobertura, corte de bandeiras (300), correções declaradas, gabarito de valores esperados; rótulos de UF |
 | **Conferir depois** | o pipeline inteiro re-valida; toda correção declarada sai no log ("N linha(s) corrigidas por ...") |
 
-### 2.5 `dashboard/template.html` (interface) e `dashboard/lib/chart.umd.min.js`
+### 2.5 `dashboard/template_v3.html` (interface) e `dashboard/lib/chart.umd.min.js`
 
 | | |
 |---|---|
-| **O que caracteriza alteração** | mudança de layout/tela (template — editado à mão); atualização da biblioteca de gráfico (raro; hoje Chart.js 4.4.1) |
-| **Refazer** | só `python run_dashboard.py` — o pipeline de dados não é tocado |
-| **Atenção** | os marcadores de dados e de biblioteca têm de existir **exatamente 1 vez** cada; o gerador aborta se alguém duplicar um em comentário |
+| **O que caracteriza alteração** | mudança de layout/tela (template editado à mão; `template.html` e `template_v2.html` ficam como retorno rápido, o ativo é o que o config aponta); atualização da biblioteca de gráfico (raro; hoje Chart.js 4.4.1); ligar/desligar ou renomear os arquivos por head (`dashboard.por_head`) |
+| **Refazer** | só `python run_dashboard.py`: o pipeline de dados não é tocado, e os 5 arquivos (completo + 4 por head) saem da mesma execução |
+| **Atenção** | os marcadores de dados e de biblioteca têm de existir **exatamente 1 vez** cada; o gerador aborta se alguém duplicar um em comentário. Depois de editar o template, **sempre regenerar o build antes de distribuir**: em 31/08 o build em disco era anterior à correção do template e carregava um artefato de colagem (T-30) |
 
 ### 2.6 O que está em `bases/` e NÃO dispara nada
 
