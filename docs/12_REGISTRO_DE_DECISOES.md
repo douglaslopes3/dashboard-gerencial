@@ -708,3 +708,136 @@ deveria existir aqui"*. Medido o universo: **3.133 linhas 100% zeradas** nos
 estrutura seguem os mesmos. **Totais idênticos ao centavo**
 (R$ 2.260.853.914,86 · 161.321,49 t · 32.659.819 cx). `VERSAO_CACHE` 4 → 5.
 30/30 testes (novo: `test_linha_100_zerada_e_descartada_e_contada`).
+
+---
+
+## D-37 · Painel V3 em arquivo novo, lote 1: confiabilidade e performance (31/08/2026)
+
+**Contexto.** Mesmo arranjo do v1 → v2: o Douglas pede arquivo novo para poder
+voltar atrás. `template_v2.html` fica intacto; `config.yaml` passa a gerar o v3
+(commit `f6835c0`).
+
+**Decisão.** `dashboard/template_v3.html`, com: barra de Período
+(Mês|Trimestre|Semestre|Acumulado) que ESCREVE na seleção de meses (F1-A);
+aviso da página de SKU vira aviso da PÁGINA, não só do filtro de SKU (F1-C);
+balde "DEMAIS BANDEIRAS" fora dos destaques e cobertura das nominais
+recalculada sob o recorte (F1-D); renders de SKU/drills no índice por mês
+(F1-E); tabelas de SKU/Bandeiras/Detalhamento viram matriz por período,
+limitada aos 12 períodos recentes (F1-G/L3). Nenhum número de negócio muda.
+
+**Por quê.** Os motivos por item estão no cabeçalho do próprio template, que é
+o registro de engenharia; aqui fica o marco e o vínculo com o commit.
+
+---
+
+## D-38 · Granularidade unificada no seletor "Ver por", com "Ano" e período parcial declarado (01/09/2026)
+
+**Contexto.** A varredura de 31/08 reproduziu o bug: com Período=Mês (ago/26) e
+o chip "Agrupar por"=Trimestre (escondido no painel de filtros), o gráfico
+rotulava FY2026-T4 com 1 mês de dados (R$ 105,1 mi contra R$ 313,5 mi do T4
+real). Dois controles com os mesmos rótulos dessincronizavam. O Douglas
+aprovou o mapa da varredura e pediu a visão de período em QUATRO
+granularidades: mês, trimestre, semestre e ano, com o mesmo layout e a mesma
+conta, mudando só agrupamento e rótulos.
+
+**Decisão (Douglas, 01/09/2026).**
+
+1. O chip "Agrupar por" SAI do painel de filtros. A granularidade é só o
+   seletor **"Ver por"** (Mês|Trimestre|Semestre|**Ano**) na barra de Período;
+   os atalhos de Período continuam escrevendo a seleção e sincronizando a
+   granularidade (regra L3 mantida).
+2. Grupo com menos meses que a granularidade pede (`TAM_GRUPO`: 1/3/6/12) sai
+   rotulado **"(parcial)"** no gráfico e nas tabelas, e com `*` nas colunas da
+   matriz. Nunca exibir período incompleto como cheio.
+3. Os controles descem para perto do conteúdo: bloco de filtros + barra de
+   Período + linha de estado logo abaixo do gráfico de Evolução (pedido
+   literal). No mesmo dia, pedido seguinte: o painel de filtros passa a
+   existir em TODAS as abas. É UM nó no DOM, movido pela `posicionarFiltros()`
+   na troca de aba (abaixo do gráfico na Visão Geral, topo nas demais); as
+   cópias avulsas da barra de Período saíram.
+
+**Validação.** No navegador, sem erros de console: o cenário do bug agora
+mostra "FY2026-T4 (parcial)"; "Ver por: Ano" agrupa em FY2025/FY2026 no
+gráfico, nas tabelas por período e nas colunas da matriz; filtro aplicado de
+dentro da aba Bandeiras reage na hora. Commits `3e4169c` e `ba791a4`.
+
+---
+
+## D-39 · Barras do comparativo em ordem cronológica: ano anterior à esquerda, atual à direita (01/09/2026)
+
+**Contexto.** Pedido da fase 2: "as barras estão na ordem invertida". Na
+confirmação, o Douglas definiu: **o ano atual deve vir à direita** (a leitura
+dele de "primeiro/à frente" é a posição da direita, ordem cronológica).
+
+**Decisão.** Ano anterior (barra clara) à esquerda; atual (escura) à direita;
+legenda, rótulos de dados e tooltip na mesma ordem.
+
+**Detalhe que sustenta.** No Chart.js a posição lado a lado, a legenda e o
+tooltip seguem a propriedade `order` (ascendente), NÃO a ordem do array de
+datasets: trocar só o array não muda nada. Ano anterior ficou com `order:3`,
+atual com `order:4`; as linhas (Δ% e média) seguem com 1 e 2 para continuarem
+desenhadas por cima. Verificado pelas coordenadas renderizadas (clara x=78,
+escura x=85) e pela ordem da legenda.
+
+---
+
+## D-40 · Visão por head: um arquivo por head, com recorte físico na geração (01/09/2026)
+
+**Contexto.** Requisito da fase 2: cada head só pode ver o próprio squad, com
+o filtro "no nível de dados, não apenas na interface". O painel é HTML
+autocontido aberto por duplo clique, sem backend e sem autenticação: qualquer
+dado embutido no arquivo é acessível a quem o tem.
+
+**Decisão (Douglas, 01/09/2026: "é um arquivo por head mesmo").**
+
+1. `run_dashboard.py` gera, além do painel completo,
+   `Dashboard_Gerencial_Canais_v3_HEAD_<head>.html` por head
+   (config `dashboard.por_head`). `filtrar_por_head()` filtra os DOIS cubos
+   (perfil no principal, par head/canal no de SKU) ANTES de embutir, remapeia
+   os índices e reduz `dims.head`/`perfil`/`hc` ao próprio squad. O que é de
+   outro head **não existe** no arquivo; nenhum parâmetro de interface o traz
+   de volta.
+2. `NÃO ATRIBUÍDO` não gera arquivo: não é squad de ninguém.
+3. A geração prova o recorte em vez de confiar nele: asserts de que nenhuma
+   linha de outro head vazou + reconciliação do particionamento no log
+   (heads R$ 2.308.856.707,70 + não atribuído R$ 941.167,11 = base
+   R$ 2.309.797.874,81, medido em 31/08).
+4. Título, cabeçalho e rodapé declaram a restrição (`DB.meta.recorte_head`);
+   o `localStorage` ganha chave própria por head para o recorte salvo de um
+   arquivo não clobberar o do painel completo.
+5. Publicação inicial em `Documentos\Painéis Comerciais\Gerencial\`
+   (01/09/2026, cópia com nome temporário e renome, hashes conferidos).
+   **Regra de distribuição: cada head recebe só o seu arquivo.** As
+   permissões no SharePoint ficam com o Douglas; sem elas a segregação por
+   arquivo ainda não está em vigor. Decisões D-a a D-e do doc 15 seguem
+   abertas.
+
+**Validação.** Arquivo do head 20 conferido no navegador: total idêntico ao
+recorte do head no painel completo (R$ 928,23 mi ao centavo), nenhuma menção
+a outro head no HTML inteiro, dims reduzidas. Commits `3e4169c` e `f5df0bb`.
+
+---
+
+## D-41 · Interface sem emoji e sem travessão; teste nunca crava total de negócio como literal (01/09/2026)
+
+**Contexto.** Regras gerais da fase 2, literais: nada de emoji em código,
+interface, comentários, commits ou mensagens; nada de travessão em textos da
+interface, comentários ou documentação (usar vírgula, dois pontos ou ponto
+final). E o cenário T-05 quebrou sozinho quando o sell-in de ago/26 chegou:
+o total esperado estava cravado como literal (R$ 2.260.854.914,86) e a base
+cresceu R$ 48,9 mi.
+
+**Decisão.**
+
+1. Emojis substituídos por texto ou símbolo tipográfico (🔗 removido, ⬇ → ↓,
+   ⚠ → "Atenção:", ✕ removido). Símbolos tipográficos (▸ ▾ ▲ ▼ ‹ › Σ ✓ ·)
+   ficam. Travessões saíram dos textos VISÍVEIS da interface (intervalos
+   viram "a", aposições viram dois-pontos ou vírgula); comentários antigos do
+   código ficam como estão, texto novo segue a regra.
+2. T-05 passou a MEDIR o esperado na hora (receita do `resumo.json` antes do
+   cenário + os R$ 1.000,00 do arquivo sintético, tolerância de 1 centavo).
+   Regra derivada: teste de cenário não crava total de negócio como literal,
+   porque a base cresce a cada carga e o teste gritaria sem defeito nenhum.
+
+**Validação.** Varredura do texto renderizado da página inteira: zero emoji,
+zero travessão. 30/30 regras e 6/6 cenários após a troca do T-05.
