@@ -128,11 +128,13 @@ filtra, não corrige e não ordena nada.)
 **Seletores globais** — métrica (Valor R$ / Volume t / Caixas), base de
 comparação (YTD Fiscal / YTD Calendário — a comparação com o ano anterior está
 **embutida**: o painel compara os meses selecionados com os mesmos meses do LY)
-e, na barra de **Período** (no v3, logo abaixo do gráfico de Evolução), a
-seleção de período com setas e o seletor **Ver por** (Mês / Trimestre /
-Semestre / Ano), que define a granularidade das colunas e das barras. Grupo
-com menos meses que a granularidade pede sai rotulado **(parcial)** (ou `*`
-nas colunas da matriz), nunca como período cheio.
+e, na barra de **Período**, a seleção de período com setas e o seletor
+**Ver por** (Mês / Trimestre / Semestre / Ano), que define a granularidade das
+colunas e das barras. Grupo com menos meses que a granularidade pede sai
+rotulado **(parcial)** (ou `*` nas colunas da matriz), nunca como período
+cheio. No v3 o painel de filtros (com a barra de Período e a linha de estado)
+existe em **todas as abas**: fica logo abaixo do gráfico de Evolução na Visão
+Geral e no topo nas demais.
 
 **Exportar** — toda tabela tem botões `↓ CSV` / `↓ XLSX` no cabeçalho do card.
 Sai o que está na tela (todos os filtros valem), com **número como número**
@@ -144,10 +146,9 @@ da categoria clicada e a quebra por **Head** abre os gerentes do head, sempre
 ordenados pela **maior queda** ("quem puxou o resultado para baixo"), com o
 mesmo período, base e filtros da tela, botão "← voltar" e exportação própria.
 
-**A linha azul de estado**, no bloco de controles (no v3, abaixo do gráfico de
-Evolução), sempre diz o que está ativo: métrica, base, período, **quantos
-meses do ano anterior estão cobertos** e quais filtros de dimensão estão
-ligados.
+**A linha azul de estado**, no bloco de controles de cada aba, sempre diz o
+que está ativo: métrica, base, período, **quantos meses do ano anterior estão
+cobertos** e quais filtros de dimensão estão ligados.
 
 **Cinco coisas que o painel declara de propósito** (rodapé):
 

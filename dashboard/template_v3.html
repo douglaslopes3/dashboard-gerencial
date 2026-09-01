@@ -76,6 +76,12 @@
           logo abaixo do grafico de Evolucao, perto do conteudo que controla
           (pedido de 31/08). As abas Geografia e R$/kg ganharam a barra de
           Periodo que Bandeiras e SKU ja tinham.
+    P2-A3 (pedido seguinte de 31/08) o painel de filtros passou a existir em
+          TODAS as abas: e UM no DOM (#fPainel) e posicionarFiltros() o move
+          para a aba ativa — abaixo do grafico na Visao Geral, no topo nas
+          demais. Os listeners viajam com o no. As copias avulsas da barra de
+          Periodo sairam: o painel ja carrega a barra, e duas barras na mesma
+          tela era a duplicacao que o L3 matou.
     P2-B  no grafico de Evolucao, a barra do ANO ANTERIOR vem a esquerda e a
           do ATUAL a direita (ordem cronologica, pedido de 31/08); legenda,
           rotulos e tooltip seguem a mesma ordem.
@@ -246,9 +252,9 @@ tr.balde td:first-child::before{content:"Σ ";font-style:normal;font-weight:700;
 .prot{font-size:11.5px;color:var(--txt2);min-width:158px}
 .mini[disabled]{opacity:.35;cursor:default}
 .mini[disabled]:hover{border-color:#bfd3e6;color:var(--txt2);background:#f7fafd}
-/* a mesma barra repetida dentro das abas ganha moldura propria */
-.pbar.solta{margin-top:0;padding:8px 12px;border-top:0;background:#eef3f8;
-  border:1px solid #cddcec;border-radius:8px;margin-bottom:10px}
+/* v3 lote 2 (P2-A3): o painel de filtros movido para o TOPO de uma aba ganha
+   respiro embaixo; abaixo do grafico (Visao Geral) o .grid ja da o espaco. */
+.panel > .filters:first-child{margin-top:2px}
 /* v3 (F1-G): matriz item x periodo. As colunas da serie sao numero puro, com a
    escala declarada UMA vez no cabecalho — abreviar celula a celula ("R$ 7,04
    mi" em 24 colunas) deixa a matriz ilegivel, que e o oposto do objetivo. */
@@ -300,10 +306,9 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 <h1>Dashboard Gerencial de Canais <span>· Sell In</span></h1>
 <div class="sub" id="sub"></div>
 
-<!-- v3 lote 2 (P2-A2): o bloco de filtros #fPainel desceu para dentro da
-     Visao Geral, logo abaixo do grafico de Evolucao. Ele continua GLOBAL no
-     comportamento (os filtros valem para todas as abas); so a posicao mudou.
-     Bandeiras, SKU, Geografia e R$/kg tem copia da barra de Periodo. -->
+<!-- v3 lote 2 (P2-A2/A3): o bloco de filtros #fPainel e UNICO e viaja para a
+     aba ativa (posicionarFiltros): abaixo do grafico na Visao Geral, primeiro
+     elemento nas demais. Os filtros continuam globais no comportamento. -->
 <div class="tabs">
   <div class="tab active" data-p="geral">Visão Geral</div>
   <div class="tab" data-p="geo">Geografia</div>
@@ -314,11 +319,12 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 
 <div class="panel active" id="geral">
   <div class="kpis" id="kpis"></div>
-  <div class="grid" style="grid-template-columns:1fr">
+  <div class="grid" style="grid-template-columns:1fr" id="gridEvo">
     <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas>
       <div class="note" id="nEvo"></div></div>
   </div>
-  <!-- v3 lote 2 (P2-A2): controles logo abaixo da visao que eles comandam. -->
+  <!-- v3 lote 2 (P2-A2/A3): controles logo abaixo da visao que eles comandam.
+       O painel e UNICO e viaja para a aba ativa via posicionarFiltros(). -->
   <div class="filters fechado" id="fPainel">
   <div class="fcab">
     <button class="ftog" id="fToggle">▸ Filtros</button>
@@ -399,9 +405,6 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="geo">
-  <!-- v3 lote 2 (P2-A2): a mesma barra de Periodo das demais abas. -->
-  <div class="pbar solta"><span class="plab">Período</span>
-    <span class="chips" id="fPeriodoGeo"></span></div>
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Performance por UF <small id="sUF"></small></h3>
       <div class="scroll"><table id="tabUF"></table></div></div>
@@ -414,9 +417,6 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="band">
-  <!-- v3 (F1-A): a mesma barra do topo, repetida aqui. -->
-  <div class="pbar solta"><span class="plab">Período</span>
-    <span class="chips" id="fPeriodoBan"></span></div>
   <div class="frow" style="margin-bottom:10px">
     <div class="flab">Top</div><div class="chips" id="topBan"></div>
   </div>
@@ -434,9 +434,6 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="sku">
-  <!-- v3 (F1-A): a mesma barra do topo, repetida aqui. -->
-  <div class="pbar solta"><span class="plab">Período</span>
-    <span class="chips" id="fPeriodoSku"></span></div>
   <div class="frow" style="margin-bottom:10px">
     <div class="flab">Top</div><div class="chips" id="topSku"></div>
   </div>
@@ -457,9 +454,6 @@ footer{margin-top:22px;padding-top:12px;border-top:1px solid var(--linha);
 </div>
 
 <div class="panel" id="preco">
-  <!-- v3 lote 2 (P2-A2): a mesma barra de Periodo das demais abas. -->
-  <div class="pbar solta"><span class="plab">Período</span>
-    <span class="chips" id="fPeriodoPreco"></span></div>
   <div class="alerta"><b>R$/kg = soma da receita líquida ÷ soma do peso em kg</b>:
     razão das somas, nunca média das linhas, sempre com guarda contra divisor
     zero. O seletor global de métrica <b>não altera</b> esta definição.</div>
@@ -722,8 +716,22 @@ function irParaAtalho(tipo, idx){
   F.gran = (tipo==="ac") ? "mes" : tipo;
   montarFiltros();
 }
-const ALVOS_PERIODO = ["fPeriodo","fPeriodoBan","fPeriodoSku",
-                       "fPeriodoGeo","fPeriodoPreco"];
+/* P2-A3: a barra vive so dentro do #fPainel, que viaja para a aba ativa —
+   as copias por aba sairam junto com a duplicacao que elas criavam. */
+const ALVOS_PERIODO = ["fPeriodo"];
+/* O painel de filtros e UM no DOM e muda de lugar com a aba: abaixo do
+   grafico de Evolucao na Visao Geral, primeiro elemento nas demais. Mover o
+   no preserva os listeners; nada e clonado nem re-ligado. */
+function posicionarFiltros(aba){
+  const fp=el("fPainel");
+  if(aba==="geral"){
+    const g=el("gridEvo");
+    if(fp.previousElementSibling!==g) g.after(fp);
+  }else{
+    const p=el(aba);
+    if(p && p.firstElementChild!==fp) p.insertBefore(fp, p.firstElementChild);
+  }
+}
 function montarPeriodo(){
   const at=atalhoAtivo(), gs=at?at.grupos:null;
   const nav = at && at.tipo!=="ac" && gs.length>1;
@@ -2327,6 +2335,7 @@ function ligar(){
     t.classList.add("active");
     el(t.dataset.p).classList.add("active");
     F.aba=t.dataset.p;
+    posicionarFiltros(F.aba);       // P2-A3: o painel de filtros acompanha
     renderAba(F.aba);               // B1: renderiza sob demanda, se suja
     gravarRecorte();                // v2: a aba tambem faz parte do recorte
   });
@@ -2355,6 +2364,7 @@ function iniciar(){
     t.classList.toggle("active", on);
     el(t.dataset.p).classList.toggle("active", on);
   });
+  posicionarFiltros(F.aba);   // P2-A3: recorte pode reabrir fora da Visao Geral
   atualizarToggle();
   render();
 }
