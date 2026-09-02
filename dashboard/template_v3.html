@@ -121,6 +121,13 @@
     L3-G  rodape textual removido em TODOS os arquivos (Q3-b) — o
           run_dashboard.py parou de gerar o texto; titulo e cabecalho seguem
           declarando o recorte por head (P2-D).
+
+  D-49 (02/09/2026) — REMOCAO DO TEMA METAS (Fase 1 da reestruturacao).
+    Sairam por inteiro: a aba Metas (D-44), o bloco Meta x Realizado da
+    Visao Geral (L3-F) e a serie de meta no grafico de Evolucao (D-45).
+    O pipeline parou de gerar DB.cubo_meta. Motivo: havera NOVO arquivo de
+    metas, cruzado pela chave do cliente — a reintegracao esta descrita em
+    docs/12 (D-49). Nenhum codigo de meta ficou morto ou oculto no template.
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -341,8 +348,6 @@ canvas{max-height:280px}
   <div class="tab" data-p="band">Bandeiras</div>
   <div class="tab" data-p="sku">SKU</div>
   <div class="tab" data-p="preco">R$/kg</div>
-  <!-- D-44: some quando o pacote nao traz cubo_meta (iniciar()). -->
-  <div class="tab" data-p="metas" id="tabMetas">Metas</div>
 </div>
 
 <div class="panel active" id="geral">
@@ -437,22 +442,7 @@ canvas{max-height:280px}
       <div class="scroll"><table id="tabDrill"></table></div>
       <div class="note" id="nDrill"></div></div>
   </div>
-  <!-- L3-F: Meta x Realizado na Visao Geral (Q5-a, 01/09/2026). Le o
-       CUBO_META (rota A): meta e realizado PAREADOS pela mesma atribuicao —
-       por isso o realizado daqui pode divergir do Detalhamento, que segue a
-       hierarquia vigente; a nota declara. Some quando o pacote nao traz
-       cubo_meta (iniciar()), igual a aba Metas. -->
-  <div class="grid" style="grid-template-columns:1fr" id="mvrWrap">
-    <div class="card"><h3>Meta x Realizado <small>· por:</small>
-        <span class="chips" id="mvrDim"></span>
-        <small style="margin-left:6px">· métrica:</small>
-        <span class="chips" id="mvrMet"></span><small id="sMvr"></small></h3>
-      <div id="mvrCab" style="margin-bottom:6px" hidden>
-        <button class="mini" id="mvrVoltar">← voltar ao agregado</button>
-        <b id="mvrTitulo"></b></div>
-      <div class="scroll"><table id="tabMvr"></table></div>
-      <div class="note" id="nMvr"></div></div>
-  </div>
+  <!-- D-49: o bloco Meta x Realizado (L3-F) saiu com a remocao do tema Metas. -->
 </div>
 
 <div class="panel" id="geo">
@@ -519,25 +509,7 @@ canvas{max-height:280px}
   </div>
 </div>
 
-<!-- D-44: Meta x Realizado x ano anterior, cruzados na GERACAO (rota A).
-     A aba NAO responde aos filtros globais: o cubo de meta tem eixos proprios
-     (grupo comercial da meta, bandeira, categoria) e nenhum recorte de canal,
-     UF, projeto ou SKU — por isso o #fPainel nao viaja para ca. -->
-<div class="panel" id="metas">
-  <div class="alerta" id="mAviso" hidden></div>
-  <div class="frow" style="margin-bottom:10px">
-    <div class="flab">Mês da meta</div><div class="chips" id="mMes"></div>
-    <div class="flab" style="margin-left:14px">Métrica</div>
-    <div class="chips" id="mMet"></div>
-  </div>
-  <div class="kpis" id="mKpis"></div>
-  <div class="grid" style="grid-template-columns:1fr">
-    <div class="card"><h3>Meta x Realizado x ano anterior <small>· por:</small>
-        <span class="chips" id="mVisao"></span><small id="sMeta"></small></h3>
-      <div class="scroll"><table id="tabMeta"></table></div>
-      <div class="note" id="nMeta"></div></div>
-  </div>
-</div>
+<!-- D-49: a aba Metas (D-44) saiu com a remocao do tema Metas. -->
 
 <!-- L3-G: o rodape textual saiu (decisao de 01/09/2026, Q3-b). -->
 
@@ -562,7 +534,7 @@ const DB_CARGA = /*DADOS_INICIO*/null/*DADOS_FIM*/;
    A descompactacao e assincrona (DecompressionStream, nativo do navegador,
    sem rede) — por isso o motor so e "ligado" depois dela, em prepararDB(). */
 let DB, ESC, CAL, D, CUBO, CUBO_SKU, NM, SO_HEAD, IDX_CUBO, IDX_SKU,
-    METRICAS, CM, CHAVE_LS;
+    METRICAS, CHAVE_LS;
 
 async function carregarDB(carga){
   if(carga && carga.z === "gzip+base64"){
@@ -596,7 +568,6 @@ function prepararDB(){
     vol: {rot:"Volume (t)", col:6, esc:ESC.P*1000, un:"t"},
     cx : {rot:"Caixas",     col:7, esc:ESC.C, un:"cx"}
   };
-  CM = DB.cubo_meta;
   CHAVE_LS = "dashDoriCanais.recorte.v2"
     + (DB.meta && DB.meta.recorte_head ? ".head."+DB.meta.recorte_head : "");
 }
@@ -763,9 +734,6 @@ const ALVOS_PERIODO = ["fPeriodo"];
    no preserva os listeners; nada e clonado nem re-ligado. */
 function posicionarFiltros(aba){
   const fp=el("fPainel");
-  // D-44: a aba de metas nao usa os filtros globais — o painel fica onde esta
-  // (dentro de um panel oculto), em vez de viajar para uma tela que o ignora.
-  if(aba==="metas") return;
   if(aba==="geral"){
     const g=el("gridEvo");
     if(fp.previousElementSibling!==g) g.after(fp);
@@ -1055,7 +1023,7 @@ let SUJAS = {};
 function render(){
   const p = periodo();
   MEMO_TOTAL.clear();
-  SUJAS = {geral:true, geo:true, band:true, sku:true, preco:true, metas:true};
+  SUJAS = {geral:true, geo:true, band:true, sku:true, preco:true};
   atualizarEstado(p);
   // v3 (F1-A)/L3-B: a barra agora carrega so o "Ver por".
   montarPeriodo();
@@ -1065,25 +1033,17 @@ function render(){
     ["tabYTD","tabPer","tabDet","tabUF","tabUFper","tabBan","tabSku","tabPreco","tabPrecoPer"]
       .forEach(i=>vazio(i,"Nenhum mês selecionado. Escolha ao menos um mês."));
     el("kpis").innerHTML="";
-    renderMvr();     // L3-F: o bloco de metas nao depende da selecao de meses
     SUJAS = {};                     // nada a renderizar por aba
     return;
   }
   renderAba(F.aba || "geral", p);
 }
 function renderAba(aba, p){
-  // D-44: a aba de metas tem estado e dados proprios — renderiza fora do
-  // ciclo de filtros globais (e mesmo quando a selecao de meses esta vazia).
-  if(aba==="metas"){
-    if(SUJAS.metas!==false){ renderMetas(); SUJAS.metas=false; }
-    return;
-  }
   if(!SUJAS[aba]) return;
   p = p || periodo();
   if(!p.atual.length) return;
   if(aba==="geral"){
     renderKPIs(p); renderEvolucao(p); renderYTD(p); renderPeriodo(p); renderDet(p);
-    renderMvr();                                  // L3-F
     if(F.drill){
       // L3-E: a chave do drill "dimcat" vem do render atual — nao ha estado
       // persistido que possa apontar para item inexistente.
@@ -1185,35 +1145,9 @@ function grupoPeriodo(i){
   if(F.gran==="tri") return CAL[i][C_ANO]+"-T"+CAL[i][C_TRI];
   return CAL[i][C_ANO]+"-S"+CAL[i][C_SEM];
 }
-/* D-45: meta na Evolucao. A serie so existe onde a base de metas alcanca:
-   meses com meta, metrica R$ ou t (caixas nao existe na meta) e filtros que o
-   cubo de meta TEM (categoria, head, gerente, bandeira). Canal, UF, projeto e
-   SKU nao sao eixos da meta — com qualquer um deles ativo a serie SOME e a
-   nota diz o motivo, em vez de exibir uma meta que ignora o recorte. */
-function metaPorMesCal(){
-  if(!CM || F.metrica==="cx") return null;
-  if(F.can.size || F.uf.size || F.proj.size || F.sku.size) return null;
-  const catsSel=F.cat.size?new Set([...F.cat].map(i=>D.cat[i])):null;
-  const bansSel=F.ban.size?new Set([...F.ban].map(i=>D.ban[i])):null;
-  const idxCal=new Map(CAL.map((c,i)=>[c[C_AM],i]));
-  const esc=F.metrica==="val"?CM.escala.R:CM.escala.P*1000;
-  const off=F.metrica==="val"?4:5;
-  const porMes=new Map();                 // indice do CAL -> meta na metrica
-  for(const l of CM.linhas){
-    const ic=idxCal.get(CM.meses[l[0]][0]);
-    if(ic===undefined || l[off]===null) continue;
-    if(F.head.size && !F.head.has(CM.grupos[l[1]][0])) continue;
-    if(F.ger.size  && !F.ger.has(CM.grupos[l[1]][1]))  continue;
-    if(catsSel && !catsSel.has(CM.cats[l[3]])) continue;
-    if(bansSel && !bansSel.has(CM.bands[l[2]])) continue;
-    porMes.set(ic,(porMes.get(ic)||0)+l[off]/esc);
-  }
-  return porMes;
-}
+/* D-49: a serie de meta do grafico (D-45) saiu com a remocao do tema Metas. */
 function renderEvolucao(p){
-  const rotulos=[], atual=[], anterior=[], metaSerie=[];
-  const pm=metaPorMesCal();
-  let temMeta=false;
+  const rotulos=[], atual=[], anterior=[];
   const vistos=new Map();
   p.atual.forEach(i=>{
     const g=grupoPeriodo(i);
@@ -1228,12 +1162,6 @@ function renderEvolucao(p){
     // D-32: o ponto de LY so existe quando TODOS os meses do grupo tem par —
     // comparar um trimestre inteiro com 1/3 dele seria comparacao falsa.
     anterior.push(ls.length===ms.length?met(total(ls)):null);
-    // D-45: meta do grupo = soma dos meses do grupo QUE TEM meta; grupo sem
-    // nenhum mes de meta fica sem barra (null), nunca com zero.
-    let mv=null;
-    if(pm) ms.forEach(i=>{ if(pm.has(i)) mv=(mv||0)+pm.get(i); });
-    metaSerie.push(mv);
-    if(mv!==null) temMeta=true;
   }
   const m=METRICAS[F.metrica];
   // Δ% de cada periodo contra o MESMO periodo do LY (28/08) — so onde o par
@@ -1245,25 +1173,8 @@ function renderEvolucao(p){
   // L3-A (01/09/2026): a serie "Media do periodo" saiu do grafico — o numero
   // continua no KPI "Faturamento medio/mes", que era a mesma conta.
   el("tEvo").textContent=`Evolução · ${m.rot} · ${GRANS[F.gran]}`;
-  // D-45: a nota da meta declara presenca, alcance e ausencia — nada implicito.
-  let notaMeta="";
-  if(temMeta){
-    notaMeta=" Barra âmbar = <b>meta</b> (base FY 26/27), só nos períodos que possuem meta.";
-    if(F.head.size||F.ger.size)
-      notaMeta+=" Com filtro de head/gerente, a meta segue o dono <b>declarado na base de metas</b> (rota A) e as barras seguem a hierarquia vigente: pequenas diferenças de atribuição são esperadas.";
-    if(F.ban.size)
-      notaMeta+=" Com filtro de bandeira, a meta dos baldes (DEMAIS BANDEIRAS) fica de fora.";
-  }else if(CM){
-    const mesesMeta=new Set(CM.meses.map(mm=>mm[0]));
-    if(p.atual.some(i=>mesesMeta.has(CAL[i][C_AM]))){
-      if(F.metrica==="cx")
-        notaMeta=" <b>Meta oculta</b>: a base de metas não tem a métrica Caixas.";
-      else if(F.can.size||F.uf.size||F.proj.size||F.sku.size)
-        notaMeta=" <b>Meta oculta</b>: a base de metas não tem os eixos canal, UF, projeto ou SKU — limpe esses filtros para ver a meta.";
-    }
-  }
   el("nEvo").innerHTML=`Barra clara (à esquerda) = mesmo período do ano anterior. Barra escura (à direita) = período selecionado.
-    Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita, em %).${notaMeta}
+    Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita, em %).
     ${rotulos.some(r=>r.includes("(parcial)"))?"<b>(parcial)</b> marca grupo com menos meses que a granularidade pede: bordas da série ou seleção parcial. ":""}
     ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara e sem o Δ%</b>, não são exibidos como zero.":""}`;
   const ctx=el("cEvo").getContext("2d");
@@ -1291,7 +1202,7 @@ function renderEvolucao(p){
       // P2-B: a identidade da barra vem do LABEL, nao da posicao — a ordem
       // dos datasets mudou (ano anterior primeiro) e "di===0" marcaria em
       // negrito a barra errada.
-      const ehAtual=ds.label==="Atual", ehMeta=ds.label==="Meta";
+      const ehAtual=ds.label==="Atual";
       g.font=(ehAtual||ehVar?"600 ":"")+"9.5px 'Segoe UI',Arial";
       meta.data.forEach((elb,i)=>{
         const v=ds.data[i];
@@ -1301,7 +1212,7 @@ function renderEvolucao(p){
           g.textBaseline="bottom";
           g.fillText(fmtVar(v), elb.x, elb.y-5);
         }else{
-          g.fillStyle=ehAtual?"#003a70":(ehMeta?"#8a6d1a":"#7d8fa1");
+          g.fillStyle=ehAtual?"#003a70":"#7d8fa1";
           g.textBaseline=v<0?"top":"bottom";
           g.fillText(rotCurto(v), elb.x, v<0?elb.y+3:elb.y-3);
         }
@@ -1319,10 +1230,6 @@ function renderEvolucao(p){
        maxBarThickness:46,order:3},
       {label:"Atual",data:atual,backgroundColor:"#00539f",borderRadius:3,
        maxBarThickness:46,order:4},
-      // D-45: meta a DIREITA do atual (order 5) — passado, presente, alvo.
-      // So entra quando algum periodo exibido tem meta; null nao vira barra.
-      ...(temMeta?[{label:"Meta",data:metaSerie,backgroundColor:"#e9c46a",
-       borderRadius:3,maxBarThickness:46,order:5}]:[]),
       // L3-A: a linha tracejada "Media do periodo" saiu (pedido de 01/09).
       {type:"line",label:"Δ% vs LY",data:variacao,yAxisID:"y1",
        borderColor:"#f5a623",backgroundColor:"#f5a623",borderWidth:2,
@@ -1971,9 +1878,7 @@ const NOME_TAB={tabPer:"periodo",tabYTD:"ytd",tabDet:()=>"detalhe-"+F.dimGeral,
     ? "gerentes-"+slug(F.drill.k)
     : F.drill && F.drill.tipo==="dimcat"        // L3-E
     ? "categorias-"+slug(String(ROTULOS[F.drill.dim](F.drill.k)))
-    : "sku-"+slug(D.cat[F.drill?.k]??"categoria"),
-  tabMeta:()=>"metas-"+MF.visao+(CM?"_"+CM.meses[MF.mes][0]:""),
-  tabMvr:()=>"meta-realizado-"+MV.dim+(MV.item?"-"+slug(MV.item):"")};
+    : "sku-"+slug(D.cat[F.drill?.k]??"categoria")};
 function nr(v,c=2){ if(v===null||v===undefined||!isFinite(v)) return null;
   const f=Math.pow(10,c); return Math.round(v*f)/f; }
 function pctNum(v){ return (v===null||v===undefined||!isFinite(v))?null:v*100; }
@@ -2348,272 +2253,8 @@ function renderDrillDimCat(){
     +" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".";
 }
 
-/* ==================================================== metas (D-44, rota A)
-   O cruzamento chega PRONTO do pipeline (DB.cubo_meta): cada linha ja traz
-   meta, realizado e LY pareados por (mes, grupo comercial DA META, bandeira,
-   categoria). Aqui so se agrega pela visao escolhida e formata. Regras que
-   vieram de decisao, nao de gosto:
-   - rota A: o realizado da bandeira nomeada segue o dono DECLARADO na meta —
-     e o que faz N3 somar para N2 e N1 sem vazamento;
-   - a cauda sem bandeira nomeada segue a hierarquia vigente e aparece como
-     "DEMAIS BANDEIRAS" (onde os baldes da meta se encaixam);
-   - null e ausencia (mes sem sell-in, meta sem par): vira n/d, nunca 0.     */
-// D-48: CM e atribuido em prepararDB(), depois da descompactacao.
-const MF = {mes:0, visao:"exec", met:"val"};
-// D-48: um rotulo so para o N3 no painel inteiro. A aba de metas dizia
-// "Executivo" e o resto do painel nem tinha o nivel; agora os dois dizem
-// "Sup./Exec.", que e como a hierarquia oficial grafa o cargo.
-const MVIS = {head:"Head", ger:"Gerente", exec:"Sup./Exec.",
-              band:"Bandeira", cat:"Categoria"};
-const MMET = {val:{rot:"Valor (R$)", off:0, esc:100,  un:"R$"},
-              vol:{rot:"Volume (t)", off:1, esc:1e6, un:"t"}};
-// L3-F: ganhou o parametro opcional `visao` para o bloco Meta x Realizado da
-// Visao Geral reutilizar a mesma regra; sem ele, segue a visao da aba Metas.
-function mRotulo(l, visao){
-  const v=visao||MF.visao;
-  if(v==="band") return CM.bands[l[2]];
-  if(v==="cat")  return CM.cats[l[3]];
-  const g=CM.grupos[l[1]];
-  return g[{head:0, ger:1, exec:2}[v]];
-}
-function mSoma(a,b){ return b===null||b===undefined ? a : (a===null?0:a)+b; }
-function mAgrupar(){
-  const mp=new Map();
-  for(const l of CM.linhas){
-    if(l[0]!==MF.mes) continue;
-    const k=mRotulo(l);
-    let v=mp.get(k);
-    if(!v){ v=[null,null,null,null,null,null]; mp.set(k,v); }
-    for(let j=0;j<6;j++) v[j]=mSoma(v[j], l[4+j]);
-  }
-  return mp;
-}
-function mFmt(v, met){
-  return v===null ? '<span class="nd">n/d</span>' : abrev(v/met.esc, met.un);
-}
-function renderMetas(){
-  if(!CM) return;
-  const mm=CM.meses[MF.mes], met=MMET[MF.met];
-  const temReal=mm[4], temLy=mm[5];
-  el("mMes").innerHTML=CM.meses.map((m,i)=>
-    `<span class="chip${i===MF.mes?" on":""}" data-mm="${i}">${m[1]}</span>`).join("");
-  el("mMet").innerHTML=Object.entries(MMET).map(([k,m])=>
-    `<span class="chip${MF.met===k?" on":""}" data-mt="${k}">${m.rot}</span>`).join("");
-  el("mVisao").innerHTML=Object.entries(MVIS).map(([k,r])=>
-    `<span class="chip${MF.visao===k?" on":""}" data-mv="${k}">${r}</span>`).join("");
-
-  const grupos=mAgrupar();
-  const o=met.off;
-  // KPIs do mes: meta, realizado, atingimento, LY e meta x LY
-  const tot=[null,null,null,null,null,null];
-  grupos.forEach(v=>{ for(let j=0;j<6;j++) tot[j]=mSoma(tot[j],v[j]); });
-  const tMeta=tot[0+o], tReal=temReal?tot[2+o]:null, tLy=temLy?tot[4+o]:null;
-  const atg=(tReal!==null&&tMeta)?tReal/tMeta:null;
-  el("mKpis").innerHTML=[
-    `<div class="kpi destaque"><div class="rot">Meta ${mm[1]}</div>
-      <div class="val">${mFmt(tMeta,met)}</div>
-      <div class="cmp">${met.rot}</div></div>`,
-    `<div class="kpi"><div class="rot">Realizado ${mm[1]}</div>
-      <div class="val">${mFmt(tReal,met)}</div>
-      <div class="cmp">${temReal?"sell-in carregado":"sem sell-in do mês ainda"}</div></div>`,
-    `<div class="kpi"><div class="rot">Atingimento</div>
-      <div class="val">${atg===null?'<span class="nd">n/d</span>':fmtNum(atg*100,1)+"%"}</div>
-      <div class="cmp">realizado ÷ meta</div></div>`,
-    `<div class="kpi"><div class="rot">Ano anterior (${mm[3]})</div>
-      <div class="val">${mFmt(tLy,met)}</div>
-      <div class="cmp">mesmo mês do ano anterior</div></div>`,
-    `<div class="kpi"><div class="rot">Meta x ano anterior</div>
-      <div class="val">${fmtPct(varPct(tMeta===null?null:tMeta/met.esc, tLy===null?null:tLy/met.esc))}</div>
-      <div class="cmp">crescimento embutido na meta</div></div>`].join("");
-
-  const linhas=[...grupos.entries()].sort((a,b)=>{
-    const va=a[1][0+o], vb=b[1][0+o];
-    if(va===null&&vb===null) return 0;
-    if(va===null) return 1; if(vb===null) return -1;
-    return vb-va;
-  });
-  const cab=["", "Meta", "Realizado", "Ating.", `Ano ant. (${mm[3]})`,
-             "Real x ano ant.", "Meta x ano ant."];
-  const cols=[MVIS[MF.visao], `Meta (${met.un})`, `Realizado (${met.un})`,
-              "Atingimento %", `Ano anterior (${met.un})`,
-              "Real x ano anterior %", "Meta x ano anterior %"];
-  const raw=[];
-  const tr=linhas.map(([k,v])=>{
-    const vm=v[0+o]===null?null:v[0+o]/met.esc;
-    const vr=(temReal&&v[2+o]!==null)?v[2+o]/met.esc:null;
-    const vl=(temLy&&v[4+o]!==null)?v[4+o]/met.esc:null;
-    const a=(vr!==null&&vm)?vr/vm:null;
-    raw.push([k, nr(vm), nr(vr), nr(pctNum(a)), nr(vl),
-              nr(pctNum(varPct(vr,vl))), nr(pctNum(varPct(vm,vl)))]);
-    return `<tr><td>${k}</td><td>${mFmt(v[0+o],met)}</td><td>${mFmt(temReal?v[2+o]:null,met)}</td>
-      <td>${a===null?'<span class="nd">n/d</span>':fmtNum(a*100,1)+"%"}</td>
-      <td>${mFmt(temLy?v[4+o]:null,met)}</td>
-      <td>${fmtPct(varPct(vr,vl))}</td><td>${fmtPct(varPct(vm,vl))}</td></tr>`;
-  }).join("");
-  el("tabMeta").innerHTML=`<thead><tr>${cab.map(c=>`<th>${c}</th>`).join("")}</tr></thead>
-    <tbody>${tr}</tbody>`;
-  registrarExport("tabMeta", cols, raw);
-  el("sMeta").textContent=` · ${mm[1]} · ${linhas.length} linha(s)`;
-
-  el("mAviso").hidden=temReal;
-  if(!temReal) el("mAviso").innerHTML=
-    `<b>Sem sell-in de ${mm[1]} carregado ainda.</b> Realizado e atingimento
-     aparecem como n/d, nunca como zero; o comparativo com ${mm[3]} já está
-     disponível.`;
-  el("nMeta").innerHTML=
-    `Esta aba <b>não responde aos filtros do painel</b>: o cubo de metas tem
-     eixos próprios (grupo comercial da meta, bandeira e categoria).
-     <b>Atribuição do realizado (rota A)</b>: bandeira nomeada na meta leva o
-     realizado inteiro para o head/gerente/executivo <b>declarados na meta</b>,
-     mesmo quando a hierarquia vigente distribui os clientes dela por outros
-     códigos; o que não tem bandeira nomeada segue a hierarquia vigente e
-     aparece como <b>${CM.rotulo_demais}</b>, onde também está a meta dos
-     baldes (Sem Mudança e Projeto L). Ano anterior = mesmo mês, mesma
-     atribuição. Meta sem par no realizado e mês sem carga aparecem como n/d.`;
-}
-
-/* ========================= Meta x Realizado na Visao Geral (L3-F, Q5-a)
-   Le o MESMO CUBO_META da aba Metas (rota A): meta e realizado chegam
-   PAREADOS pela mesma atribuicao, entao Δ e Δ% comparam iguais com iguais —
-   e por isso o realizado daqui pode divergir do Detalhamento, que segue a
-   hierarquia vigente (a nota declara). Colunas = os meses QUE TEM meta
-   (independe da selecao de meses do painel); linhas = a dimensao escolhida,
-   e o clique abre as categorias do item (Q6). Responde aos filtros que a
-   meta TEM (head, gerente, categoria, bandeira); com canal/UF/projeto/SKU
-   ativo a tabela avisa em vez de exibir meta que ignora o recorte (mesma
-   regra D-45 do grafico). Ausencia e n/d, nunca zero (Q8). */
-const MV = {dim: SO_HEAD?"ger":"head", met:"val", item:null};
-let MVR_ROTS = [];               // rotulos da ultima renderizacao (p/ clique)
-function renderMvr(){
-  if(!CM) return;
-  const met=MMET[MV.met];
-  // D-46: no arquivo por head a visao "Head" seria uma linha so — sai.
-  const visoes=Object.entries(MVIS).filter(([k])=>!(SO_HEAD&&k==="head"));
-  el("mvrDim").innerHTML=visoes.map(([k,r])=>
-    `<span class="chip${MV.dim===k?" on":""}" data-k="${k}">${r}</span>`).join("");
-  el("mvrMet").innerHTML=Object.entries(MMET).map(([k,m])=>
-    `<span class="chip${MV.met===k?" on":""}" data-k="${k}">${m.rot}</span>`).join("");
-  if(F.can.size||F.uf.size||F.proj.size||F.sku.size){
-    el("mvrCab").hidden=true;
-    vazio("tabMvr","A base de metas não tem os eixos canal, UF, projeto ou SKU. Limpe esses filtros para ver Meta x Realizado.");
-    el("nMvr").textContent=""; el("sMvr").textContent="";
-    return;
-  }
-  const drill=MV.item!==null && MV.dim!=="cat";
-  el("mvrCab").hidden=!drill;
-  if(drill) el("mvrTitulo").textContent="Categorias de "+MV.item;
-  const catsSel=F.cat.size?new Set([...F.cat].map(i=>D.cat[i])):null;
-  const bansSel=F.ban.size?new Set([...F.ban].map(i=>D.ban[i])):null;
-  const nM=CM.meses.length, o=met.off;
-  const porItem=new Map();             // rotulo -> Array(nM) de [meta, real]
-  for(const l of CM.linhas){
-    if(F.head.size && !F.head.has(CM.grupos[l[1]][0])) continue;
-    if(F.ger.size  && !F.ger.has(CM.grupos[l[1]][1]))  continue;
-    if(catsSel && !catsSel.has(CM.cats[l[3]])) continue;
-    if(bansSel && !bansSel.has(CM.bands[l[2]])) continue;
-    if(drill && mRotulo(l, MV.dim)!==MV.item) continue;
-    const k=drill ? CM.cats[l[3]] : mRotulo(l, MV.dim);
-    let v=porItem.get(k);
-    if(!v){ v=Array.from({length:nM},()=>[null,null]); porItem.set(k,v); }
-    const c=v[l[0]];
-    c[0]=mSoma(c[0], l[4+o]);          // meta
-    c[1]=mSoma(c[1], l[6+o]);          // realizado (null = ausencia, Q8)
-  }
-  if(!porItem.size){
-    vazio("tabMvr");
-    el("nMvr").textContent=""; el("sMvr").textContent="";
-    return;
-  }
-  const ND='<span class="nd">n/d</span>';
-  const un=v=>v===null||v===undefined?null:v/met.esc;       // desfaz a escala
-  const fmtD=(vr,vm)=>{
-    if(vr===null||vm===null) return ND;
-    const d=vr-vm, c=d>0?"sobe":(d<0?"desce":"");
-    return `<span class="${c}">${d>0?"+":(d<0?"−":"")}${abrev(Math.abs(d),met.un)}</span>`;
-  };
-  // Ordenacao: meta TOTAL decrescente; linhas SEM meta por ultimo, entre si
-  // pelo realizado — mesma regra da aba Metas.
-  const itens=[...porItem.entries()].map(([k,v])=>{
-    let tm=null,tr=null;
-    v.forEach(c=>{ tm=mSoma(tm,c[0]); tr=mSoma(tr,c[1]); });
-    return {k,v,tm,tr};
-  }).sort((a,b)=>{
-    if(a.tm===null&&b.tm===null) return (b.tr||0)-(a.tr||0);
-    if(a.tm===null) return 1; if(b.tm===null) return -1;
-    return b.tm-a.tm;
-  });
-  const multi=nM>1;                    // TOTAL de linha so com 2+ meses
-  const cab=[drill?"Categoria":MVIS[MV.dim]];
-  CM.meses.forEach(mm=>cab.push(`Meta ${mm[1]}`,`Real. ${mm[1]}`,"Δ","Δ%"));
-  if(multi) cab.push("Meta TOTAL","Real. TOTAL","Δ","Δ%");
-  MVR_ROTS=itens.map(it=>it.k);
-  const raw=[];
-  const somaCol=Array.from({length:nM},()=>[null,null]);
-  const linhas=itens.map((it,pos)=>{
-    const nome=(!drill && MV.dim!=="cat")
-      ? `<span class="drill" data-mi="${pos}" title="ver as categorias deste item">${it.k} ▸</span>`
-      : it.k;
-    const cel=[nome], rw=[it.k];
-    it.v.forEach((c,i)=>{
-      const vm=un(c[0]), vr=un(c[1]);
-      somaCol[i][0]=mSoma(somaCol[i][0],c[0]);
-      somaCol[i][1]=mSoma(somaCol[i][1],c[1]);
-      cel.push(mFmt(c[0],met), mFmt(c[1],met), fmtD(vr,vm), fmtPct(varPct(vr,vm)));
-      rw.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
-              nr(pctNum(varPct(vr,vm))));
-    });
-    if(multi){
-      const vm=un(it.tm), vr=un(it.tr);
-      cel.push(mFmt(it.tm,met), mFmt(it.tr,met), fmtD(vr,vm), fmtPct(varPct(vr,vm)));
-      rw.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
-              nr(pctNum(varPct(vr,vm))));
-    }
-    raw.push(rw);
-    return cel;
-  });
-  // Totalizador de coluna (Q5): soma dos itens exibidos, Δ e Δ% recalculados.
-  let gTm=null,gTr=null;
-  const rodape=["<b>Total</b>"];
-  const rawTot=["Total"];
-  somaCol.forEach(c=>{
-    gTm=mSoma(gTm,c[0]); gTr=mSoma(gTr,c[1]);
-    const vm=un(c[0]), vr=un(c[1]);
-    rodape.push(`<b>${mFmt(c[0],met)}</b>`, `<b>${mFmt(c[1],met)}</b>`,
-                fmtD(vr,vm), fmtPct(varPct(vr,vm)));
-    rawTot.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
-                nr(pctNum(varPct(vr,vm))));
-  });
-  if(multi){
-    const vm=un(gTm), vr=un(gTr);
-    rodape.push(`<b>${mFmt(gTm,met)}</b>`, `<b>${mFmt(gTr,met)}</b>`,
-                fmtD(vr,vm), fmtPct(varPct(vr,vm)));
-    rawTot.push(nr(vm), nr(vr), (vm===null||vr===null)?null:nr(vr-vm),
-                nr(pctNum(varPct(vr,vm))));
-  }
-  raw.push(rawTot);
-  el("tabMvr").innerHTML=tabela(cab,linhas,rodape);
-  registrarExport("tabMvr",cab.map(_semHtml),raw);
-  el("sMvr").textContent=` · ${CM.meses.map(m=>m[1]).join(", ")} · ${itens.length} linha(s)`;
-  const semReal=CM.meses.filter(mm=>!mm[4]).map(mm=>mm[1]);
-  el("nMvr").innerHTML=
-    `Meta e realizado saem do <b>cubo de metas (rota A)</b>: bandeira nomeada
-     leva o realizado para o dono <b>declarado na meta</b>; a cauda segue a
-     hierarquia vigente e entra em <b>${CM.rotulo_demais}</b>. Por isso o
-     realizado daqui pode diferir do Detalhamento acima, que segue sempre a
-     hierarquia vigente. Só aparecem os <b>meses que têm meta</b>; linha sem
-     meta e mês sem sell-in carregado mostram n/d, nunca zero.
-     <b>Δ</b> = Realizado − Meta; <b>Δ%</b> = variação do realizado sobre a
-     meta (atingimento = 100% + Δ%).
-     ${semReal.length?`<b>Sem sell-in de ${semReal.join(", ")} carregado
-     ainda</b>: realizado como n/d. `:""}
-     Este bloco responde aos filtros de head, gerente, categoria e bandeira;
-     canal, UF, projeto e SKU não são eixos da base de metas.
-     ${(!drill && MV.dim!=="cat")?"Clique numa linha para abrir as categorias do item.":""}`;
-  el("tabMvr").onclick=(!drill && MV.dim!=="cat")
-    ? (e)=>{const s=e.target.closest(".drill"); if(!s) return;
-        MV.item=MVR_ROTS[+s.dataset.mi]; renderMvr(); gravarRecorte();}
-    : null;
-}
+/* D-49: a secao de metas (D-44 aba Metas + L3-F Meta x Realizado) saiu com
+   a remocao do tema Metas. Reintegracao futura: docs/12 (D-49). */
 
 /* ==================================================== ordenacao (v2)
    Clique no cabecalho ordena QUALQUER tabela do painel — o cursor:pointer que
@@ -2684,7 +2325,6 @@ function recorteAtual(){
     sku:[...F.sku].map(i=>D.sku[i][0]),        // codigo do SKU, estavel
     dimGeral:F.dimGeral, dimPreco:F.dimPreco,
     topBan:F.topBan, topSku:F.topSku, aba:F.aba,
-    mvrDim:MV.dim, mvrMet:MV.met,           // L3-F
     fAberto:!el("fPainel").classList.contains("fechado")
   };
 }
@@ -2730,12 +2370,9 @@ function aplicarRecorte(r){
   }
   if(DB.tops.ban.includes(r.topBan)) F.topBan=r.topBan;
   if(DB.tops.sku.includes(r.topSku)) F.topSku=r.topSku;
-  // L3-F: estado do bloco Meta x Realizado (o drill de categoria nao e
-  // persistido, como o drill do Detalhamento tambem nunca foi).
-  if(MVIS[r.mvrDim] && !(SO_HEAD && r.mvrDim==="head")) MV.dim=r.mvrDim;
-  if(MMET[r.mvrMet]) MV.met=r.mvrMet;
-  if(["geral","geo","band","sku","preco"].includes(r.aba)
-     || (r.aba==="metas" && DB.cubo_meta)) F.aba=r.aba;
+  // D-49: recorte salvo antes da remocao pode apontar para a aba "metas",
+  // que nao existe mais — cai no padrao (Visao Geral).
+  if(["geral","geo","band","sku","preco"].includes(r.aba)) F.aba=r.aba;
   if(r.fAberto) el("fPainel").classList.remove("fechado");
 }
 function gravarRecorte(){
@@ -2844,23 +2481,6 @@ function ligar(){
     preSelecionarMeses(); el("bBan").value=""; el("bSku").value="";
     montarFiltros(); render();
   };
-  // D-44: controles proprios da aba de metas (mes, metrica, visao).
-  if(CM){
-    const religar=()=>{ SUJAS.metas=true; renderAba("metas"); };
-    el("mMes").addEventListener("click",e=>{const c=e.target.closest("[data-mm]");
-      if(c){ MF.mes=+c.dataset.mm; religar(); }});
-    el("mMet").addEventListener("click",e=>{const c=e.target.closest("[data-mt]");
-      if(c){ MF.met=c.dataset.mt; religar(); }});
-    el("mVisao").addEventListener("click",e=>{const c=e.target.closest("[data-mv]");
-      if(c){ MF.visao=c.dataset.mv; religar(); }});
-    // L3-F: controles do bloco Meta x Realizado da Visao Geral. Trocar de
-    // dimensao fecha o drill de categoria (o item pertence a dimensao velha).
-    el("mvrDim").addEventListener("click",e=>{const c=e.target.closest(".chip");
-      if(c){ MV.dim=c.dataset.k; MV.item=null; renderMvr(); gravarRecorte(); }});
-    el("mvrMet").addEventListener("click",e=>{const c=e.target.closest(".chip");
-      if(c){ MV.met=c.dataset.k; renderMvr(); gravarRecorte(); }});
-    el("mvrVoltar").onclick=()=>{ MV.item=null; renderMvr(); };
-  }
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
@@ -2886,14 +2506,6 @@ function iniciar(){
   // componente, a logica e os listeners continuam; e visibilidade por perfil,
   // nunca remocao. Nos demais perfis nada muda.
   if(SO_HEAD) el("frowHead").hidden=true;
-  // D-44: sem cubo de meta no pacote, a aba nem aparece (meta ausente e
-  // ausente — um painel antigo republicado nao mostra aba vazia).
-  // L3-F: o bloco Meta x Realizado da Visao Geral segue a mesma regra.
-  if(!CM){
-    el("tabMetas").remove();
-    el("metas").remove();
-    el("mvrWrap").remove();
-  }
   const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
   const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
   F.fy=fys[fys.length-1]; F.ano=anos[anos.length-1];

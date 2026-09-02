@@ -231,7 +231,12 @@ relatório de valores não reconhecidos.
 | `FEMSA_DePara_Produtos.xlsx` | de-para de sell-out FEMSA |
 | `Supervisores_DePara.xlsx` | aba `DePara` **vazia** — é um "leia-me" pedindo preenchimento |
 
-### 2.5 `bases/Metas/FY 26-27_Meta Set_TT BRASIL.xlsx` → `FATO_META` (D-43, 01/09/2026)
+### 2.5 `bases/Metas/FY 26-27_Meta Set_TT BRASIL.xlsx` → `FATO_META` (D-43, 01/09/2026 — **REMOVIDA do escopo na D-49, 02/09/2026**)
+
+> **D-49:** o tema Metas saiu do produto (haverá novo arquivo de metas por
+> chave de cliente; reintegração descrita em docs/12). O leitor
+> `src/extract/metas.py` foi apagado e a `FATO_META` não é mais gravada. A
+> descrição abaixo fica como registro do que a D-43 ingeria.
 
 Meta oficial FY 26/27 do Comercial, aba `Meta 26-27_com Bandeira`. Grão
 **head x bandeira x categoria**, um PAR de colunas por mês (Volume kg + RL R$).
@@ -263,8 +268,8 @@ pedidos ao Comercial abertos, ver D-42/D-43).
 
 `bases/Sell Out - MTRIX/` (13 arq.) · `bases/Sell Out - FEMSA/` ·
 `bases/Sell Out - KAN/` · `bases/Previsão de Vendas/` ·
-`bases/Estoque Mtrix/` · `bases/Alavancas/`. (`bases/Metas/` entrou no
-escopo em 01/09/2026 — ver §2.5.)
+`bases/Estoque Mtrix/` · `bases/Alavancas/` · `bases/Metas/` (entrou no
+escopo em 01/09/2026 e **saiu na D-49**, 02/09/2026 — ver §2.5).
 
 Nenhuma é lida pelo pipeline (§2.4 do prompt: Sell Out, Metas, Previsão,
 Planejamento e Verbas estão fora).

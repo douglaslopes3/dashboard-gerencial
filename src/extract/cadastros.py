@@ -201,12 +201,11 @@ def _ler_estrutura(arq: Path) -> tuple[pd.DataFrame, dict]:
     if "PROJETO" in df.columns:
         out["PROJETO"] = texto(df["PROJETO"], maiuscula=False)
     # D-42: a hierarquia carrega o cadastro de bandeiras do Comercial (serie
-    # 82xxxxx — a MESMA da base de metas FY 26/27). O sell-in nao traz codigo
-    # de bandeira nenhum, entao esta e a unica ponte por CODIGO entre meta e
-    # realizado. O nome vai junto como BANDEIRA_ESTRUTURA para nao colidir com
-    # a BANDEIRA do sell-in (grafias divergem em 9% dos clientes — o rotulo de
-    # tela continua sendo o do sell-in). O complemento nao tem as colunas:
-    # cliente sem elas fica <NA>, nunca inventado.
+    # 82xxxxx). Nasceu como ponte por codigo com a base de metas antiga; desde
+    # a D-49 e ATRIBUTO do cadastro, sem funcao de join. O nome vai junto como
+    # BANDEIRA_ESTRUTURA para nao colidir com a BANDEIRA do sell-in (grafias
+    # divergem em 9% dos clientes — o rotulo de tela continua sendo o do
+    # sell-in). Cliente sem as colunas fica <NA>, nunca inventado.
     if "CÓDIGO BANDEIRA" in df.columns:
         out["COD_BANDEIRA"] = digitos(df["CÓDIGO BANDEIRA"])
     if "BANDEIRA" in df.columns:
@@ -244,29 +243,9 @@ def ler_estrutura() -> tuple[pd.DataFrame, list[str]]:
 
     est = cache.ler(arq, _ler_estrutura)[0]
 
-    # ---- COMPLEMENTO (D-34) ---------------------------------------------
-    # Clientes que faturam e nao estao na base oficial, mapeados pelo
-    # supervisor da base anterior. A base principal SEMPRE vence: linha do
-    # complemento cujo cliente ja esta na oficial e descartada com log — e o
-    # dia em que TODAS forem descartadas, o complemento pode ser aposentado.
-    comp_rel = _EST.get("complemento")
-    if comp_rel:
-        arq_c = caminho(comp_rel)
-        if arq_c.exists():
-            comp = cache.ler(arq_c, _ler_estrutura)[0]
-            ja_na_oficial = comp["COD_CLIENTE"].isin(set(est["COD_CLIENTE"]))
-            n_novos = int((~ja_na_oficial).sum())
-            msg = (f"complemento da estrutura ({arq_c.name}): {n_novos:,} "
-                   f"cliente(s) adicionados, {int(ja_na_oficial.sum()):,} ja "
-                   "na base oficial (oficial vence)")
-            log(msg, "ok")
-            avisos.append(msg)
-            est = pd.concat([est, comp[~ja_na_oficial]], ignore_index=True)
-        else:
-            msg = (f"complemento da estrutura declarado no config e ausente "
-                   f"({arq_c.name}) — os clientes dele ficam NÃO ATRIBUÍDO")
-            log(msg, "aviso")
-            avisos.append(msg)
+    # O COMPLEMENTO (D-34) foi aposentado na D-49 (02/09/2026): o arquivo saiu
+    # de bases/ em definitivo e os clientes dele viraram as bases RTM-Transicao
+    # e Hierarquia_Clientes_Faltando, tratadas na Fase 2 da reestruturacao.
 
     # ---- correcoes DECLARADAS -------------------------------------------
     for coluna, chave in (("HEAD", "correcoes_head"),

@@ -45,18 +45,24 @@ concatenando `código - papel - nome` com `" - "` (parte vazia é omitida).
 | `(N2) CÓDIGO GERENTE` + `(N2) GERENTE` + `(N2) NOME GERENTE` | `GERENTE` | rótulo concatenado + `correcoes_gerente` |
 | `(N3) CÓDIGO SUP./EXEC.` + `(N3) SUP./EXEC.` + `(N3) NOME SUP./EXEC.` | `SUPERVISOR` | rótulo concatenado + `correcoes_supervisor` |
 | `PROJETO` | `PROJETO` | `texto(maiuscula=False)` |
-| `CÓDIGO BANDEIRA` | `COD_BANDEIRA` | `digitos()` (D-42, série 82xxxxx da base de metas) |
+| `CÓDIGO BANDEIRA` | `COD_BANDEIRA` | `digitos()` (D-42, série 82xxxxx; atributo do cadastro desde a D-49) |
 | `BANDEIRA` | `BANDEIRA_ESTRUTURA` | `texto()` (D-42, só conferência/rótulo de código) |
+
+`SUPERVISOR` (N3) é lido desde a D-34 e, desde a **D-48** (02/09/2026),
+também **chega ao painel**: entra no eixo `perfil` dos dois cubos, vira filtro
+em todas as abas com o rótulo **Sup./Exec.** e fecha a cadeia de drill
+Head → Gerente → Sup./Exec.
 
 Nível N4 (vendedor/RCA), `CLIENTE`, `REDE`: **não ingeridos** (a
 granularidade do arquivo é cliente × vendedor; a deduplicação por cliente
 acontece depois das correções, com checagem de conflito N1–N3 e de
 `COD_BANDEIRA`). `ATENDIMENTO_PONTA` deixou de existir com a troca da base.
-`COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` são a ponte por CÓDIGO com a base de
-metas FY 26/27 (o sell-in não traz código de bandeira; a `BANDEIRA` da tela
-segue vindo do sell-in). O complemento não tem as colunas: cliente dele fica
-`<NA>`, nunca inventado. Medido em 01/09/2026: 13.101 de 16.122 clientes com
-código (81,3%; 93,5% da receita de 24 meses).
+`COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` nasceram como ponte por CÓDIGO com a base
+de metas FY 26/27; com a remoção do tema Metas (**D-49**) seguem como
+ATRIBUTO do cadastro, sem função de join (o sell-in não traz código de
+bandeira; a `BANDEIRA` da tela segue vindo do sell-in). O complemento não tem
+as colunas: cliente dele fica `<NA>`, nunca inventado. Medido em 01/09/2026:
+13.101 de 16.122 clientes com código (81,3%; 93,5% da receita de 24 meses).
 
 O **complemento** (`Hierarquia_Complemento.xlsx`, mesmo layout) entra pelo
 mesmo leitor; linha cujo cliente já está na oficial é descartada com log.
@@ -78,7 +84,11 @@ SKU que aparece no sell-in e não está no cadastro entra com
 `FORA_DO_CADASTRO = true`, usando descrição e categoria do próprio sell-in e
 `MARCA` nula.
 
-## 3b. `FY 26-27_Meta Set_TT BRASIL.xlsx` → `FATO_META` (D-43)
+## 3b. `FY 26-27_Meta Set_TT BRASIL.xlsx` → `FATO_META` (D-43 — **REMOVIDA na D-49, 02/09/2026**)
+
+> **D-49:** a `FATO_META` deixou de existir — o tema Metas saiu do produto e o
+> novo arquivo de metas, quando chegar, será cruzado pela chave do cliente
+> (reintegração em docs/12, D-49). A tabela abaixo fica como registro.
 
 Grão: `ANO_MES` x `COD_HEAD` x `BANDEIRA_META` x `COD_BANDEIRA` x `CATEGORIA`
 (duplicidade ABORTA). A competência vem do rótulo da coluna (`SET'26`), e a

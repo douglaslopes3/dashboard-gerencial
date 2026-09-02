@@ -25,44 +25,43 @@ ATENCAO (aviso do detector)  ago/26 e set/26 vieram com RECORTE de extracao
                              original", sem excluir "diversos") - ago/26 fechado
                              subiu R$ 7,68 mi sobre o parcial (105,06 -> 112,74 mi);
                              conferir com o BI se o recorte novo e o oficial
-SKUs 400 · categorias 12 · canais 7 · heads 4 · bandeiras 300 nominais + balde de 10.989
+SKUs 400 · categorias 12 · canais 7 · heads 4 · gerentes 13 · Sup./Exec. 56
+                              bandeiras 300 nominais + balde de 10.989
 cod. de bandeira (D-42)      13.101 de 16.122 clientes (81,3% · 93,5% da receita),
-                             lido da Hierarquia_Consolidada: ponte por codigo com a
-                             base de metas FY 26/27
-FATO_META (D-43)             meta set/26 ingerida de bases/Metas: 3.282 linhas ·
-                             R$ 122.279.463,48 · 7.824,5 t, reconciliada ao centavo
-                             com a linha Total do proprio arquivo; 73,3% do R$ casa
-                             por codigo + 0,7% por nome (sem par: baldes do Atacado
-                             + 3 codigos novos, pedidos ao Comercial abertos)
-meta na Evolucao (D-45)      barra ambar nos periodos com meta, na Visao Geral;
-                             some (com nota do motivo) sob filtros que a base de
-                             metas nao tem (canal, UF, projeto, SKU, caixas)
-aba Metas (D-44, rota A)     CUBO_META cruzado na geracao (2.547 linhas, 54 grupos,
-                             257 bandeiras, reconciliado): Meta x Realizado x ano
-                             anterior por head/gerente/executivo/bandeira/categoria
-                             no painel completo e nos 4 arquivos por head; o
-                             realizado da bandeira nomeada segue o dono DECLARADO
-                             na meta (rota A); mes sem sell-in aparece como n/d,
-                             nunca zero
+                             lido da Hierarquia_Consolidada; desde a D-49 e
+                             atributo do cadastro, sem funcao de join
+METAS REMOVIDAS (D-49)       o tema Metas saiu inteiro do produto em 02/09/2026
+                             (leitor D-43, CUBO_META/aba D-44, meta na Evolucao
+                             D-45, bloco Meta x Realizado D-47): havera novo
+                             arquivo de metas cruzado pela chave do cliente —
+                             ponto de reintegracao em docs/12 (D-49);
+                             bases/Metas/ fica intocada
 
 reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
 grao                         zero duplicados
 cobertura da estrutura       99,96% da receita
 cobertura de canal           100,00% da receita
-testes                       37/37 unitarios · 6/6 cenarios ponta a ponta
+testes                       35/35 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~20 s com cache · exit 0
-painel (v3, lote 3/D-47)     14,7 MB · zero requisicao de rede · 6 paginas (aba Metas)
+TRANSICAO (02/09/2026)       complemento da hierarquia APOSENTADO em definitivo
+                             (decisao do Douglas): 2.641 clientes (R$ 137,17 mi
+                             na serie — RTM 89,09 + saneamento 47,11 + antigos
+                             0,97) estao "NÃO ATRIBUÍDO" ate a Fase 2 (RTM +
+                             saneamento); piso de cobertura TEMPORARIO em 93%
+                             (voltar a 95% na Fase 2) — cobertura atual 94,08%
+painel (v3, D-49)            9,29 MB · zero requisicao de rede · 5 paginas
+                             cubos compactados no arquivo (25,5 MB -> 9,2 MB),
+                             descompactados na abertura pelo navegador
                              granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),
                              periodo parcial declarado, filtros em todas as abas
                              exportacao CSV/XLSX em toda tabela
-                             drills: Categoria -> SKU · Head -> Gerente ·
-                             demais dimensoes -> Categoria (D-47)
-                             Detalhamento com Bandeira (top N + balde) · bloco
-                             Meta x Realizado na Visao Geral (CUBO_META rota A,
-                             Meta|Realizado|Δ|Δ% por mes de meta) · sem rodape
-                             textual · atalhos de Periodo removidos (fica o
-                             "Ver por") · filtro Head oculto no arquivo por head
-por head                     4 arquivos restritos (1,7 a 7,5 MB), recorte fisico
+                             drills: Categoria -> SKU · Head -> Gerente ->
+                             Sup./Exec. · demais dimensoes -> Categoria
+                             NENHUM filtro ignorado em nenhuma aba (D-48)
+                             Detalhamento com Bandeira (top N + balde) · sem
+                             rodape textual · atalhos de Periodo removidos (fica
+                             o "Ver por") · filtro Head oculto no arquivo por head
+por head                     4 arquivos restritos (1,07 a 4,87 MB), recorte fisico
                              na geracao: o arquivo de um head nao contem os
                              dados dos outros squads
 ```
@@ -129,20 +128,14 @@ agrupamento das colunas/barras e os rótulos. Grupo com menos meses que a
 granularidade pede sai marcado **(parcial)**, nunca como período cheio.
 
 **Exportação CSV/XLSX em todas as tabelas** (dado cru, respeitando os filtros)
-e **drill-down**: Categoria → SKUs, Head → Gerentes e, nas demais dimensões do
-Detalhamento (canal, gerente, projeto, UF, bandeira), item → **Categorias**
-(D-47). O Detalhamento também quebra por **Bandeira** (top N + balde Σ, o
+e **drill-down**: Categoria → SKUs, Head → Gerentes → **Sup./Exec.** (D-48)
+e, nas demais dimensões do **Detalhamento** (canal, gerente, projeto, UF,
+bandeira), item → **Categorias** (D-47). O Detalhamento também quebra por **Bandeira** (top N + balde Σ, o
 mesmo corte da aba Bandeiras).
 
-**Meta x Realizado na Visão Geral** (D-47): bloco próprio lendo o CUBO_META
-(rota A) — dimensão Head/Gerente/Executivo/Bandeira/Categoria, colunas por mês
-de meta com Meta | Realizado | Δ | Δ%, totalizadores, clique abre as categorias
-do item. Só os meses que têm meta; ausência é n/d, nunca zero. Responde aos
-filtros que a meta tem (head, gerente, categoria, bandeira) e avisa quando
-canal/UF/projeto/SKU estão ativos.
-
 **Filtros globais** derivados das dimensões: ano fiscal, ano calendário, meses,
-**canal**, categoria, head, gerente, **projeto**, UF, bandeira e SKU. O painel
+**canal**, categoria, head, gerente, **Sup./Exec.** (D-48), **projeto**, UF,
+bandeira e SKU. O painel
 de filtros (com o "Ver por" e a linha de estado) existe em todas as
 abas: abaixo do gráfico de Evolução na Visão Geral, no topo nas demais.
 
@@ -174,9 +167,12 @@ Configuração em `config/config.yaml → dashboard.por_head`.
    medido em 01/09/2026; na tela do v3 a cobertura é recalculada sob o recorte
    ativo). As outras 10.989 **não somem**: entram agregadas, e todo total
    continua reconciliando com a base.
-3. **A camada de SKU cruza com head, canal, categoria e UF — não com gerente,
-   bandeira nem projeto.** Quando esses filtros ficam ativos junto com um filtro
-   de SKU, a tela avisa em vez de fingir que aplicou.
+3. ~~**A camada de SKU cruza com head, canal, categoria e UF — não com
+   gerente, bandeira nem projeto.**~~ **Resolvido em 02/09/2026 (D-48):** o
+   cubo de SKU passou a carregar o mesmo perfil comercial do cubo principal
+   (head, gerente, **Sup./Exec.**, canal, projeto) mais a bandeira. **Nenhum
+   filtro é ignorado em nenhuma aba** — e o painel ficou menor, porque os
+   cubos passaram a viajar compactados.
 
 ---
 
@@ -229,7 +225,7 @@ run_pipeline.py  run_dashboard.py
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-35 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — 41 decisões, com o porquê |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-49, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |

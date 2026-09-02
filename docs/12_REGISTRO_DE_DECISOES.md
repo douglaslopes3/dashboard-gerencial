@@ -1079,3 +1079,137 @@ com aviso nos dois lugares (gráfico e bloco). Arquivo do head 20: filtro Head
 oculto, seletores sem "Head", bloco de metas abrindo por Gerente com total
 R$ 48,62 mi (= a meta do próprio head no painel completo), sem rodapé. Zero
 erros de console nos dois arquivos. 5 HTMLs republicados.
+
+
+---
+
+## D-48 · Sup./Exec. (N3) no painel e fim dos filtros ignorados (02/09/2026)
+
+**Contexto.** O painel detalhava ate Gerente (N2). A `Hierarquia_Consolidada`
+ja trazia o N3 (`(N3) CODIGO SUP./EXEC.` + papel + nome) e o ETL ja o lia para
+a `DIM_CLIENTE` desde a D-34 — a coluna `SUPERVISOR` era gravada no Parquet e
+**morria ali**: nao entrava em cubo nenhum e nao virava filtro. Media em
+02/09/2026: 56 Sup./Exec. com faturamento, **99,96% da receita atribuida**,
+zero cliente com N3 conflitante.
+
+No mesmo levantamento apareceu um problema maior. O cubo de SKU tinha como
+eixo comercial o par (head, canal) — por custo, decidido na D-09 — e por isso
+a aba de SKU **ignorava gerente, projeto e bandeira**, avisando na tela. Com o
+N3 entrando seriam quatro filtros ignorados. Filtro que a tela avisa que esta
+ignorando e filtro que alguem le errado.
+
+**Decisao.** (1) `SUPERVISOR` entra no eixo `perfil` dos DOIS cubos; (2) o cubo
+de SKU passa a usar o **mesmo perfil** do cubo principal **mais a bandeira** —
+nenhum filtro fica fora de nenhuma camada; (3) os cubos passam a viajar
+**compactados** dentro do HTML (gzip+base64, descompactados na abertura pelo
+proprio navegador, sem rede); (4) a cadeia de drill vai a
+**Head -> Gerente -> Sup./Exec.**; (5) o rotulo do nivel e **"Sup./Exec."** no
+painel inteiro — a aba de Metas dizia "Executivo".
+
+**Por que assim, com o que foi medido antes de decidir** (`working/medir_n3.py`
+e `working/medir_n3b.py`, rodados sobre a camada curada):
+
+| Cenario | Cubo de SKU | Painel projetado |
+|---|---:|---:|
+| como estava (4 filtros ignorados) | 370.823 linhas | 14,66 MB |
+| perfil completo (so bandeira de fora) | 498.045 | 19,05 MB |
+| perfil + bandeira, sem compactar | 650.409 | **25,83 MB — acima do teto** |
+| perfil + bandeira, **compactado** | 650.409 | **9,65 MB** |
+
+O teto de 25 MB e o alvo de 20 MB foram fixados nesta fase (abertura por duplo
+clique em maquina corporativa e limite de anexo de e-mail). Sem compactacao o
+cenario correto estourava o teto **e** crescia ~4% por mes novo de sell-in — a
+solucao duraria dois meses. Compactado, o painel ficou **menor do que era**
+carregando quatro filtros a mais.
+
+**Resultado medido na geracao (02/09/2026):** perfis 123 -> 220; cubo principal
+94.085 -> 97.397 linhas (+3,5%); cubo de SKU 370.823 -> 649.112 (+75%); cubos
+25,5 MB -> 9,2 MB compactados; **painel 14,66 -> 9,53 MB**; arquivos por head
+de 1,7-7,5 MB para 1,07-4,87 MB. Particionamento fecha: R$ 2.317.781.656,27
+(heads) + R$ 969.705,72 (NAO ATRIBUIDO) = R$ 2.318.751.361,99.
+
+**O que NAO mudou, de proposito.** O grao da fato, o modelo estrela, as
+dimensoes, o corte de bandeira (top 300 + balde), a reconciliacao cubo x fato
+(que continua sendo a trava da publicacao) e o recorte fisico por head — que
+agora corta os dois cubos pelo mesmo indice de perfil.
+
+**Fora de escopo, por decisao do Douglas:** o N4 (vendedor/RCA). A base tem o
+nivel, mas com tres pendencias do Comercial medidas nesta fase: 13 clientes com
+dois vendedores (rateio de receita nao tem regra), 992 linhas com
+`[Criar Codigo]` no lugar do codigo, e o `Hierarquia_Complemento.xlsx` sem
+nenhuma coluna N4 (2.612 clientes, R$ 136,4 mi em 24 meses). Tambem ficaram de
+fora, por decisao: arquivo por gerente ou por supervisor (segue so por head) e
+qualquer tema de meta/orcamento/target.
+
+**Rollback.** `backup_2026-09-02_pre_N3/` (cubos.py, run_dashboard.py,
+template_v3.html, config.yaml e o painel gerado) e
+`dashboard/template_v3_pre_D48.html`.
+
+---
+
+## D-49 · Remoção do tema Metas (02/09/2026 — Fase 1 da reestruturação)
+
+**Contexto.** Início da reestruturação do painel (prompt de 02/09/2026, Step 1):
+haverá um **novo arquivo de metas, cruzado pela chave do cliente/código do
+cliente** — a base FY 26/27 (grão head × bandeira × categoria, ponte por código
+de bandeira, rota A) deixa de ser a fonte. A regra da reestruturação proíbe
+código morto, visual oculto ou cálculo desativado no build: o tema sai inteiro.
+
+**Decisão.** Remoção integral do tema Metas do produto:
+
+- `src/extract/metas.py` e `src/load/cubo_meta.py` **apagados**;
+- `run_pipeline.py` parou de ler a base, de conferir cobertura, de construir o
+  `CUBO_META` e de gravar a `FATO_META` (o parquet some na próxima execução);
+- `run_dashboard.py` parou de recortar `cubo_meta` por head;
+- `config/config.yaml` perdeu o bloco `fontes.metas`;
+- template v3: saíram a **aba Metas** (D-44), o bloco **Meta x Realizado** da
+  Visão Geral (L3-F/D-47) e a **série de meta na Evolução** (D-45), com todos
+  os controles, exportações e estados de recorte; recorte salvo apontando para
+  a aba "metas" cai na Visão Geral;
+- testes exclusivos de metas removidos (leitor D-43 e cubo D-44); suíte segue
+  verde com 35/35;
+- `bases/Metas/` **intocada** (origem é só leitura). As decisões D-42 a D-45 e
+  a rota A permanecem neste registro como histórico.
+
+**O que fica, de propósito.** `COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` na
+`DIM_CLIENTE` (D-42): nasceram como ponte para a meta antiga, seguem como
+atributo do cadastro — sem função de join.
+
+**Ponto de reintegração (quando o novo arquivo de metas existir).**
+1. Novo leitor em `src/extract/` declarado em `config/config.yaml →
+   fontes.metas`, com `COD_CLIENTE` como chave obrigatória e competência vinda
+   do conteúdo (nunca do nome do arquivo), `obrigatorio: false` (sem o arquivo
+   o painel roda sem meta; ausência é ausência, nunca zero).
+2. `FATO_META` por (ANO_MES × COD_CLIENTE [× categoria/SKU se o arquivo
+   trouxer]), gravada na curated e reconciliada contra o gabarito do próprio
+   arquivo — como toda fonte do projeto.
+3. O cruzamento com o realizado passa a ser **join direto pela chave do
+   cliente** na camada de agregação (etapa 5 do `run_pipeline.py`), sem rota A,
+   sem ponte por código de bandeira e sem fallback por nome: a meta herda
+   canal, hierarquia e bandeira da própria `DIM_CLIENTE`, e por isso responde
+   aos mesmos filtros do painel.
+4. Na interface, o visual de meta nasce de novo sobre a matriz da época —
+   nenhum componente antigo ficou oculto para "religar".
+
+**Rollback.** `dashboard/template_v3_pre_D49.html`,
+`tests/test_regras.py.pre_D49` e o histórico do git; os módulos apagados
+existem no commit anterior.
+
+**Adendo (02/09/2026, decisões do Douglas na mesma rodada).**
+(1) **Complemento aposentado em definitivo** (Q1 da auditoria): o
+`Hierarquia_Complemento.xlsx` saiu de `bases/` e não volta — a chave
+`fontes.estrutura_comercial.complemento` e o mecanismo de concatenação em
+`cadastros.py` foram removidos. Os 2.612 clientes dele viraram as bases
+`RTM-Transicao` (1.762) e `Hierarquia_Clientes_Faltando` (850), tratadas na
+Fase 2. (2) **Piso de cobertura temporário em 0,93**: a aposentadoria derruba
+a cobertura medida para 94,08% e o piso de 0,95 abortaria todo ciclo até a
+Fase 2; a redução está declarada no config com a instrução de VOLTAR a 0,95
+quando a Fase 2 reatribuir os clientes. Estado medido após as duas decisões:
+pipeline exit 0 · 35/35 · painel 9,29 MB, 5 abas · particionamento fecha em
+R$ 2.181.581.461,40 (heads) + R$ 137.169.900,61 (NÃO ATRIBUÍDO: RTM 89,09 mi
++ saneamento 47,11 mi + antigos 0,97 mi) = R$ 2.318.751.362,01. (3) Da mesma
+rodada: a distribuição por nível (Fase 4/5) será **só até o N3** — Full + 4
+N1 + 13 N2 + 55 N3 = 73 arquivos; o N4 aparece como nível expansível na
+matriz do arquivo do N3, sem arquivo próprio. FATO_META.parquet e os caches
+de staging da meta e do complemento foram removidos de `data/` (artefatos
+gerados; as origens em `bases/` ficam intocadas).

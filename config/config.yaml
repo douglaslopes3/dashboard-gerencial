@@ -95,44 +95,26 @@ fontes:
       - "(N3) SUP./EXEC."
       - "(N3) NOME SUP./EXEC."
     # CÓDIGO BANDEIRA/BANDEIRA (D-42): cadastro de bandeiras do Comercial
-    # (serie 82xxxxx, a mesma da base de metas FY 26/27) — unica ponte por
-    # codigo entre meta e realizado, ja que o sell-in nao traz codigo de
-    # bandeira. O complemento nao tem as colunas (pedido ao Comercial aberto).
+    # (serie 82xxxxx). Nasceu como ponte por codigo com a base de metas antiga;
+    # com a remocao do tema Metas (D-49) segue como ATRIBUTO do cadastro, sem
+    # funcao de join — a futura base de metas cruza pela chave do CLIENTE.
     colunas_opcionais: ["PROJETO", "CÓDIGO BANDEIRA", "BANDEIRA"]
     # A ausência deste arquivo NÃO derruba o pipeline: o painel roda sem
     # hierarquia, com todo mundo em "NÃO ATRIBUÍDO" e um aviso na tela.
     obrigatorio: false
-    # COMPLEMENTO (D-34): 2.612 clientes que faturam e não estão na base
-    # oficial (554 ativos em ago/2026, R$ 136,4 Mi em 24 meses), mapeados pelo
-    # supervisor da base anterior. Mesmo layout e mesma aba. A base principal
-    # SEMPRE vence: quando a oficial incorporar esses clientes, o complemento
-    # esvazia sozinho. Pendente de validação do Comercial — as colunas de
-    # apoio (ORIGEM, DOMINÂNCIA...) não são lidas pelo pipeline.
-    complemento: "bases/Bases para tabelas dimensões/Hierarquia_Complemento.xlsx"
+    # COMPLEMENTO (D-34) — APOSENTADO na D-49 (02/09/2026, decisao do Douglas):
+    # o Hierarquia_Complemento.xlsx foi excluido de bases/ em definitivo. Os
+    # 2.612 clientes dele viraram duas bases novas, tratadas na Fase 2 da
+    # reestruturacao: RTM-Transicao (1.762, reatribuicao ao distribuidor) e
+    # Hierarquia_Clientes_Faltando (850, saneamento SIM/NAO). Ate a Fase 2
+    # entrar, esses clientes ficam "NÃO ATRIBUÍDO" — ver o piso reduzido em
+    # `validacao.cobertura_minima_head`.
 
-  # Base de metas FY 26/27 (D-43): grao HEAD x bandeira x categoria, um par de
-  # colunas (Volume kg + RL R$) por mes. Peculiaridades ABSORVIDAS pelo leitor,
-  # nao exigidas do arquivo: cabecalho fora da linha 1 (achado pelo conteudo),
-  # rotulo do indicador na linha ACIMA do cabecalho, linhas "Total" no meio dos
-  # dados (a total geral vira o GABARITO de reconciliacao) e competencia no
-  # rotulo da coluna ("SET'26" -> 2026-09), nunca no nome do arquivo.
-  metas:
-    arquivo: "bases/Metas/FY 26-27_Meta Set_TT BRASIL.xlsx"
-    aba: "Meta 26-27_com Bandeira"
-    colunas_obrigatorias:
-      - "CÓDIGO HEAD"
-      - "HEAD"
-      - "CLUSTER"
-      - "CLIENTE"
-      - "CÓD. BANDEIRA 1"
-      - "CÓD. BANDEIRA 2"
-      - "CATEGORIA"
-      - "(N2) CÓDIGO GERENTE"
-      - "(N3) CÓDIGO SUP./EXEC."
-      - "STATUS VÍNCULO"
-    # Sem o arquivo o pipeline RODA (painel sem meta, com aviso) — meta ausente
-    # aparece como ausente, nunca como zero.
-    obrigatorio: false
+  # D-49 (02/09/2026): o bloco `fontes.metas` saiu com a remocao do tema Metas
+  # (leitor da base FY 26/27, FATO_META e CUBO_META rota A). O novo arquivo de
+  # metas, quando chegar, sera cruzado pela CHAVE DO CLIENTE — o ponto de
+  # reintegracao esta documentado em docs/12 (D-49). `bases/Metas/` permanece
+  # intocada (origem e so leitura).
 
   # De-para Cliente -> Canal, entregue em 26/08/2026 (resolve o GAP-01).
   # Cobertura medida na entrega: 100,0000% dos 16.131 clientes e da receita.
@@ -204,7 +186,11 @@ validacao:
   # Piso de cobertura da estrutura comercial sobre a receita. Abaixo disso o
   # pipeline ABORTA. Existe por um erro real do projeto anterior: `Cód. cliente`
   # zero-preenchido faz o join casar com ZERO cliente — e casar em silêncio.
-  cobertura_minima_head: 0.95
+  # D-49 (02/09/2026, decisao do Douglas): piso TEMPORARIAMENTE em 0.93 — a
+  # aposentadoria do complemento derrubou a cobertura medida para 94,08%
+  # (2.641 clientes "NÃO ATRIBUÍDO", R$ ~137 mi na serie). VOLTAR PARA 0.95
+  # quando a Fase 2 (RTM + saneamento da hierarquia) reatribuir esses clientes.
+  cobertura_minima_head: 0.93
   # Mesmo piso para o de-para de canais — o arquivo tambem traz o codigo
   # zero-preenchido, entao o mesmo join silencioso e possivel.
   cobertura_minima_canal: 0.95

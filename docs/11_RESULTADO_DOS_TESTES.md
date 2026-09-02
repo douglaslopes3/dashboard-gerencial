@@ -664,7 +664,7 @@ correcao de registro             o README dizia "3.110.907 linhas de origem ·
                                  duas vezes no texto
 ```
 
-## T-37 · Leitor de metas e FATO_META (D-43)
+## T-37 · Leitor de metas e FATO_META (D-43) — **aposentado na D-49** (tema Metas removido; testes e módulos saíram do build)
 
 ```
 testes novos (4)
@@ -691,7 +691,7 @@ sell-in                          intocado: totais identicos ao centavo,
                                  painel regenerado, particionamento fecha
 ```
 
-## T-38 · CUBO_META e aba Metas (D-44, rota A)
+## T-38 · CUBO_META e aba Metas (D-44, rota A) — **aposentado na D-49**
 
 ```
 testes novos (2)
@@ -717,7 +717,7 @@ arquivo por head (Izabela)       so grupos dela (18 executivos 4xxx), meta
 console                          zero erros nas duas paginas
 ```
 
-## T-39 · Meta na Evolução (D-45)
+## T-39 · Meta na Evolução (D-45) — **aposentado na D-49**
 
 ```
 FY2027 · set/26 (sem filtro)     LY 103,47 mi | Atual 1,28 mi | Meta 122,28 mi
@@ -740,4 +740,44 @@ arquivo do head 20               Detalhamento: Canal/Categoria/Gerente/
 recorte salvo com dimGeral=head  recai em Categoria, sem erro
 painel completo                  chip Head intacto nos dois seletores
 console                          zero erros · republicacao 5/5 md5 ok
+```
+
+## T-41 · Remoção do tema Metas (D-49, 02/09/2026)
+
+```
+unitarios                        35/35 (os 6 de metas sairam com os modulos)
+grep de vestigios                zero referencia de codigo a metas em src/,
+                                 run_*.py, config e template (so changelog)
+run_dashboard.py                 5 arquivos gerados; particionamento fecha:
+                                 R$ 2.317.781.656,27 + 969.705,72 =
+                                 R$ 2.318.751.361,99
+navegador (server painel)        painel completo: 5 abas (sem Metas), sem
+                                 bloco Meta x Realizado, sem serie de meta na
+                                 Evolucao; aba Bandeiras renderiza; console
+                                 zero erros
+arquivo por head (Michel)        abre limpo, filtro Head oculto, titulo
+                                 declara o recorte; console zero erros
+run_pipeline.py                  ABORTA por cobertura 94,08% < piso 95% —
+                                 efeito da EXCLUSAO do Hierarquia_Complemento
+                                 .xlsx da pasta bases (2.641 clientes sem
+                                 estrutura), NAO da D-49; nenhum parquet foi
+                                 gravado. Painel do build vem do curated de
+                                 02/09 14:43 (pre-D-49, mesma execucao A6).
+                                 Destrava na Fase 2 (RTM + saneamento) ou por
+                                 decisao sobre o piso/complemento.
+```
+
+Adendo (mesma noite, apos as decisoes "piso 0,93" e "complemento definitivo"):
+
+```
+run_pipeline.py                  exit 0 · cobertura 94,08% aceita (piso
+                                 temporario 0,93 declarado no config)
+curated                          sem FATO_META; caches de meta/complemento
+                                 removidos do staging
+painel                           9,29 MB · pacote embutido SEM cubo_meta
+                                 (verificado descompactando o build)
+particionamento                  heads 2.181.581.461,40 + NAO ATRIBUIDO
+                                 137.169.900,61 = 2.318.751.362,01
+navegador                        recarregado do build novo: 5 abas, zero erro
+testes                           35/35
 ```

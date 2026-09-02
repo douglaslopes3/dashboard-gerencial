@@ -89,9 +89,10 @@ def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
     d["BANDEIRA"] = d["BANDEIRA"].fillna(SEM_BANDEIRA)
     d["UF"] = d["UF"].fillna(SEM_UF)
 
-    # D-42: codigo de bandeira vindo da Hierarquia_Consolidada — a ponte por
-    # codigo com a base de metas. Ausencia fica <NA> (esquema estavel mesmo
-    # sem estrutura); cobertura no log porque o join da meta depende dela.
+    # D-42: codigo de bandeira vindo da Hierarquia_Consolidada. Era a ponte por
+    # codigo com a base de metas antiga; desde a D-49 (tema Metas removido) e
+    # so ATRIBUTO do cadastro — a futura meta cruza pela chave do cliente.
+    # Ausencia fica <NA> (esquema estavel mesmo sem estrutura).
     for c in ("COD_BANDEIRA", "BANDEIRA_ESTRUTURA"):
         if c not in d.columns:
             d[c] = pd.Series(pd.NA, index=d.index, dtype="string")
