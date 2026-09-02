@@ -2,8 +2,10 @@
 """Camada analítica — os dois cubos que o painel consome.
 
 REGRA QUE MANDA AQUI: **linha transacional nunca chega ao HTML.**
-Entram 3.085.119 linhas de fato; saem 459.343 linhas de agregado
-(90.644 no cubo principal + 368.699 no de SKU, medidos em 26/08/2026).
+Entram 3.117.999 linhas de fato; saem 748.119 linhas de agregado
+(97.710 no cubo principal + 650.409 no de SKU, medidos em 02/09/2026 com o
+eixo da D-48 — antes eram 94.085 + 370.823 com quatro filtros ignorados na
+aba de SKU).
 
 Os números vão para o JSON como INTEIROS ESCALADOS — receita em centavos, peso em
 gramas, caixas em centésimos. Dois motivos:
@@ -27,6 +29,11 @@ from ..utils.log import abortar, log
 
 _DASH = CFG["dashboard"]
 _TOL_REL = float(CFG["validacao"]["tolerancia_cubo_relativa"])
+
+# D-48 (02/09/2026): o eixo comercial dos DOIS cubos. Esta lista e a unica
+# fonte da ordem dos componentes do perfil — o template le pelas mesmas
+# posicoes (0 head, 1 gerente, 2 sup./exec., 3 canal, 4 projeto).
+COLS_PERFIL = ["HEAD", "GERENTE", "SUPERVISOR", "CANAL", "PROJETO"]
 
 ESC_RECEITA = 100      # centavos
 ESC_PESO = 1000        # gramas
@@ -59,7 +66,7 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # errado ("cubo nao reconcilia"). Aqui o erro nasce com o nome certo.
     d = fato.merge(
         dim_cliente[["COD_CLIENTE", "BANDEIRA", "UF", "HEAD", "GERENTE",
-                     "CANAL", "PROJETO"]],
+                     "SUPERVISOR", "CANAL", "PROJETO"]],
         on="COD_CLIENTE", how="left", validate="m:1")
     d = d.merge(dim_produto[["COD_PRODUTO", "CATEGORIA"]],
                 on="COD_PRODUTO", how="left", validate="m:1")
@@ -71,16 +78,20 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     heads, i_head = _indexar(sorted(dim_cliente["HEAD"].dropna().unique()))
     canais, i_can = _indexar(sorted(dim_cliente["CANAL"].dropna().unique()))
 
-    # HEAD, GERENTE, CANAL e PROJETO viajam como UM eixo (o PERFIL do cliente),
-    # nao como quatro. Medido: 104 perfis distintos — guardar os quatro como
-    # indices separados multiplicaria o cubo por combinacoes que nao existem, e
-    # guardar so um perderia os outros filtros. O perfil mantem os quatro
-    # filtros exatos ao custo de um indice por linha.
-    perfis = (d[["HEAD", "GERENTE", "CANAL", "PROJETO"]].drop_duplicates()
-               .sort_values(["HEAD", "GERENTE", "CANAL", "PROJETO"])
+    # HEAD, GERENTE, SUPERVISOR, CANAL e PROJETO viajam como UM eixo (o PERFIL
+    # do cliente), nao como cinco — guardar cada um como indice separado
+    # multiplicaria o cubo por combinacoes que nao existem, e guardar so um
+    # perderia os outros filtros. O perfil mantem os cinco filtros exatos ao
+    # custo de UM indice por linha.
+    # D-48 (02/09/2026): o SUPERVISOR (N3 Sup./Exec.) entrou aqui. Medido antes
+    # de decidir: 123 -> 223 perfis e 94.085 -> 97.710 linhas no cubo principal
+    # (+3,9%), 110 KB de JSON. A cardinalidade do eixo cresce; o cubo quase nao.
+    perfis = (d[COLS_PERFIL].drop_duplicates()
+               .sort_values(COLS_PERFIL)
                .values.tolist())
     i_perf = {tuple(p): i for i, p in enumerate(perfis)}
-    log(f"perfis (head x gerente x canal x projeto): {len(perfis)}", "ok")
+    log(f"perfis (head x gerente x sup./exec. x canal x projeto): "
+        f"{len(perfis)}", "ok")
 
     # ------------------------------------------------- bandeira: top N + balde
     topn = int(_DASH["top_bandeiras"])
@@ -97,39 +108,46 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
         f"+ balde com {n_demais:,}", "ok")
 
     # -------------------------------------------------------- CUBO PRINCIPAL
-    g = (d.groupby(["ANO_MES", "BAN_CUBO", "CATEGORIA", "HEAD", "GERENTE",
-                    "CANAL", "PROJETO", "UF"],
+    g = (d.groupby(["ANO_MES", "BAN_CUBO", "CATEGORIA"] + COLS_PERFIL + ["UF"],
                    observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
           .sum(min_count=1).reset_index())
     esc = _escalar(g)
-    cubo = [[i_mes[am], i_ban[bn], i_cat[ct], i_perf[(hd, gr, cn, pj)],
+    cubo = [[i_mes[am], i_ban[bn], i_cat[ct], i_perf[(hd, gr, sp, cn, pj)],
              i_uf[uf], r, p, c]
-            for am, bn, ct, hd, gr, cn, pj, uf, r, p, c
+            for am, bn, ct, hd, gr, sp, cn, pj, uf, r, p, c
             in zip(g["ANO_MES"], g["BAN_CUBO"], g["CATEGORIA"], g["HEAD"],
-                   g["GERENTE"], g["CANAL"], g["PROJETO"], g["UF"],
-                   esc["R"], esc["P"], esc["C"])]
+                   g["GERENTE"], g["SUPERVISOR"], g["CANAL"], g["PROJETO"],
+                   g["UF"], esc["R"], esc["P"], esc["C"])]
     log(f"CUBO_PRINCIPAL         {len(cubo):>10,} linhas "
         f"(ANO_MES x BANDEIRA x CATEGORIA x PERFIL x UF)", "ok")
 
     # -------------------------------------------------------------- CUBO SKU
-    # O eixo comercial do cubo de SKU e o par (HEAD, CANAL) — 31 pares medidos.
-    # Gerente, bandeira e projeto ficam fora deste cubo por custo (ver D-09 no
-    # registro de decisoes); a tela AVISA quando esses filtros estao ativos
-    # junto com um filtro de SKU, em vez de fingir que aplicou.
-    pares_hc = (d[["HEAD", "CANAL"]].drop_duplicates()
-                 .sort_values(["HEAD", "CANAL"]).values.tolist())
-    i_hc = {tuple(p): i for i, p in enumerate(pares_hc)}
-    gs = (d.groupby(["ANO_MES", "COD_PRODUTO", "HEAD", "CANAL", "UF"],
+    # D-48 (02/09/2026) — o eixo comercial deste cubo era o par (HEAD, CANAL),
+    # e por isso a aba de SKU IGNORAVA gerente, projeto e bandeira (D-09).
+    # Filtro que a tela avisa que esta ignorando e filtro que alguem le errado:
+    # o cubo passa a carregar o MESMO perfil do cubo principal (head, gerente,
+    # sup./exec., canal, projeto) MAIS a bandeira. Nenhum filtro fica de fora.
+    #
+    # O custo foi medido antes (working/medir_n3b.py, 02/09/2026):
+    #   370.823 -> 650.409 linhas (+75,4%) e 11,2 -> 22,5 MB de JSON cru.
+    # Em texto puro isso levaria o painel a 25,8 MB (acima do teto de 25 MB);
+    # e por isso que run_dashboard.py grava os cubos COMPACTADOS — medido:
+    # 7,44 MB no arquivo final, metade do painel anterior. As duas mudancas
+    # (eixo e compactacao) andam juntas de proposito.
+    gs = (d.groupby(["ANO_MES", "COD_PRODUTO"] + COLS_PERFIL + ["UF", "BAN_CUBO"],
                     observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
            .sum(min_count=1).reset_index())
     skus, i_sku = _indexar(dim_produto["COD_PRODUTO"].tolist())
     escs = _escalar(gs)
-    cubo_sku = [[i_mes[am], i_sku[sk], i_hc[(hd, cn)], i_uf[uf], r, p, c]
-                for am, sk, hd, cn, uf, r, p, c
+    cubo_sku = [[i_mes[am], i_sku[sk], i_perf[(hd, gr, sp, cn, pj)],
+                 i_uf[uf], i_ban[bn], r, p, c]
+                for am, sk, hd, gr, sp, cn, pj, uf, bn, r, p, c
                 in zip(gs["ANO_MES"], gs["COD_PRODUTO"], gs["HEAD"],
-                       gs["CANAL"], gs["UF"], escs["R"], escs["P"], escs["C"])]
+                       gs["GERENTE"], gs["SUPERVISOR"], gs["CANAL"],
+                       gs["PROJETO"], gs["UF"], gs["BAN_CUBO"],
+                       escs["R"], escs["P"], escs["C"])]
     log(f"CUBO_SKU               {len(cubo_sku):>10,} linhas "
-        f"(ANO_MES x SKU x HEAD/CANAL x UF)", "ok")
+        f"(ANO_MES x SKU x PERFIL x UF x BANDEIRA)", "ok")
 
     # ------------------------------------------------------------ calendario
     idx_ly = [(i_mes[ly] if isinstance(ly, str) and ly in i_mes else -1)
@@ -158,8 +176,9 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
             "uf": ufs,
             "head": heads,
             "canal": canais,
-            "perfil": perfis,      # [head, gerente, canal, projeto]
-            "hc": pares_hc,        # [head, canal] — eixo comercial do CUBO_SKU
+            # [head, gerente, sup./exec., canal, projeto] — o MESMO eixo nos
+            # dois cubos desde a D-48; o par "hc" deixou de existir.
+            "perfil": perfis,
             "sku": sku_labels,     # [codigo, descricao, indice de categoria]
         },
         "cubo": cubo,
@@ -180,8 +199,9 @@ def reconciliar(pacote: dict, fato: pd.DataFrame) -> list[str]:
     }
     escalas = (ESC_RECEITA, ESC_PESO, ESC_CAIXAS)
     ruins = []
+    # D-48: os dois cubos passaram a ter 5 indices antes das metricas.
     for nome, chave, base in (("CUBO_PRINCIPAL", "cubo", 5),
-                              ("CUBO_SKU", "cubo_sku", 4)):
+                              ("CUBO_SKU", "cubo_sku", 5)):
         linhas = pacote[chave]
         for k, (metrica, esc) in enumerate(zip(alvo, escalas)):
             soma = sum(l[base + k] for l in linhas) / esc

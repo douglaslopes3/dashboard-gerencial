@@ -17,6 +17,7 @@ no template.
 | **Categoria** | `DIM_PRODUTO.CATEGORIA` | N | |
 | **Head** | `DIM_CLIENTE.HEAD` | N | inclui `NÃO ATRIBUÍDO` |
 | **Gerente** | `DIM_CLIENTE.GERENTE` | N | do de-para de estrutura |
+| **Sup./Exec.** | `DIM_CLIENTE.SUPERVISOR` | N | N3 da hierarquia — 56 valores, 99,96% da receita (D-48) |
 | **Projeto** | `DIM_CLIENTE.PROJETO` | N | 8 valores do de-para de estrutura (D-25) |
 | **UF** | `DIM_CLIENTE.UF` | N | |
 | **Bandeira** | `DIM_CLIENTE.BANDEIRA` | busca + N | 11.296 valores: campo de busca, não lista de chips |
@@ -75,12 +76,13 @@ ninguém consegue explicar depois.
   anterior, cada um com Δ absoluto e Δ %. **Os dois aparecem sempre**, independente
   da base selecionada — é a comparação que o §11 pede.
 * **Detalhamento** com quebra por **Canal**, **Categoria**, **Head**,
-  **Gerente**, **Projeto** ou **UF**, com colunas:
+  **Gerente**, **Sup./Exec.**, **Projeto** ou **UF**, com colunas:
   `Atual · LY · Δ · Δ% · Participação %`.
 * **Drill-down** (Solicitação 02): na quebra por Categoria a linha abre os
-  **SKUs da categoria**; na quebra por Head, os **gerentes do head** — mesmo
-  período/base/filtros, ordenado pela maior queda, com "← voltar" e exportação
-  própria (D-30/D-31).
+  **SKUs da categoria**; na quebra por Head, os **gerentes do head**, e cada
+  gerente abre os **Sup./Exec. dele** (D-48) — mesmo período/base/filtros,
+  ordenado pela maior queda, com "← voltar" e exportação própria (D-30/D-31).
+  A cadeia para em N3 por decisão; o N4 é fase própria.
 * **Exportação:** toda tabela tem `⬇ CSV` / `⬇ XLSX` com dado cru (D-29).
 
 ### Página 2 — Geografia
@@ -151,8 +153,13 @@ Rodapé fixo, gerado pelo pipeline (nada digitado à mão):
 * nº de arquivos de origem e nº de linhas;
 * data/hora do processamento e `EXECUCAO_ID`;
 * **as ressalvas medidas:** Caixas bruta (GAP-04), cobertura de canal e onde
-  saem as exceções, corte de bandeiras (300 + balde) e o que a camada de SKU
-  não cruza (gerente, bandeira, projeto).
+  saem as exceções e o corte de bandeiras (300 + balde).
+
+A ressalva "a camada de SKU não cruza com gerente, bandeira e projeto" **deixou
+de existir na D-48**: os dois cubos passaram a ter o mesmo eixo comercial e a
+bandeira, e **nenhum filtro é ignorado em nenhuma aba**. Os avisos
+correspondentes saíram da tela — aviso que não é mais verdade é pior do que
+aviso nenhum.
 
 Um painel que esconde a ressalva faz quem cruzar com outra fonte concluir que o
 painel está errado.

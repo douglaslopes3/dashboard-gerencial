@@ -125,10 +125,14 @@ seria falso amanhã. Ver §7 do prompt e o `docs/07_CATALOGO_METRICAS.md`.
 * **UF e bandeira são atributos do cliente**, não dimensões próprias: vêm da
   mesma linha, têm o cliente como única chave e nunca são recortadas sem ele.
   Tabelas separadas seriam snowflake com um atributo cada.
-* **Head, gerente e supervisor também são atributos do cliente.** A cardinalidade
-  é 4 / 12 / 57 contra 16.092 clientes — uma `DIM_ESTRUTURA_COMERCIAL` separada
-  ligaria na fato **pelo cliente** de qualquer forma, e a junção extra não
-  entregaria nenhum atributo novo.
+* **Head, gerente e Sup./Exec. também são atributos do cliente.** A
+  cardinalidade é 4 / 13 / 56 contra 16.130 clientes — uma
+  `DIM_ESTRUTURA_COMERCIAL` separada ligaria na fato **pelo cliente** de
+  qualquer forma, e a junção extra não entregaria nenhum atributo novo. Desde a
+  **D-48** os três viajam no mesmo índice de `perfil`
+  (`[head, gerente, sup./exec., canal, projeto]`) nos **dois** cubos — o cubo de
+  SKU deixou de ter o par (head, canal) e passou a carregar também a bandeira,
+  o que acabou com os filtros que a aba de SKU ignorava.
 * **O nome do cliente vence o mais recente** (`ANO_MES` máximo): cliente
   renomeado no meio da série apareceria duas vezes no ranking.
 * **`NA_ESTRUTURA = false`** marca os 71 clientes de GAP-05, que entram com

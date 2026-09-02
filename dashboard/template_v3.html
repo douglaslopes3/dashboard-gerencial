@@ -388,6 +388,9 @@ canvas{max-height:280px}
        componente e a logica continuam vivos para os demais perfis. -->
   <div class="frow" id="frowHead"><div class="flab">Head</div><div class="chips" id="fHead"></div></div>
   <div class="frow"><div class="flab">Gerente</div><div class="chips" id="fGer"></div></div>
+  <!-- D-48: N3 da hierarquia comercial. Mesmo tratamento do Gerente: os chips
+       saem do PERFIL do cubo, nao de uma lista fixa. -->
+  <div class="frow"><div class="flab">Sup./Exec.</div><div class="chips" id="fSup"></div></div>
   <div class="frow"><div class="flab">Projeto</div><div class="chips" id="fProj"></div></div>
   <div class="frow"><div class="flab">UF</div><div class="chips uf-wrap" id="fUF"></div></div>
   <div class="frow">
@@ -540,7 +543,7 @@ canvas{max-height:280px}
 
 <!--LIB:chart-->
 <script>
-const DB = /*DADOS_INICIO*/null/*DADOS_FIM*/;
+const DB_CARGA = /*DADOS_INICIO*/null/*DADOS_FIM*/;
 </script>
 <script>
 "use strict";
@@ -551,30 +554,67 @@ const DB = /*DADOS_INICIO*/null/*DADOS_FIM*/;
    numeros viessem arredondados em reais, a soma das 72 mil linhas divergiria da
    fato — pouco na tela, mas o bastante para a conferencia nunca fechar.
    =========================================================================== */
-const ESC = DB.escala, CAL = DB.cal, D = DB.dims;
-const CUBO = DB.cubo, CUBO_SKU = DB.cubo_sku;
-const NM = CAL.length;
-// D-46: arquivo gerado por head (P2-D). Num arquivo de head unico, detalhar
-// "por Head" e uma tabela de uma linha — a opcao sai dos seletores.
-const SO_HEAD = !!(DB.meta && DB.meta.recorte_head);
+/* D-48 (02/09/2026): os cubos chegam COMPACTADOS (gzip+base64). O motivo esta
+   medido: com o eixo novo do cubo de SKU — que acabou com os filtros ignorados
+   — o JSON cru levaria o painel a 25,8 MB, acima do teto de 25 MB acordado, e
+   crescendo ~4% por mes novo de sell-in. Compactado sao ~9,6 MB: MENOR que os
+   14,66 MB do painel anterior, que ainda ignorava quatro filtros.
+   A descompactacao e assincrona (DecompressionStream, nativo do navegador,
+   sem rede) — por isso o motor so e "ligado" depois dela, em prepararDB(). */
+let DB, ESC, CAL, D, CUBO, CUBO_SKU, NM, SO_HEAD, IDX_CUBO, IDX_SKU,
+    METRICAS, CM, CHAVE_LS;
 
-/* B1 (auditoria): indice por mes, construido UMA vez. Uma passada de mes unico
-   visitava as 90.644 linhas do cubo para usar ~3.777 (96% de desperdicio);
-   com o indice, cada somar() so anda pelas linhas dos meses selecionados. */
-const IDX_CUBO = Array.from({length:NM}, ()=>[]);
-for(const l of CUBO) IDX_CUBO[l[0]].push(l);
-const IDX_SKU = Array.from({length:NM}, ()=>[]);
-for(const l of CUBO_SKU) IDX_SKU[l[0]].push(l);
+async function carregarDB(carga){
+  if(carga && carga.z === "gzip+base64"){
+    if(typeof DecompressionStream !== "function")
+      throw new Error("Este navegador nao sabe descompactar os dados deste "
+        + "painel. Abra no Microsoft Edge ou no Google Chrome atualizados.");
+    const bin = Uint8Array.from(atob(carga.b64), c=>c.charCodeAt(0));
+    const fluxo = new Blob([bin]).stream()
+                    .pipeThrough(new DecompressionStream("gzip"));
+    return JSON.parse(await new Response(fluxo).text());
+  }
+  return carga;      // painel gerado sem compactacao (caminho de diagnostico)
+}
+
+function prepararDB(){
+  ESC = DB.escala; CAL = DB.cal; D = DB.dims;
+  CUBO = DB.cubo; CUBO_SKU = DB.cubo_sku;
+  NM = CAL.length;
+  // D-46: arquivo gerado por head (P2-D). Num arquivo de head unico, detalhar
+  // "por Head" e uma tabela de uma linha — a opcao sai dos seletores.
+  SO_HEAD = !!(DB.meta && DB.meta.recorte_head);
+  /* B1 (auditoria): indice por mes, construido UMA vez. Uma passada de mes
+     unico visitava as linhas do cubo inteiro para usar uma fracao; com o
+     indice, cada somar() so anda pelas linhas dos meses selecionados. */
+  IDX_CUBO = Array.from({length:NM}, ()=>[]);
+  for(const l of CUBO) IDX_CUBO[l[0]].push(l);
+  IDX_SKU = Array.from({length:NM}, ()=>[]);
+  for(const l of CUBO_SKU) IDX_SKU[l[0]].push(l);
+  METRICAS = {
+    val: {rot:"Valor (R$)", col:5, esc:ESC.R, un:"R$"},
+    vol: {rot:"Volume (t)", col:6, esc:ESC.P*1000, un:"t"},
+    cx : {rot:"Caixas",     col:7, esc:ESC.C, un:"cx"}
+  };
+  CM = DB.cubo_meta;
+  CHAVE_LS = "dashDoriCanais.recorte.v2"
+    + (DB.meta && DB.meta.recorte_head ? ".head."+DB.meta.recorte_head : "");
+}
+
+/* D-48: acessores unicos dos DOIS cubos. O eixo comercial passou a ser o mesmo
+   perfil nos dois (head, gerente, sup./exec., canal, projeto), entao a unica
+   diferenca que sobrou e a POSICAO das colunas. Concentrar isso aqui e o que
+   permitiu apagar todo o codigo de "filtro ignorado na camada de SKU". */
+const PERF = (l,sku)=> D.perfil[sku ? l[2] : l[3]];
+const P_HEAD=0, P_GER=1, P_SUP=2, P_CAN=3, P_PROJ=4;
+const UFDE  = (l,sku)=> sku ? l[3] : l[4];
+const BANDE = (l,sku)=> sku ? l[4] : l[1];
+const CATDE = (l,sku)=> sku ? D.sku[l[1]][2] : l[2];
 
 // indices das colunas do calendario
 const C_AM=0, C_ROT=1, C_ANO=2, C_MES=3, C_TRI=4, C_SEM=5,
       C_FY=6, C_FYROT=7, C_MFIS=8, C_TFIS=9, C_SFIS=10, C_LY=11;
 
-const METRICAS = {
-  val: {rot:"Valor (R$)", col:5, esc:ESC.R, un:"R$"},
-  vol: {rot:"Volume (t)", col:6, esc:ESC.P*1000, un:"t"},
-  cx : {rot:"Caixas",     col:7, esc:ESC.C, un:"cx"}
-};
 // Dois estados, de propósito (Solicitação 02, item 1): a comparação contra o
 // mesmo período do ano anterior está EMBUTIDA — não é um modo à parte.
 const BASES = {
@@ -593,7 +633,7 @@ function sufixoParcial(nMeses){
 const F = {
   metrica:"val", base:"fis", gran:"mes",
   fy:null, ano:null, meses:new Set(),
-  cat:new Set(), head:new Set(), ger:new Set(), uf:new Set(),
+  cat:new Set(), head:new Set(), ger:new Set(), sup:new Set(), uf:new Set(),
   can:new Set(), proj:new Set(),
   ban:new Set(), sku:new Set(),
   dimGeral:"cat", dimPreco:"cat", drill:null,   // {tipo:"cat"|"head", k}
@@ -775,50 +815,38 @@ function ytdCalendario(ref){
 function passaPrincipal(l, ignorar){
   if(ignorar!=="ban" && F.ban.size && !F.ban.has(l[1])) return false;
   if(ignorar!=="cat" && F.cat.size && !F.cat.has(l[2])) return false;
-  if(F.head.size || F.ger.size || F.can.size || F.proj.size){
-    // O eixo comercial e o PERFIL do cliente: [head, gerente, canal, projeto].
+  if(F.head.size || F.ger.size || F.sup.size || F.can.size || F.proj.size){
+    // D-48: o PERFIL do cliente agora e
+    // [head, gerente, sup./exec., canal, projeto].
     const p = D.perfil[l[3]];
-    if(ignorar!=="head"  && F.head.size && !F.head.has(p[0])) return false;
-    if(ignorar!=="ger"   && F.ger.size  && !F.ger.has(p[1]))  return false;
-    if(ignorar!=="canal" && F.can.size  && !F.can.has(p[2]))  return false;
-    if(ignorar!=="proj"  && F.proj.size && !F.proj.has(p[3])) return false;
+    if(ignorar!=="head"  && F.head.size && !F.head.has(p[P_HEAD])) return false;
+    if(ignorar!=="ger"   && F.ger.size  && !F.ger.has(p[P_GER]))   return false;
+    if(ignorar!=="sup"   && F.sup.size  && !F.sup.has(p[P_SUP]))   return false;
+    if(ignorar!=="canal" && F.can.size  && !F.can.has(p[P_CAN]))   return false;
+    if(ignorar!=="proj"  && F.proj.size && !F.proj.has(p[P_PROJ])) return false;
   }
   if(ignorar!=="uf" && F.uf.size && !F.uf.has(l[4])) return false;
   // O cubo principal nao tem SKU. Com filtro de SKU ativo, a leitura migra para
   // o cubo de SKU — ver `usaCuboSku()`.
   return true;
 }
+/* D-48: o cubo de SKU passou a carregar o MESMO perfil do cubo principal mais
+   a bandeira. Ele aplica TODOS os filtros da tela — nao ha mais filtro
+   ignorado, nem aviso de filtro ignorado, em pagina nenhuma. */
 function passaSku(l, ignorar){
   if(ignorar!=="sku" && F.sku.size && !F.sku.has(l[1])) return false;
-  // No cubo de SKU o eixo comercial e o par [head, canal].
-  const hc = D.hc[l[2]];
-  if(ignorar!=="head"  && F.head.size && !F.head.has(hc[0])) return false;
-  if(ignorar!=="canal" && F.can.size  && !F.can.has(hc[1]))  return false;
-  if(ignorar!=="uf" && F.uf.size && !F.uf.has(l[3])) return false;
-  if(ignorar!=="cat" && F.cat.size){
-    const ic = D.sku[l[1]][2];
-    if(!F.cat.has(ic)) return false;
-  }
+  const p = PERF(l, true);
+  if(ignorar!=="head"  && F.head.size && !F.head.has(p[P_HEAD])) return false;
+  if(ignorar!=="ger"   && F.ger.size  && !F.ger.has(p[P_GER]))   return false;
+  if(ignorar!=="sup"   && F.sup.size  && !F.sup.has(p[P_SUP]))   return false;
+  if(ignorar!=="canal" && F.can.size  && !F.can.has(p[P_CAN]))   return false;
+  if(ignorar!=="proj"  && F.proj.size && !F.proj.has(p[P_PROJ])) return false;
+  if(ignorar!=="uf"  && F.uf.size  && !F.uf.has(l[3]))  return false;
+  if(ignorar!=="ban" && F.ban.size && !F.ban.has(l[4])) return false;
+  if(ignorar!=="cat" && F.cat.size && !F.cat.has(D.sku[l[1]][2])) return false;
   return true;
 }
-// O cubo de SKU cruza com head, canal, categoria e UF — NAO com gerente,
-// bandeira nem projeto. Quando um desses tres esta ativo junto com um filtro
-// de SKU, a tela AVISA em vez de mentir.
 function usaCuboSku(){ return F.sku.size>0; }
-/* v3 (F1-C): a lista dos filtros que a camada de SKU NAO sabe aplicar. Virou
-   funcao porque agora e lida em dois lugares com regras diferentes: a linha de
-   estado (so quando ha filtro de SKU, como no v2) e a pagina de SKU, que le o
-   CUBO_SKU SEMPRE — com ou sem filtro de SKU ativo. */
-function filtrosForaDoCuboSku(){
-  const d=[];
-  if(F.ger.size)  d.push("gerente");
-  if(F.ban.size)  d.push("bandeira");
-  if(F.proj.size) d.push("projeto");
-  return d;
-}
-function conflitoSku(){
-  return F.sku.size>0 && filtrosForaDoCuboSku().length>0;
-}
 
 /* ------------------------------------------------------------- agregacao */
 const MZERO = ()=>[0,0,0];
@@ -826,7 +854,7 @@ function somar(meses, chaveFn, ignorar){
   const sku = usaCuboSku();
   const idx = sku ? IDX_SKU : IDX_CUBO;         // B1: so os meses pedidos
   const passa = sku ? passaSku : passaPrincipal;
-  const base = sku ? 4 : 5;
+  const base = 5;                 // D-48: 5 indices nos DOIS cubos
   const out = new Map();
   for(const mi of meses){
     const linhas = idx[mi];
@@ -895,10 +923,13 @@ function montarFiltros(){
     `<span class="chip${F.can.has(c)?" on":""}" data-k="${c}">${c}</span>`).join("");
   el("fHead").innerHTML = [...D.head].sort(ausenciaPorUltimo()).map(h=>
     `<span class="chip${F.head.has(h)?" on":""}" data-k="${h}">${h}</span>`).join("");
-  const gers = [...new Set(D.perfil.map(p=>p[1]))].sort(ausenciaPorUltimo());
+  const gers = [...new Set(D.perfil.map(p=>p[P_GER]))].sort(ausenciaPorUltimo());
   el("fGer").innerHTML = gers.map(g=>
     `<span class="chip${F.ger.has(g)?" on":""}" data-k="${g}">${g}</span>`).join("");
-  const projs = [...new Set(D.perfil.map(p=>p[3]))].sort(ausenciaPorUltimo());
+  const sups = [...new Set(D.perfil.map(p=>p[P_SUP]))].sort(ausenciaPorUltimo());
+  el("fSup").innerHTML = sups.map(s=>
+    `<span class="chip${F.sup.has(s)?" on":""}" data-k="${s}">${s}</span>`).join("");
+  const projs = [...new Set(D.perfil.map(p=>p[P_PROJ]))].sort(ausenciaPorUltimo());
   el("fProj").innerHTML = projs.map(g=>
     `<span class="chip${F.proj.has(g)?" on":""}" data-k="${g}">${g}</span>`).join("");
   el("fUF").innerHTML = D.uf.map((u,i)=>[u,i])
@@ -911,7 +942,8 @@ function montarFiltros(){
   // D-46: no arquivo por head a opcao "Head" some dos DOIS seletores
   // (Detalhamento e R$/kg) — detalhe de uma linha so nao e detalhe.
   const dims = [["canal","Canal"],["cat","Categoria"],["head","Head"],
-                ["ger","Gerente"],["proj","Projeto"],["uf","UF"]]
+                ["ger","Gerente"],["sup","Sup./Exec."],["proj","Projeto"],
+                ["uf","UF"]]
     .filter(([k])=>!(SO_HEAD && k==="head"));
   // L3-E: Bandeira SO no Detalhamento (top N + balde, padrao da aba
   // Bandeiras). No R$/kg a quebra por bandeira nao foi pedida.
@@ -962,12 +994,13 @@ function buscaChips(idChips, idBusca, rotulos, sel){
    As chaves aqui espelham as de passaPrincipal/passaSku (o que o filtro
    compara), NAO as de CHAVES (o que a quebra exibe — ger la e composto).   */
 const CHAVE_FILTRO = {
-  cat  : {id:"fCat",  num:true,  fn:(l,s)=> s ? D.sku[l[1]][2] : l[2]},
-  canal: {id:"fCanal",num:false, fn:(l,s)=> s ? D.hc[l[2]][1] : D.perfil[l[3]][2]},
-  head : {id:"fHead", num:false, fn:(l,s)=> s ? D.hc[l[2]][0] : D.perfil[l[3]][0]},
-  ger  : {id:"fGer",  num:false, soPrincipal:true, fn:(l,s)=> s ? null : D.perfil[l[3]][1]},
-  proj : {id:"fProj", num:false, soPrincipal:true, fn:(l,s)=> s ? null : D.perfil[l[3]][3]},
-  uf   : {id:"fUF",   num:true,  fn:(l,s)=> s ? l[3] : l[4]},
+  cat  : {id:"fCat",  num:true,  fn:(l,s)=> CATDE(l,s)},
+  canal: {id:"fCanal",num:false, fn:(l,s)=> PERF(l,s)[P_CAN]},
+  head : {id:"fHead", num:false, fn:(l,s)=> PERF(l,s)[P_HEAD]},
+  ger  : {id:"fGer",  num:false, fn:(l,s)=> PERF(l,s)[P_GER]},
+  sup  : {id:"fSup",  num:false, fn:(l,s)=> PERF(l,s)[P_SUP]},
+  proj : {id:"fProj", num:false, fn:(l,s)=> PERF(l,s)[P_PROJ]},
+  uf   : {id:"fUF",   num:true,  fn:(l,s)=> UFDE(l,s)},
 };
 function marcarChipsVazios(p){
   /* v3 (F1-E): sao 6 varreduras de cubo por render, e o resultado so aparece
@@ -977,9 +1010,9 @@ function marcarChipsVazios(p){
   const sku=usaCuboSku();
   for(const [dim,cfg] of Object.entries(CHAVE_FILTRO)){
     const chips=el(cfg.id).querySelectorAll(".chip");
-    // Sem mes selecionado nao ha o que medir; na camada de SKU, gerente e
-    // projeto nem existem (ja ha o aviso de conflito) — nada e marcado.
-    if(!p.atual.length || (sku && cfg.soPrincipal)){
+    // D-48: sem excecao por camada — as duas cruzam com tudo. Sem mes
+    // selecionado continua nao havendo o que medir.
+    if(!p.atual.length){
       chips.forEach(c=>{ c.classList.remove("semdado"); c.removeAttribute("title"); });
       continue;
     }
@@ -1094,7 +1127,7 @@ function atualizarEstado(p){
   el("fAtivos").textContent = d.length
     ? d.length+" filtro(s) de dimensão ativo(s)" : "";
   let h = partes.join(" &nbsp;·&nbsp; ");
-  if(conflitoSku())
+  if(false)      // D-48: nao ha mais filtro ignorado — o aviso saiu
     h += `<br><b style="color:var(--bd)">Atenção: filtro de SKU ativo junto com gerente, bandeira ou projeto.</b>
           A camada agregada de SKU cruza com head, canal, categoria e UF, não com
           gerente, bandeira nem projeto. Esses filtros estão sendo <b>ignorados</b>
@@ -1371,24 +1404,24 @@ function renderPeriodo(p){
 /* Quebra por dimensao. O denominador da participacao % e o total do recorte COM
    O FILTRO DESTA DIMENSAO REMOVIDO — por isso a coluna soma 100% mesmo com a
    dimensao filtrada.                                                          */
+/* D-48: todas as quebras existem nas DUAS camadas. Nenhuma devolve null por
+   falta de eixo — o que sumiu foi a limitacao, nao a explicacao. */
 const CHAVES = {
-  cat  : (l,sku)=> sku ? D.sku[l[1]][2] : l[2],
-  head : (l,sku)=> sku ? D.hc[l[2]][0] : D.perfil[l[3]][0],
-  canal: (l,sku)=> sku ? D.hc[l[2]][1] : D.perfil[l[3]][2],
-  // Gerente e projeto so existem no cubo principal (D-09): no cubo de SKU a
-  // quebra devolve null e a tela explica, em vez de agrupar errado.
-  ger  : (l,sku)=> sku ? null : D.perfil[l[3]][1]+"  ·  "+D.perfil[l[3]][0],
-  proj : (l,sku)=> sku ? null : D.perfil[l[3]][3],
-  uf   : (l,sku)=> sku ? l[3] : l[4],
-  // L3-E: bandeira so existe no cubo principal — na camada de SKU a quebra
-  // devolve null e a tela explica, como gerente e projeto ja faziam.
-  ban  : (l,sku)=> sku ? null : l[1],
+  cat  : (l,sku)=> CATDE(l,sku),
+  head : (l,sku)=> PERF(l,sku)[P_HEAD],
+  canal: (l,sku)=> PERF(l,sku)[P_CAN],
+  ger  : (l,sku)=> PERF(l,sku)[P_GER]+"  ·  "+PERF(l,sku)[P_HEAD],
+  sup  : (l,sku)=> PERF(l,sku)[P_SUP]+"  ·  "+PERF(l,sku)[P_GER],
+  proj : (l,sku)=> PERF(l,sku)[P_PROJ],
+  uf   : (l,sku)=> UFDE(l,sku),
+  ban  : (l,sku)=> BANDE(l,sku),
 };
 const ROTULOS = {
   cat  : i=>D.cat[i],
   head : v=>v,
   canal: v=>v,
   ger  : v=>v,
+  sup  : v=>v,
   proj : v=>v,
   uf   : i=>D.uf[i]+(DB.nome_uf[D.uf[i]]?" · "+DB.nome_uf[D.uf[i]]:""),
   ban  : i=>D.ban[i],
@@ -1456,7 +1489,7 @@ function desenharQuebra(mapA,mapAP,mapL,den,rot,idTab,p,drillTipo){
     raw.push([rot(i.k),nr(i.a),nr(ly),ly===null?null:nr(i.aP-ly),
               nr(pctNum(varPct(ly===null?null:i.aP,ly))),part===null?null:nr(part*100)]);
     const nome = drillTipo
-      ? `<span class="drill" data-dk="${i.k}" title="${drillTipo==="head"?"ver os gerentes deste head":"ver os SKUs desta categoria"}">${rot(i.k)} ▸</span>`
+      ? `<span class="drill" data-dk="${i.k}" title="${drillTipo==="head"?"ver os gerentes deste head":drillTipo==="ger"?"ver os Sup./Exec. deste gerente":"ver os SKUs desta categoria"}">${rot(i.k)} ▸</span>`
       : rot(i.k);
     return [nome, fmtMetrica(i.a),
       ly===null?'<span class="nd">n/d</span>':fmtMetrica(ly),
@@ -1652,6 +1685,7 @@ function tabelaMatriz(cfg){
     const part=razao(i.a,cfg.den);
     const semLy=!temLy||i.novo;
     const tDrill = cfg.drillTipo==="head" ? "ver os gerentes deste head"
+      : cfg.drillTipo==="ger" ? "ver os Sup./Exec. deste gerente"   // D-48
       : cfg.drillTipo==="cat" ? "ver os SKUs desta categoria"
       : "ver as categorias deste item";                       // L3-E: dimcat
     const nome = cfg.drillTipo
@@ -1767,15 +1801,11 @@ function tabelaRanking(itens,rot,den,n,idTab,temLy,baldeK){
   registrarExport(idTab,["Item","Atual","LY","Δ","Δ%","Part. %"],rawR);
 }
 function renderBandeiras(p){
-  if(usaCuboSku()){
-    el("ganhoBan").innerHTML=el("quedaBan").innerHTML=
-      '<div class="vazio">Com filtro de SKU ativo, a leitura migra para a camada de SKU, que não cruza com bandeira.</div>';
-    vazio("tabBan","Remova o filtro de SKU para ver o ranking de bandeiras.");
-    el("nBan").textContent="";
-    return;
-  }
-  const a=somar(p.atual,l=>l[1],"ban"), l=somar(p.ly,x=>x[1],"ban");
-  const aP=parcialLy(p)?somar(p.pareado,x=>x[1],"ban"):a;   // D-32
+  // D-48: a bandeira passou a existir tambem no cubo de SKU — a pagina deixou
+  // de precisar que o filtro de SKU fosse removido.
+  const fBan=CHAVES.ban;
+  const a=somar(p.atual,fBan,"ban"), l=somar(p.ly,fBan,"ban");
+  const aP=parcialLy(p)?somar(p.pareado,fBan,"ban"):a;   // D-32
   const rot=i=>D.ban[i];
   const temLy=p.ly.length>0;
   const c=DB.corte_bandeira;
@@ -1792,7 +1822,7 @@ function renderBandeiras(p){
   const den=met(total(p.atual,"ban"));
   // v3 (F1-G): o ranking de bandeiras virou matriz item x periodo.
   const escB=tabelaMatriz({idTab:"tabBan", rotDim:"Bandeira",
-    somaFn:ms=>somar(ms,x=>x[1],"ban"), mapA:a, mapL:l, rot, catDe:null,
+    somaFn:ms=>somar(ms,fBan,"ban"), mapA:a, mapL:l, rot, catDe:null,
     den, p, drillTipo:null, topN:F.topBan, baldeK:iBalde>=0?iBalde:null});
   /* v3 (F1-D): a cobertura das nominais era `c.cobertura`, numero GLOBAL do
      config — exibido igual sob qualquer filtro, ou seja, errado em todo recorte
@@ -1819,18 +1849,11 @@ function renderSkus(p){
   // e a unica camada que tem o eixo de produto. O filtro da propria dimensao e
   // ignorado (`passaSku(l,"sku")`) para que o ranking mostre o universo, e nao
   // so o que ja esta selecionado.
-  /* v3 (F1-C): esta pagina le a camada de SKU SEMPRE, e essa camada nao cruza
-     com gerente, bandeira nem projeto. No v2 o aviso dependia de haver filtro
-     de SKU ativo — entao um filtro de GERENTE sozinho era ignorado em
-     silencio, e a pagina mostrava o universo inteiro do head/canal como se
-     fosse o recorte pedido. O aviso agora e da PAGINA, nao do filtro de SKU. */
-  const fora=filtrosForaDoCuboSku();
-  el("avisoSku").innerHTML = fora.length ? `<div class="alerta erro"><b>Atenção: filtro de
-    ${fora.join(", ")} ativo e ignorado nesta página.</b> A camada agregada de SKU
-    cruza com <b>categoria, head, canal e UF</b>, não com gerente, bandeira nem
-    projeto. Os números abaixo valem para o recorte <b>sem</b> ${fora.join(" / ")},
-    e por isso <b>não fecham</b> com a Visão Geral enquanto esse filtro estiver
-    ligado.</div>` : "";
+  /* D-48: o aviso de "filtro ignorado" saiu daqui porque deixou de ser
+     verdade — a camada de SKU passou a cruzar com head, gerente, sup./exec.,
+     canal, projeto, categoria, UF e bandeira. Esta pagina fecha com a Visao
+     Geral sob qualquer combinacao de filtros. */
+  el("avisoSku").innerHTML = "";
   /* v3 (F1-E): passa a usar o indice por mes, como somar() ja fazia desde o v2.
      Antes varria as 368.699 linhas do CUBO_SKU inteiro TRES vezes por render
      (atual, LY, pareado), testando o mes dentro do laco — num recorte de um mes
@@ -1845,7 +1868,7 @@ function renderSkus(p){
         const l=linhas[k];
         if(!passaSku(l,"sku")) continue;
         let v=out.get(l[1]); if(!v){v=MZERO(); out.set(l[1],v);}
-        v[0]+=l[4]; v[1]+=l[5]; v[2]+=l[6];
+        v[0]+=l[5]; v[1]+=l[6]; v[2]+=l[7];   // D-48: 5 indices
       }
     }
     return out;
@@ -1942,7 +1965,9 @@ const RAW={};
 const NOME_TAB={tabPer:"periodo",tabYTD:"ytd",tabDet:()=>"detalhe-"+F.dimGeral,
   tabUF:"uf",tabUFper:"uf-periodo",tabBan:"bandeiras",tabSku:"sku",
   tabPreco:()=>"preco-"+F.dimPreco,tabPrecoPer:"preco-periodo",
-  tabDrill:()=> F.drill && F.drill.tipo==="head"
+  tabDrill:()=> F.drill && F.drill.tipo==="ger"
+    ? "sup-exec-"+slug(F.drill.k)
+    : F.drill && F.drill.tipo==="head"
     ? "gerentes-"+slug(F.drill.k)
     : F.drill && F.drill.tipo==="dimcat"        // L3-E
     ? "categorias-"+slug(String(ROTULOS[F.drill.dim](F.drill.k)))
@@ -2086,6 +2111,7 @@ function fecharDrill(){
 function renderDrill(){
   if(!F.drill) return;
   if(F.drill.tipo==="head") return renderDrillHead();
+  if(F.drill.tipo==="ger") return renderDrillGer();          // D-48
   if(F.drill.tipo==="dimcat") return renderDrillDimCat();   // L3-E
   return renderDrillCat();
 }
@@ -2103,19 +2129,20 @@ function renderDrillHead(){
   // escrito depois, junto com a escala das colunas; este aqui so cobre o
   // caminho em que a tabela nem chega a ser montada.
   el("sDrill").textContent=" · "+METRICAS[F.metrica].rot;
-  if(usaCuboSku()){
-    vazio("tabDrill","Com filtro de SKU ativo este detalhe não existe — a camada de SKU não tem gerente. Remova o filtro de SKU.");
-    el("nDrill").textContent="";
-    return;
-  }
+  // D-48: funciona nas duas camadas — com filtro de SKU ativo o detalhe le o
+  // cubo de SKU, que agora tem gerente. Deixou de existir o caso "remova o
+  // filtro de SKU".
+  const sku=usaCuboSku();
   const passa=l=>{
-    const pf=D.perfil[l[3]];
-    if(pf[0]!==head) return false;
-    if(F.can.size && !F.can.has(pf[2])) return false;
-    if(F.proj.size && !F.proj.has(pf[3])) return false;
-    if(F.ban.size && !F.ban.has(l[1])) return false;
-    if(F.cat.size && !F.cat.has(l[2])) return false;
-    if(F.uf.size && !F.uf.has(l[4])) return false;
+    const pf=PERF(l,sku);
+    if(pf[P_HEAD]!==head) return false;
+    if(F.sup.size && !F.sup.has(pf[P_SUP])) return false;
+    if(F.can.size && !F.can.has(pf[P_CAN])) return false;
+    if(F.proj.size && !F.proj.has(pf[P_PROJ])) return false;
+    if(F.ban.size && !F.ban.has(BANDE(l,sku))) return false;
+    if(F.cat.size && !F.cat.has(CATDE(l,sku))) return false;
+    if(F.uf.size && !F.uf.has(UFDE(l,sku))) return false;
+    if(sku && F.sku.size && !F.sku.has(l[1])) return false;
     return true;
   };
   /* L3: o drill tambem virou matriz. Abrir os gerentes de um head e ver de
@@ -2125,12 +2152,13 @@ function renderDrillHead(){
      recebe a lista de meses que ela deve somar, e a matriz cuida do resto. */
   const somaFn=meses=>{
     const out=new Map();
+    const idx=sku?IDX_SKU:IDX_CUBO;
     for(const mi of meses){
-      const linhas=IDX_CUBO[mi];
+      const linhas=idx[mi];
       for(let k=0;k<linhas.length;k++){
         const l=linhas[k];
         if(!passa(l)) continue;
-        const g=D.perfil[l[3]][1];
+        const g=PERF(l,sku)[P_GER];
         let v=out.get(g); if(!v){v=MZERO(); out.set(g,v);}
         v[0]+=l[5]; v[1]+=l[6]; v[2]+=l[7];
       }
@@ -2139,8 +2167,9 @@ function renderDrillHead(){
   };
   const mapA=somaFn(p.atual), mapL=p.ly.length?somaFn(p.ly):new Map();
   const den=[...mapA.values()].reduce((s,v)=>s+met(v),0);
+  // D-48: clicar num gerente abre os Sup./Exec. dele (a cadeia para em N3).
   const escG=tabelaMatriz({idTab:"tabDrill", rotDim:"Gerente", somaFn,
-    mapA, mapL, rot:v=>v, catDe:null, den, p, drillTipo:null,
+    mapA, mapL, rot:v=>v, catDe:null, den, p, drillTipo:"ger",
     topN:0, baldeK:null});
   el("sDrill").textContent=" · "+METRICAS[F.metrica].rot
     +(escG?" · colunas em "+escG.rot:"");
@@ -2154,15 +2183,72 @@ function renderDrillHead(){
     +(ign.length?" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".":"");
 }
 
+/* D-48: Gerente -> Sup./Exec., o ultimo elo da cadeia nesta fase. Mesma regra
+   do drill de gerentes: o escopo e o gerente clicado, e os filtros de gerente
+   e de sup./exec. sao ignorados (esconderiam justamente quem derrubou o
+   resultado). A hierarquia NAO e inferida: cada cliente carrega os tres niveis
+   no de-para de estrutura, e os tres viajam no perfil do cubo. */
+function renderDrillGer(){
+  const ger=F.drill.k, p=periodo(), sku=usaCuboSku();
+  el("drillTitulo").textContent="Sup./Exec. de "+_semHtml(String(ger));
+  el("sDrill").textContent=" · "+METRICAS[F.metrica].rot;
+  const passa=l=>{
+    const pf=PERF(l,sku);
+    if(pf[P_GER]!==ger) return false;
+    if(F.head.size && !F.head.has(pf[P_HEAD])) return false;
+    if(F.can.size && !F.can.has(pf[P_CAN])) return false;
+    if(F.proj.size && !F.proj.has(pf[P_PROJ])) return false;
+    if(F.ban.size && !F.ban.has(BANDE(l,sku))) return false;
+    if(F.cat.size && !F.cat.has(CATDE(l,sku))) return false;
+    if(F.uf.size && !F.uf.has(UFDE(l,sku))) return false;
+    if(sku && F.sku.size && !F.sku.has(l[1])) return false;
+    return true;
+  };
+  const somaFn=meses=>{
+    const out=new Map();
+    const idx=sku?IDX_SKU:IDX_CUBO;
+    for(const mi of meses){
+      const linhas=idx[mi];
+      for(let k=0;k<linhas.length;k++){
+        const l=linhas[k];
+        if(!passa(l)) continue;
+        const s=PERF(l,sku)[P_SUP];
+        let v=out.get(s); if(!v){v=MZERO(); out.set(s,v);}
+        v[0]+=l[5]; v[1]+=l[6]; v[2]+=l[7];
+      }
+    }
+    return out;
+  };
+  const mapA=somaFn(p.atual), mapL=p.ly.length?somaFn(p.ly):new Map();
+  const den=[...mapA.values()].reduce((s,v)=>s+met(v),0);
+  const escS=tabelaMatriz({idTab:"tabDrill", rotDim:"Sup./Exec.", somaFn,
+    mapA, mapL, rot:v=>v, catDe:null, den, p, drillTipo:null,
+    topN:0, baldeK:null});
+  el("sDrill").textContent=" · "+METRICAS[F.metrica].rot
+    +(escS?" · colunas em "+escS.rot:"");
+  const ign=["o filtro de gerente (o escopo é o gerente clicado)"];
+  if(F.sup.size) ign.push("o filtro de Sup./Exec.");
+  el("nDrill").innerHTML=(escS?notaMatriz(escS)+"<br>":"")
+    +"Mesmo período, mesma base e mesmos filtros da tela"
+    +" (canal, categoria, projeto, bandeira, UF). A hierarquia vem do de-para"
+    +" de estrutura, não é inferida."
+    +" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".";
+}
+
 function renderDrillCat(){
   const p=periodo();
   el("drillTitulo").textContent="SKUs de "+(D.cat[F.drill.k]??"?");
   el("sDrill").textContent=" · "+METRICAS[F.metrica].rot;
   const passa=l=>{
     if(D.sku[l[1]][2]!==F.drill.k) return false;
-    const hc=D.hc[l[2]];
-    if(F.head.size&&!F.head.has(hc[0])) return false;
-    if(F.can.size&&!F.can.has(hc[1])) return false;
+    // D-48: o detalhe passou a respeitar TODOS os filtros da tela.
+    const pf=PERF(l,true);
+    if(F.head.size&&!F.head.has(pf[P_HEAD])) return false;
+    if(F.ger.size&&!F.ger.has(pf[P_GER])) return false;
+    if(F.sup.size&&!F.sup.has(pf[P_SUP])) return false;
+    if(F.can.size&&!F.can.has(pf[P_CAN])) return false;
+    if(F.proj.size&&!F.proj.has(pf[P_PROJ])) return false;
+    if(F.ban.size&&!F.ban.has(l[4])) return false;
     if(F.uf.size&&!F.uf.has(l[3])) return false;
     return true;
   };
@@ -2175,7 +2261,7 @@ function renderDrillCat(){
         const l=linhas[k];
         if(!passa(l)) continue;
         let v=out.get(l[1]); if(!v){v=MZERO(); out.set(l[1],v);}
-        v[0]+=l[4]; v[1]+=l[5]; v[2]+=l[6];
+        v[0]+=l[5]; v[1]+=l[6]; v[2]+=l[7];   // D-48: 5 indices
       }
     }
     return out;
@@ -2188,11 +2274,11 @@ function renderDrillCat(){
   el("sDrill").textContent=" · "+METRICAS[F.metrica].rot
     +(escC?" · colunas em "+escC.rot:"");
   const ign=[];
-  if(F.ger.size)ign.push("gerente"); if(F.ban.size)ign.push("bandeira");
-  if(F.proj.size)ign.push("projeto"); if(F.sku.size)ign.push("o filtro de SKU");
+  if(F.sku.size)ign.push("o filtro de SKU");
   el("nDrill").innerHTML=(escC?notaMatriz(escC)+"<br>":"")
     +"Mesmo período, mesma base de comparação e mesmos filtros"
-    +" da tela. Vem da camada de SKU (head, canal, categoria, UF)."
+    +" da tela. Vem da camada de SKU, que desde a D-48 cruza com head,"
+    +" gerente, Sup./Exec., canal, projeto, categoria, UF e bandeira."
     +(ign.length?" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".":"");
 }
 
@@ -2217,25 +2303,20 @@ function renderDrillDimCat(){
   }
   // passa = os DEMAIS filtros da tela, sem o da propria dimensao e sem o de
   // categoria (espelha passaPrincipal/passaSku; categoria fica de fora).
-  const passaP=l=>{
-    const pf=D.perfil[l[3]];
-    if(dim!=="ban"   && F.ban.size  && !F.ban.has(l[1]))    return false;
-    if(dim!=="head"  && F.head.size && !F.head.has(pf[0]))  return false;
-    if(dim!=="ger"   && F.ger.size  && !F.ger.has(pf[1]))   return false;
-    if(dim!=="canal" && F.can.size  && !F.can.has(pf[2]))   return false;
-    if(dim!=="proj"  && F.proj.size && !F.proj.has(pf[3]))  return false;
-    if(dim!=="uf"    && F.uf.size   && !F.uf.has(l[4]))     return false;
+  // D-48: um so predicado para as duas camadas — elas cruzam com o mesmo eixo.
+  const passa=l=>{
+    const pf=PERF(l,sku);
+    if(sku && F.sku.size && !F.sku.has(l[1]))                  return false;
+    if(dim!=="ban"   && F.ban.size  && !F.ban.has(BANDE(l,sku))) return false;
+    if(dim!=="head"  && F.head.size && !F.head.has(pf[P_HEAD])) return false;
+    if(dim!=="ger"   && F.ger.size  && !F.ger.has(pf[P_GER]))   return false;
+    if(dim!=="sup"   && F.sup.size  && !F.sup.has(pf[P_SUP]))   return false;
+    if(dim!=="canal" && F.can.size  && !F.can.has(pf[P_CAN]))   return false;
+    if(dim!=="proj"  && F.proj.size && !F.proj.has(pf[P_PROJ])) return false;
+    if(dim!=="uf"    && F.uf.size   && !F.uf.has(UFDE(l,sku)))  return false;
     return true;
   };
-  const passaS=l=>{
-    if(F.sku.size && !F.sku.has(l[1])) return false;
-    const hc=D.hc[l[2]];
-    if(dim!=="head"  && F.head.size && !F.head.has(hc[0])) return false;
-    if(dim!=="canal" && F.can.size  && !F.can.has(hc[1]))  return false;
-    if(dim!=="uf"    && F.uf.size   && !F.uf.has(l[3]))    return false;
-    return true;
-  };
-  const idx=sku?IDX_SKU:IDX_CUBO, passa=sku?passaS:passaP, base=sku?4:5;
+  const idx=sku?IDX_SKU:IDX_CUBO, base=5;
   const somaFn=meses=>{
     const out=new Map();
     for(const mi of meses){
@@ -2277,9 +2358,12 @@ function renderDrillDimCat(){
    - a cauda sem bandeira nomeada segue a hierarquia vigente e aparece como
      "DEMAIS BANDEIRAS" (onde os baldes da meta se encaixam);
    - null e ausencia (mes sem sell-in, meta sem par): vira n/d, nunca 0.     */
-const CM = DB.cubo_meta;
+// D-48: CM e atribuido em prepararDB(), depois da descompactacao.
 const MF = {mes:0, visao:"exec", met:"val"};
-const MVIS = {head:"Head", ger:"Gerente", exec:"Executivo",
+// D-48: um rotulo so para o N3 no painel inteiro. A aba de metas dizia
+// "Executivo" e o resto do painel nem tinha o nivel; agora os dois dizem
+// "Sup./Exec.", que e como a hierarquia oficial grafa o cargo.
+const MVIS = {head:"Head", ger:"Gerente", exec:"Sup./Exec.",
               band:"Bandeira", cat:"Categoria"};
 const MMET = {val:{rot:"Valor (R$)", off:0, esc:100,  un:"R$"},
               vol:{rot:"Volume (t)", off:1, esc:1e6, un:"t"}};
@@ -2588,14 +2672,13 @@ function ordenarTabela(tab, col){
 // P2-D: cada arquivo por head guarda o proprio recorte — sem o sufixo, o
 // arquivo do head A clobberaria o recorte salvo do painel completo (mesma
 // origem, mesma chave de localStorage).
-const CHAVE_LS="dashDoriCanais.recorte.v2"
-  +(DB.meta && DB.meta.recorte_head ? ".head."+DB.meta.recorte_head : "");
 function recorteAtual(){
   return {
     metrica:F.metrica, base:F.base, gran:F.gran, fy:F.fy, ano:F.ano,
     meses:[...F.meses].map(i=>CAL[i][C_AM]),
     cat:[...F.cat].map(i=>D.cat[i]),
-    can:[...F.can], head:[...F.head], ger:[...F.ger], proj:[...F.proj],
+    can:[...F.can], head:[...F.head], ger:[...F.ger], sup:[...F.sup],
+    proj:[...F.proj],
     uf:[...F.uf].map(i=>D.uf[i]),
     ban:[...F.ban].map(i=>D.ban[i]),
     sku:[...F.sku].map(i=>D.sku[i][0]),        // codigo do SKU, estavel
@@ -2628,6 +2711,10 @@ function aplicarRecorte(r){
   setDe(F.head,r.head,x=>D.head.includes(x)?x:null);
   const gers=new Set(D.perfil.map(p=>p[1])), projs=new Set(D.perfil.map(p=>p[3]));
   setDe(F.ger, r.ger, x=>gers.has(x)?x:null);
+  // D-48: o rotulo do Sup./Exec. e conferido contra o proprio perfil do cubo,
+  // entao um recorte salvo antes de uma mudanca de estrutura nao ressuscita
+  // um supervisor que nao existe mais.
+  setDe(F.sup, r.sup, x=>D.perfil.some(p=>p[P_SUP]===x)?x:null);
   setDe(F.proj,r.proj,x=>projs.has(x)?x:null);
   setDe(F.uf,  r.uf,  x=>idx(D.uf,x));
   setDe(F.ban, r.ban, x=>idx(D.ban,x));
@@ -2712,6 +2799,7 @@ function ligar(){
   ligarChips("fCanal", k=>{ alterna(F.can,k); montarFiltros(); });
   ligarChips("fHead", k=>{ alterna(F.head,k); montarFiltros(); });
   ligarChips("fGer", k=>{ alterna(F.ger,k); montarFiltros(); });
+  ligarChips("fSup", k=>{ alterna(F.sup,k); montarFiltros(); });   // D-48
   ligarChips("fProj", k=>{ alterna(F.proj,k); montarFiltros(); });
   ligarChips("fUF", k=>{ alterna(F.uf,+k); montarFiltros(); });
   ligarChips("fBan", k=>{ alterna(F.ban,+k); buscaChips("fBan","bBan",D.ban,F.ban); });
@@ -2752,7 +2840,7 @@ function ligar(){
     ordenarTabela(tab, th.cellIndex);
   });
   el("limpar").onclick=()=>{
-    ["cat","head","ger","can","proj","uf","ban","sku"].forEach(k=>F[k].clear());
+    ["cat","head","ger","sup","can","proj","uf","ban","sku"].forEach(k=>F[k].clear());
     preSelecionarMeses(); el("bBan").value=""; el("bSku").value="";
     montarFiltros(); render();
   };
@@ -2825,6 +2913,23 @@ function iniciar(){
   atualizarToggle();
   render();
 }
-iniciar();
+
+/* D-48: o painel so "liga" depois que os cubos chegam descompactados. Falha
+   aqui vira MENSAGEM na tela — nunca pagina em branco sem explicacao. */
+(async function(){
+  try{
+    DB = await carregarDB(DB_CARGA);
+    prepararDB();
+    iniciar();
+  }catch(e){
+    document.body.innerHTML =
+      '<div style="max-width:720px;margin:80px auto;'
+      + 'font:15px/1.6 system-ui,Segoe UI,Arial">'
+      + '<h2>Nao foi possivel abrir o painel</h2><p>'
+      + String(e && e.message ? e.message : e).replace(/</g,"&lt;")
+      + '</p><p>Gere o painel de novo com <code>python run_dashboard.py</code>.'
+      + '</p></div>';
+  }
+})();
 </script>
 </body></html>

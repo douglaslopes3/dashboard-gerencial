@@ -16,6 +16,8 @@ mensal o template não é tocado.
 """
 from __future__ import annotations
 
+import base64
+import gzip
 import json
 import re
 import sys
@@ -52,23 +54,22 @@ def filtrar_por_head(pacote: dict, head: str) -> dict:
     cujo perfil (cubo principal) ou par head/canal (cubo de SKU) pertencem ao
     head pedido. E o filtro no nivel de DADOS: o que nao esta no arquivo nao
     existe para quem o abre, nao ha parametro de interface que traga de volta.
-    Os indices de perfil/hc sao remapeados porque as listas encolhem."""
+    O indice de perfil e remapeado porque a lista encolhe."""
+    # D-48: os DOIS cubos passaram a viajar pelo mesmo indice de perfil — o
+    # par `hc` deixou de existir, e o recorte por head virou um mapeamento so.
     dims = pacote["dims"]
     manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[0] == head]
     mapa_perf = {i: j for j, i in enumerate(manter_perf)}
-    manter_hc = [i for i, p in enumerate(dims["hc"]) if p[0] == head]
-    mapa_hc = {i: j for j, i in enumerate(manter_hc)}
 
     cubo = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6], l[7]]
             for l in pacote["cubo"] if l[3] in mapa_perf]
-    cubo_sku = [[l[0], l[1], mapa_hc[l[2]], l[3], l[4], l[5], l[6]]
-                for l in pacote["cubo_sku"] if l[2] in mapa_hc]
+    cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5], l[6], l[7]]
+                for l in pacote["cubo_sku"] if l[2] in mapa_perf]
 
     novo = dict(pacote)
     novo["dims"] = {**dims,
                     "head": [head],
-                    "perfil": [dims["perfil"][i] for i in manter_perf],
-                    "hc": [dims["hc"][i] for i in manter_hc]}
+                    "perfil": [dims["perfil"][i] for i in manter_perf]}
     novo["cubo"] = cubo
     novo["cubo_sku"] = cubo_sku
 
@@ -194,16 +195,38 @@ def main() -> int:
     saida_dir = caminho(_DASH["pasta_saida"])
     saida_dir.mkdir(parents=True, exist_ok=True)
 
+    # D-48 (02/09/2026): os cubos vao COMPACTADOS para dentro do HTML.
+    # Medido: com o eixo novo do cubo de SKU (que acabou com os quatro filtros
+    # ignorados) o JSON cru levaria o painel a 25,8 MB — acima do teto de
+    # 25 MB — e ele cresce ~4% a cada mes novo de sell-in. Em gzip+base64 sao
+    # ~9,6 MB, MENOS que os 14,66 MB do painel anterior. O template descompacta
+    # na abertura (DecompressionStream, nativo do navegador, sem rede).
+    # `dashboard.compactar: false` no config desliga, para diagnostico.
+    compactar = bool(_DASH.get("compactar", True))
+
     def escrever(pac: dict, nome_arquivo: str) -> Path:
         dados = json.dumps(pac, ensure_ascii=False, separators=(",", ":"))
+        cru_mb = len(dados.encode("utf-8")) / 1024 / 1024
+        if compactar:
+            bruto = gzip.compress(dados.encode("utf-8"), 6)
+            carga = json.dumps({"z": "gzip+base64",
+                                "b64": base64.b64encode(bruto).decode("ascii")},
+                               separators=(",", ":"))
+        else:
+            carga = dados
         # C1 (auditoria): descricao de SKU vem de Excel de terceiros. Um
         # "</script>" dentro de um valor encerraria o bloco no parse e
-        # quebraria o painel inteiro. "<\/" e escape JSON valido.
-        dados = dados.replace("</script>", "<\\/script>")
+        # quebraria o painel inteiro. "<\/" e escape JSON valido. (Base64 nao
+        # produz essa sequencia, mas o escape fica: ele protege o caminho
+        # `compactar: false` e nao custa nada no outro.)
+        carga = carga.replace("</script>", "<\\/script>")
         alvo = saida_dir / nome_arquivo
-        alvo.write_text(antes + ini + dados + fim + depois, encoding="utf-8")
+        alvo.write_text(antes + ini + carga + fim + depois, encoding="utf-8")
         tam = alvo.stat().st_size / 1024 / 1024
-        log(f"painel ................. {alvo.name} ({tam:,.2f} MB)", "ok")
+        extra = (f" · cubos {cru_mb:,.1f} MB -> "
+                 f"{len(carga) / 1024 / 1024:,.1f} MB compactados"
+                 if compactar else " · SEM compactacao")
+        log(f"painel ................. {alvo.name} ({tam:,.2f} MB){extra}", "ok")
         return alvo
 
     log("")
@@ -227,9 +250,8 @@ def main() -> int:
             pac = filtrar_por_head(pacote, head)
             # Prova do recorte, nao confianca: nenhuma linha de outro head.
             perf = pac["dims"]["perfil"]
-            hc = pac["dims"]["hc"]
             assert all(perf[l[3]][0] == head for l in pac["cubo"])
-            assert all(hc[l[2]][0] == head for l in pac["cubo_sku"])
+            assert all(perf[l[2]][0] == head for l in pac["cubo_sku"])
             cm = pac.get("cubo_meta")
             if cm:
                 assert all(cm["grupos"][l[1]][0] == head for l in cm["linhas"])

@@ -472,6 +472,97 @@ def test_cubo_meta_sem_base_devolve_none():
                                vazia) is None
 
 
+# ================================================ D-48 · hierarquia N3 (02/09)
+def _mini_modelo():
+    """Modelo minimo com 2 heads, 2 gerentes e 3 sup./exec. no mesmo gerente.
+
+    Serve para provar o que a D-48 mudou: o Sup./Exec. entrou no eixo dos DOIS
+    cubos e o cubo de SKU passou a carregar tambem a bandeira.
+    """
+    fato = pd.DataFrame({
+        "ANO_MES": ["2026-01"] * 6,
+        "COD_CLIENTE": ["1", "2", "3", "4", "5", "6"],
+        "COD_PRODUTO": ["10", "10", "20", "20", "30", "30"],
+        "RECEITA": [100.0, 200.0, 300.0, 400.0, 500.0, 600.0],
+        "PESO_KG": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+        "CAIXAS": [1.0, 2.0, 3.0, 4.0, 5.0, None],
+    })
+    dim_cli = pd.DataFrame({
+        "COD_CLIENTE": ["1", "2", "3", "4", "5", "6"],
+        "BANDEIRA": ["REDE A", "REDE B", "REDE A", "REDE B", "REDE A", "REDE B"],
+        "UF": ["SP", "SP", "MG", "MG", "SP", "MG"],
+        "HEAD": ["10 - H1"] * 4 + ["20 - H2"] * 2,
+        "GERENTE": ["1000 - G1"] * 4 + ["2000 - G2"] * 2,
+        "SUPERVISOR": ["1100 - S1", "1100 - S1", "1200 - S2", "1200 - S2",
+                       "2100 - S3", "2100 - S3"],
+        "CANAL": ["VAREJO"] * 6,
+        "PROJETO": ["P1"] * 6,
+    })
+    dim_prod = pd.DataFrame({
+        "COD_PRODUTO": ["10", "20", "30"],
+        "DESCRICAO_PRODUTO": ["SKU 10", "SKU 20", "SKU 30"],
+        "CATEGORIA": ["BALA", "GOMAS", "BALA"],
+    })
+    dim_cal = calendario.construir(["2026-01"])
+    return fato, dim_cli, dim_prod, dim_cal
+
+
+def test_d48_perfil_tem_os_cinco_niveis_na_ordem_declarada():
+    from src.load import cubos
+    pac = cubos.construir(*_mini_modelo())
+    assert cubos.COLS_PERFIL == ["HEAD", "GERENTE", "SUPERVISOR",
+                                 "CANAL", "PROJETO"]
+    for p in pac["dims"]["perfil"]:
+        assert len(p) == 5, "o perfil tem de carregar os cinco componentes"
+    sups = {p[2] for p in pac["dims"]["perfil"]}
+    assert sups == {"1100 - S1", "1200 - S2", "2100 - S3"}
+
+
+def test_d48_cubo_de_sku_usa_o_mesmo_perfil_e_o_par_hc_nao_existe_mais():
+    from src.load import cubos
+    pac = cubos.construir(*_mini_modelo())
+    # o par head x canal saiu: era ele que fazia a aba de SKU ignorar filtros
+    assert "hc" not in pac["dims"]
+    # [mes, sku, perfil, uf, bandeira] + [R, P, C]
+    assert all(len(l) == 8 for l in pac["cubo_sku"])
+    assert all(l[2] < len(pac["dims"]["perfil"]) for l in pac["cubo_sku"])
+    assert all(l[4] < len(pac["dims"]["ban"]) for l in pac["cubo_sku"])
+
+
+def test_d48_receita_por_sup_exec_bate_entre_os_dois_cubos():
+    """A conferencia que sustenta a fase: o mesmo recorte tem de dar o mesmo
+    numero na Visao Geral (cubo principal) e na aba de SKU."""
+    from src.load import cubos
+    pac = cubos.construir(*_mini_modelo())
+    perfil = pac["dims"]["perfil"]
+    por_sup_principal, por_sup_sku = {}, {}
+    for l in pac["cubo"]:
+        k = perfil[l[3]][2]
+        por_sup_principal[k] = por_sup_principal.get(k, 0) + l[5]
+    for l in pac["cubo_sku"]:
+        k = perfil[l[2]][2]
+        por_sup_sku[k] = por_sup_sku.get(k, 0) + l[5]
+    assert set(por_sup_principal) == set(por_sup_sku)
+    for k in por_sup_principal:
+        # centavos: a diferenca aceita e a do arredondamento por grupo
+        assert abs(por_sup_principal[k] - por_sup_sku[k]) <= 2, k
+    assert sum(por_sup_principal.values()) == 210000     # R$ 2.100,00 em centavos
+
+
+def test_d48_recorte_por_head_corta_os_dois_cubos_pelo_perfil():
+    from src.load import cubos
+    from run_dashboard import filtrar_por_head
+    pac = cubos.construir(*_mini_modelo())
+    rec = filtrar_por_head(pac, "10 - H1")
+    perfil = rec["dims"]["perfil"]
+    assert rec["dims"]["head"] == ["10 - H1"]
+    assert all(perfil[l[3]][0] == "10 - H1" for l in rec["cubo"])
+    # o cubo de SKU e cortado pelo MESMO indice de perfil (posicao 2)
+    assert all(perfil[l[2]][0] == "10 - H1" for l in rec["cubo_sku"])
+    assert sum(l[5] for l in rec["cubo"]) == 100000      # R$ 1.000,00
+    assert sum(l[5] for l in rec["cubo_sku"]) == 100000
+
+
 # ================================================================== runner
 def _rodar_sem_pytest() -> int:
     testes = [(n, o) for n, o in sorted(globals().items())
