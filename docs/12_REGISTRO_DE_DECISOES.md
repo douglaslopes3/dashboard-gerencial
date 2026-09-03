@@ -1288,3 +1288,70 @@ fase) e as bases de origem.
 
 **Rollback.** `git` — commits da D-49 (`687db30`) para trás; esta fase é um
 commit próprio.
+
+---
+
+## D-51 · Fase 3 da reestruturação: painel v4 — 3 abas e matriz hierárquica expansível (02/09/2026)
+
+**Contexto.** Steps 2 e "Detalhamento e Hierarquia" do prompt da
+reestruturação, com as recomendações Q8-Q11/Q14 da auditoria aprovadas em
+bloco pelo Douglas. A interface nova nasceu como **`template_v4.html`**
+(padrão da casa: v1/v2/v3 ficam como retorno rápido — com a ressalva de que
+o v3 lê cubos COM o eixo UF; reativá-lo exige voltar o pipeline junto, via
+git). Saídas renomeadas para `Dashboard_Gerencial_Canais_v4*.html`.
+
+**Decisões aplicadas:**
+
+- **3 abas exatas**: Visão Geral, Bandeiras e **Categorias** (nova). Saíram
+  Geografia, SKU e R$/kg. O que se perde e o que fica está na auditoria de
+  02/09 (§2 Step 2); o preço médio sobrevive no card da Visão Geral (Q14) e
+  o seletor global segue Valor/Volume/Caixas.
+- **Q8**: a Visão Geral ficou com os 5 cards (Valor, Volume, Caixas,
+  Faturamento médio/mês, Preço médio) + gráfico de Evolução. Comparativo
+  YTD e Evolução por período saíram; o seletor "Comparar" continua
+  definindo o ano-moldura e o pareamento LY de todo o painel.
+- **Q11**: o Detalhamento e TODO o drill-down deram lugar à **MATRIZ
+  HIERÁRQUICA EXPANSÍVEL** Head → Gerente → Sup./Exec. → Vend./RCA na Visão
+  Geral. Navegação entre níveis é exclusivamente pela expansão (▸/▾). Os
+  rótulos "fora da hierarquia" (sem estrutura + inativos, D-50) chegam do
+  gerador (`pacote.rotulos_fora`) e viram linhas síntese Σ sem expansão —
+  o histórico delas permanece no Total geral (Q7-i).
+- **Step 2.3/2.4**: Bandeiras manteve ganhos/quedas + Top e a tabela virou
+  matriz expansível **Bandeira → Categoria** (top N nominais + balde Σ;
+  Total geral soma todas). Categorias é a nova aba com a mesma estrutura e
+  matriz **Categoria → SKU** (todos os 400 SKUs, sem corte), lendo o
+  CUBO_SKU. Sem seletor "Top" em Categorias: são 12.
+- **Q9 + filtros hierárquicos**: sobraram Métrica, Comparar, Ano, Meses,
+  Canal, Categoria e **Head** (seletor de escopo do Template Full; oculto no
+  arquivo por head). Gerente, Sup./Exec., Projeto, UF e as linhas inteiras
+  de Bandeira/SKU saíram — bandeira e SKU seguem como dimensões nas
+  matrizes.
+- **Q10**: o **eixo UF saiu dos dois cubos** (UF segue na DIM_CLIENTE).
+  Cubos com 4 índices + 3 métricas; `geografia.yaml`/`nome_uf` deixaram de
+  ir ao painel.
+- **Regra global "nada cinza"**: `.chip.semdado`, `.chip.off` e
+  `.mini[disabled]` saíram do CSS e a marcação de chips sem dado
+  (`marcarChipsVazios`) saiu do código — verificado no navegador: zero
+  elementos `[disabled]`/esmaecidos em qualquer estado.
+
+**Mecânica da matriz** (`matrizNiveis`, template v4): UMA agregação por
+coluna, chaveada pelo caminho completo dos níveis; cada nó acumula de baixo
+para cima, então **pai = soma dos filhos por construção** e o Total geral
+fecha com os cards em qualquer estado de expansão. Colunas idênticas à
+matriz da F1-G (12 últimos períodos + TOTAL/ATUAL/ANT./Δ/Δ%/Part.%);
+exportação CSV/XLSX leva as linhas visíveis; ordenação por clique fica
+desligada nas matrizes por níveis (reordenar rasgaria pai/filho — nota diz).
+Estado de expansão não persiste no recorte (como o drill nunca persistiu).
+
+**Verificado no navegador (T-43):** cascata N1→N4 aberta; N3 = soma exata
+dos 21 N4 filhos; Total geral ATUAL = card Valor; LASA → categorias;
+AMENDOIM → 97 SKUs; filtro de canal recorta tudo; arquivo por head sem
+filtro Head e só com o próprio squad; zero erro de console.
+
+**Resultado medido:** cubos 124.493 (principal) e 866.562 (SKU) linhas —
+−7% e −4% sobre a D-50, pelo fim do eixo UF; painel **11,35 MB** (cru
+30,8 MB); template v4 com 1.853 linhas (v3: 2.547); 41/41 unitários +
+6/6 cenários.
+
+**Rollback.** git (commit da D-50) + `template_v3.html` na pasta (exige o
+pipeline da época, ver acima).

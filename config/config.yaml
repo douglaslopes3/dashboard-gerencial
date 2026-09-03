@@ -257,8 +257,12 @@ validacao:
 # DASHBOARD
 # -----------------------------------------------------------------------------
 dashboard:
-  arquivo_saida: "Dashboard_Gerencial_Canais_v3.html"
-  template: "dashboard/template_v3.html"
+  # D-51 (Fase 3): o painel ativo passou a ser o TEMPLATE V4 (3 abas + matriz
+  # hierarquica). O template_v3.html fica na pasta como retorno rapido, com a
+  # ressalva: ele le cubos COM o eixo UF — para reativa-lo e preciso voltar
+  # tambem o pipeline (git checkout do commit da D-50 ou anterior).
+  arquivo_saida: "Dashboard_Gerencial_Canais_v4.html"
+  template: "dashboard/template_v4.html"
   pasta_saida: "dashboard/build"
   libs:
     chart: "dashboard/lib/chart.umd.min.js"
@@ -274,16 +278,17 @@ dashboard:
 
   # Quantos itens no bloco de destaque de ganhos/quedas.
   top_ranking: 10
-  # Opções do seletor "Top" nas tabelas.
+  # Opções do seletor "Top" na aba Bandeiras. (O seletor de SKU saiu na D-51
+  # junto com a aba de SKU — a matriz de Categorias abre TODOS os SKUs da
+  # categoria expandida.)
   tops_bandeira: [10, 50, 100, 200, 300]
-  tops_sku: [25, 50, 100, 0]      # 0 = todos
 
   # Um arquivo por head, com o recorte aplicado na GERAÇÃO (o arquivo do head
   # só carrega as linhas de cubo do próprio squad; não é filtro de interface).
   # "NÃO ATRIBUÍDO" fica de fora: não é squad de ninguém.
   por_head:
     ativo: true
-    prefixo: "Dashboard_Gerencial_Canais_v3_HEAD_"
+    prefixo: "Dashboard_Gerencial_Canais_v4_HEAD_"
 
 logs:
   nivel: "info"

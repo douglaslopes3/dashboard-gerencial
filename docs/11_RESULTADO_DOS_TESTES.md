@@ -814,3 +814,33 @@ painel                           12,27 MB (cru 34,8 -> 12,0; teto 25 MB ok) ·
                                  filtros; NENHUM arquivo por head para os
                                  baldes NAO ATRIBUIDO / INATIVO
 ```
+
+## T-43 · Painel v4: 3 abas e matriz hierárquica (D-51, 02/09/2026)
+
+```
+unitarios                        41/41 (novo: cubos sem eixo UF e posicoes
+                                 do contrato com o template v4)
+cenarios ponta a ponta           6/6 · pipeline final exit 0
+matriz hierarquica               cascata Head -> Gerente -> Sup./Exec. ->
+                                 Vend./RCA aberta no navegador; N3 2320 =
+                                 soma EXATA dos 21 N4 filhos (61.786);
+                                 Total geral ATUAL = card Valor (R$ 1,28 mi)
+sintese fora da hierarquia       linhas Σ NAO ATRIBUIDO e INATIVO
+                                 (SANEAMENTO) sem expansao, no Total geral
+bandeiras                        LASA expande -> AMENDOIM/CHOCOLATE/GOMAS;
+                                 balde Σ presente; Total geral soma todas
+categorias                       12 categorias; AMENDOIM expande -> 97 SKUs
+                                 (12 -> 109 linhas)
+filtros                          canal DISTRIBUIDOR recorta KPIs/matrizes;
+                                 estado "1 filtro ativo"; Limpar ok
+estados cinza                    ZERO elementos [disabled]/.semdado/.off no
+                                 DOM (regra global da reestruturacao)
+arquivo por head (Ademir, v4)    7,05 MB · so o squad dele nos dims · filtro
+                                 Head oculto · titulo declara o recorte ·
+                                 console zero erros
+painel completo                  11,35 MB (cru 30,8 -> 11,1) · console zero
+                                 erros em todas as interacoes testadas
+guardiao de erro                 pegou o esquecimento de renderHier na 1a
+                                 geracao (tela de erro com a mensagem, nunca
+                                 pagina em branco) — corrigido e regerado
+```

@@ -384,10 +384,10 @@ def test_d48_cubo_de_sku_usa_o_mesmo_perfil_e_o_par_hc_nao_existe_mais():
     pac = cubos.construir(*_mini_modelo())
     # o par head x canal saiu: era ele que fazia a aba de SKU ignorar filtros
     assert "hc" not in pac["dims"]
-    # [mes, sku, perfil, uf, bandeira] + [R, P, C]
-    assert all(len(l) == 8 for l in pac["cubo_sku"])
+    # D-51: sem o eixo UF — [mes, sku, perfil, bandeira] + [R, P, C]
+    assert all(len(l) == 7 for l in pac["cubo_sku"])
     assert all(l[2] < len(pac["dims"]["perfil"]) for l in pac["cubo_sku"])
-    assert all(l[4] < len(pac["dims"]["ban"]) for l in pac["cubo_sku"])
+    assert all(l[3] < len(pac["dims"]["ban"]) for l in pac["cubo_sku"])
 
 
 def test_d48_receita_por_sup_exec_bate_entre_os_dois_cubos():
@@ -399,10 +399,10 @@ def test_d48_receita_por_sup_exec_bate_entre_os_dois_cubos():
     por_sup_principal, por_sup_sku = {}, {}
     for l in pac["cubo"]:
         k = perfil[l[3]][2]
-        por_sup_principal[k] = por_sup_principal.get(k, 0) + l[5]
+        por_sup_principal[k] = por_sup_principal.get(k, 0) + l[4]
     for l in pac["cubo_sku"]:
         k = perfil[l[2]][2]
-        por_sup_sku[k] = por_sup_sku.get(k, 0) + l[5]
+        por_sup_sku[k] = por_sup_sku.get(k, 0) + l[4]
     assert set(por_sup_principal) == set(por_sup_sku)
     for k in por_sup_principal:
         # centavos: a diferenca aceita e a do arredondamento por grupo
@@ -420,8 +420,8 @@ def test_d48_recorte_por_head_corta_os_dois_cubos_pelo_perfil():
     assert all(perfil[l[3]][0] == "10 - H1" for l in rec["cubo"])
     # o cubo de SKU e cortado pelo MESMO indice de perfil (posicao 2)
     assert all(perfil[l[2]][0] == "10 - H1" for l in rec["cubo_sku"])
-    assert sum(l[5] for l in rec["cubo"]) == 100000      # R$ 1.000,00
-    assert sum(l[5] for l in rec["cubo_sku"]) == 100000
+    assert sum(l[4] for l in rec["cubo"]) == 100000      # R$ 1.000,00
+    assert sum(l[4] for l in rec["cubo_sku"]) == 100000
 
 
 # ==================================== D-50 · RTM + saneamento (02/09, Fase 2)
@@ -553,6 +553,22 @@ def test_d50_precedencia_rtm_sobre_saneamento():
     assert c["HEAD"] == "10 - H1" and not bool(c["INATIVO"])
     assert med["conflito_rtm_saneamento"] == 1
     assert any("DUAS bases" in a for a in avisos)
+
+
+# ============================== D-51 · Fase 3: cubos sem o eixo UF (02/09)
+def test_d51_cubos_sem_eixo_uf_e_posicoes_do_template():
+    """Q10: o eixo UF saiu dos dois cubos. As posicoes que o template v4 le
+    (metricas a partir da coluna 4; perfil em 3/2; bandeira em 1/3) sao o
+    contrato — mudar exige mudar o template junto."""
+    from src.load import cubos
+    pac = cubos.construir(*_mini_modelo())
+    assert "uf" not in pac["dims"]
+    assert all(len(l) == 7 for l in pac["cubo"])
+    # soma da receita na posicao 4 = total do mini modelo (R$ 2.100 em centavos)
+    assert sum(l[4] for l in pac["cubo"]) == 210000
+    assert sum(l[4] for l in pac["cubo_sku"]) == 210000
+    # bandeira do cubo principal segue na posicao 1
+    assert all(l[1] < len(pac["dims"]["ban"]) for l in pac["cubo"])
 
 
 # ================================================================== runner

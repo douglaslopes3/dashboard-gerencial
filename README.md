@@ -7,7 +7,7 @@ Roda **100% local**, sem servidor, sem internet e **sem nenhuma IA**.
 
 ```
 python run_pipeline.py      # bases -> Parquet -> relatorio de qualidade
-python run_dashboard.py     # Parquet -> painel v3 + um arquivo por head
+python run_dashboard.py     # Parquet -> painel v4 + um arquivo por head
 ```
 
 ---
@@ -56,23 +56,26 @@ cobertura da estrutura       97,65% da receita (piso 95% restaurado na D-50)
 cobertura de canal           100,00% da receita
 fora da hierarquia           R$ 54,55 mi (2,35%): inativos + pendentes Q5 +
                              RTM sem distribuidor + 71 antigos sem estrutura
-testes                       40/40 unitarios · 6/6 cenarios ponta a ponta
+testes                       41/41 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~25 s com cache · exit 0
-painel (v3, D-50)            12,27 MB · zero requisicao de rede · 5 paginas
-                             cubos compactados no arquivo (34,8 MB -> 12,0 MB),
-                             descompactados na abertura pelo navegador
-                             perfil comercial com N4: 516 perfis · cubo
-                             principal 133.700 linhas · cubo SKU 900.065
-                             granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),
-                             periodo parcial declarado, filtros em todas as abas
-                             exportacao CSV/XLSX em toda tabela
-                             drills: Categoria -> SKU · Head -> Gerente ->
-                             Sup./Exec. · demais dimensoes -> Categoria
-                             NENHUM filtro ignorado em nenhuma aba (D-48)
-                             Detalhamento com Bandeira (top N + balde) · sem
-                             rodape textual · atalhos de Periodo removidos (fica
-                             o "Ver por") · filtro Head oculto no arquivo por head
-por head                     4 arquivos restritos (1,06 a 7,52 MB), recorte fisico
+painel (v4, D-51)            11,35 MB · zero requisicao de rede · 3 ABAS:
+                             Visao Geral · Bandeiras · Categorias
+                             cubos compactados no arquivo (30,8 MB -> 11,1 MB),
+                             SEM o eixo UF (Q10): 516 perfis com N4 · cubo
+                             principal 124.493 linhas · cubo SKU 866.562
+                             MATRIZ HIERARQUICA EXPANSIVEL na Visao Geral
+                             (Head > Gerente > Sup./Exec. > Vend./RCA; linhas
+                             sintese Σ para fora-da-hierarquia) · Bandeiras
+                             expande p/ Categoria · Categorias expande p/ SKU
+                             filtros: Metrica, Comparar, Ano, Meses, Canal,
+                             Categoria e Head (escopo do Template Full)
+                             granularidade Mes|Trimestre|Semestre|Ano ("Ver
+                             por") · periodo parcial declarado · exportacao
+                             CSV/XLSX (matrizes: linhas visiveis) · NENHUM
+                             elemento desabilitado/acinzentado em estado algum
+                             template_v3 fica como retorno rapido (exige o
+                             pipeline pre-D-51, via git)
+por head                     4 arquivos restritos (0,93 a 7,05 MB), recorte fisico
                              na geracao: o arquivo de um head nao contem os
                              dados dos outros squads; os baldes NAO ATRIBUIDO e
                              INATIVO (SANEAMENTO) nao geram arquivo
@@ -101,8 +104,8 @@ D-a a D-e seguem em aberto.
 2. `python run_pipeline.py`
 3. Confira `data\quality\relatorio_qualidade.md`.
 4. `python run_dashboard.py` → abra
-   `dashboard\build\Dashboard_Gerencial_Canais_v3.html` por **duplo clique**.
-   Saem também os 4 arquivos `..._v3_HEAD_<head>.html`, um por head, cada um
+   `dashboard\build\Dashboard_Gerencial_Canais_v4.html` por **duplo clique**.
+   Saem também os 4 arquivos `..._v4_HEAD_<head>.html`, um por head, cada um
    contendo apenas os dados do próprio squad. Regra de distribuição: cada head
    recebe só o seu.
 
@@ -120,12 +123,20 @@ máquina de destino.
 
 ---
 
-## O que o painel entrega
+## O que o painel entrega (v4, D-51)
 
-**5 páginas** — Visão Geral · Geografia · Bandeiras · SKU · R$/kg.
+**3 abas** — **Visão Geral** (5 cards de KPI, gráfico de Evolução e a
+**matriz hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA) ·
+**Bandeiras** (ganhos/quedas + matriz expansível Bandeira → Categoria, top N
+nominais + balde Σ) · **Categorias** (ganhos/quedas + matriz expansível
+Categoria → SKU, todos os 400 SKUs). Toda navegação entre níveis é pela
+**expansão da matriz** — o drill-down deixou de existir. As linhas síntese Σ
+(sem estrutura, inativos do saneamento) ficam fora da hierarquia com o
+histórico preservado no Total geral, que fecha com os cards.
 
 **3 métricas** no seletor global — **Valor R$**, **Volume (t)**, **Caixas** —
-e **Preço Médio R$/kg**, calculado sempre como `SUM(receita) / SUM(peso_kg)`
+e **Preço Médio R$/kg** no card da Visão Geral, calculado sempre como
+`SUM(receita) / SUM(peso_kg)`
 (razão das somas; o seletor global **não** altera essa definição).
 
 **2 bases de comparação** — YTD Fiscal (set→ago) e YTD Calendário (jan→dez),
@@ -139,17 +150,17 @@ Semestre e Ano. Mesma tela e mesma conta nos quatro modos; muda só o
 agrupamento das colunas/barras e os rótulos. Grupo com menos meses que a
 granularidade pede sai marcado **(parcial)**, nunca como período cheio.
 
-**Exportação CSV/XLSX em todas as tabelas** (dado cru, respeitando os filtros)
-e **drill-down**: Categoria → SKUs, Head → Gerentes → **Sup./Exec.** (D-48)
-e, nas demais dimensões do **Detalhamento** (canal, gerente, projeto, UF,
-bandeira), item → **Categorias** (D-47). O Detalhamento também quebra por **Bandeira** (top N + balde Σ, o
-mesmo corte da aba Bandeiras).
+**Exportação CSV/XLSX em todas as tabelas** (dado cru, respeitando os
+filtros; nas matrizes expansíveis, as linhas visíveis na expansão atual).
 
-**Filtros globais** derivados das dimensões: ano fiscal, ano calendário, meses,
-**canal**, categoria, head, gerente, **Sup./Exec.** (D-48), **projeto**, UF,
-bandeira e SKU. O painel
-de filtros (com o "Ver por" e a linha de estado) existe em todas as
-abas: abaixo do gráfico de Evolução na Visão Geral, no topo nas demais.
+**Filtros globais** (D-51): ano fiscal, ano calendário, meses, **canal**,
+**categoria** e **Head** — este último é o seletor de escopo do Template
+Full e fica oculto nos arquivos por nível. Gerente, Sup./Exec., projeto, UF
+e as buscas de bandeira/SKU saíram: a navegação hierárquica é a matriz, e
+bandeira/SKU seguem como dimensões nas abas. Nenhum filtro ou elemento fica
+desabilitado ou acinzentado em estado algum. O painel de filtros (com o
+"Ver por" e a linha de estado) existe em todas as abas: abaixo do gráfico
+de Evolução na Visão Geral, no topo nas demais.
 
 **Visão por head**: além do painel completo, a geração produz um arquivo por
 head com o recorte aplicado no nível de dados. Os cubos embutidos no arquivo de
@@ -176,7 +187,7 @@ Configuração em `config/config.yaml → dashboard.por_head`.
    não — 93,7% das linhas de devolução não têm quantidade na origem. Desvio
    medido: **0,28%**.
 2. **O ranking de bandeiras é nominal nas 300 maiores** (73,7% do faturamento,
-   medido em 01/09/2026; na tela do v3 a cobertura é recalculada sob o recorte
+   medido em 01/09/2026; na tela do v4 a cobertura é recalculada sob o recorte
    ativo). As outras 10.989 **não somem**: entram agregadas, e todo total
    continua reconciliando com a base.
 3. ~~**A camada de SKU cruza com head, canal, categoria e UF — não com
@@ -216,7 +227,7 @@ vem do **conteúdo**, nunca do nome do arquivo.
 bases/                     origem (somente leitura)
 data/{raw,staging,curated,quality}/
 src/{extract,transform,load,utils}/
-dashboard/{lib,template_v3.html,build/}   (template.html e template_v2.html: retorno rapido)
+dashboard/{lib,template_v4.html,build/}   (template.html, template_v2.html e template_v3.html: retorno rapido)
 config/{config.yaml,geografia.yaml}
 docs/  logs/  tests/
 run_pipeline.py  run_dashboard.py

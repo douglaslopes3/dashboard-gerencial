@@ -67,16 +67,18 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # multiplicaria o cubo — a reconciliacao pegaria, mas com o diagnostico
     # errado ("cubo nao reconcilia"). Aqui o erro nasce com o nome certo.
     d = fato.merge(
-        dim_cliente[["COD_CLIENTE", "BANDEIRA", "UF", "HEAD", "GERENTE",
+        dim_cliente[["COD_CLIENTE", "BANDEIRA", "HEAD", "GERENTE",
                      "SUPERVISOR", "VENDEDOR", "CANAL", "PROJETO"]],
         on="COD_CLIENTE", how="left", validate="m:1")
     d = d.merge(dim_produto[["COD_PRODUTO", "CATEGORIA"]],
                 on="COD_PRODUTO", how="left", validate="m:1")
 
     # ---------------------------------------------------------------- eixos
+    # D-51 (Fase 3, Q10): o eixo UF saiu dos dois cubos — a aba Geografia e o
+    # filtro de UF sairam do painel, e manter o eixo so inflaria o arquivo.
+    # UF segue na DIM_CLIENTE (atributo do cliente, curated).
     meses, i_mes = _indexar(dim_cal["ANO_MES"].tolist())
     cats, i_cat = _indexar(sorted(d["CATEGORIA"].dropna().unique()))
-    ufs, i_uf = _indexar(sorted(d["UF"].dropna().unique()))
     heads, i_head = _indexar(sorted(dim_cliente["HEAD"].dropna().unique()))
     canais, i_can = _indexar(sorted(dim_cliente["CANAL"].dropna().unique()))
 
@@ -110,18 +112,18 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
         f"+ balde com {n_demais:,}", "ok")
 
     # -------------------------------------------------------- CUBO PRINCIPAL
-    g = (d.groupby(["ANO_MES", "BAN_CUBO", "CATEGORIA"] + COLS_PERFIL + ["UF"],
+    g = (d.groupby(["ANO_MES", "BAN_CUBO", "CATEGORIA"] + COLS_PERFIL,
                    observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
           .sum(min_count=1).reset_index())
     esc = _escalar(g)
     cubo = [[i_mes[am], i_ban[bn], i_cat[ct], i_perf[(hd, gr, sp, cn, pj, vd)],
-             i_uf[uf], r, p, c]
-            for am, bn, ct, hd, gr, sp, cn, pj, vd, uf, r, p, c
+             r, p, c]
+            for am, bn, ct, hd, gr, sp, cn, pj, vd, r, p, c
             in zip(g["ANO_MES"], g["BAN_CUBO"], g["CATEGORIA"], g["HEAD"],
                    g["GERENTE"], g["SUPERVISOR"], g["CANAL"], g["PROJETO"],
-                   g["VENDEDOR"], g["UF"], esc["R"], esc["P"], esc["C"])]
+                   g["VENDEDOR"], esc["R"], esc["P"], esc["C"])]
     log(f"CUBO_PRINCIPAL         {len(cubo):>10,} linhas "
-        f"(ANO_MES x BANDEIRA x CATEGORIA x PERFIL x UF)", "ok")
+        f"(ANO_MES x BANDEIRA x CATEGORIA x PERFIL)", "ok")
 
     # -------------------------------------------------------------- CUBO SKU
     # D-48 (02/09/2026) — o eixo comercial deste cubo era o par (HEAD, CANAL),
@@ -136,20 +138,20 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # e por isso que run_dashboard.py grava os cubos COMPACTADOS — medido:
     # 7,44 MB no arquivo final, metade do painel anterior. As duas mudancas
     # (eixo e compactacao) andam juntas de proposito.
-    gs = (d.groupby(["ANO_MES", "COD_PRODUTO"] + COLS_PERFIL + ["UF", "BAN_CUBO"],
+    gs = (d.groupby(["ANO_MES", "COD_PRODUTO"] + COLS_PERFIL + ["BAN_CUBO"],
                     observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
            .sum(min_count=1).reset_index())
     skus, i_sku = _indexar(dim_produto["COD_PRODUTO"].tolist())
     escs = _escalar(gs)
     cubo_sku = [[i_mes[am], i_sku[sk], i_perf[(hd, gr, sp, cn, pj, vd)],
-                 i_uf[uf], i_ban[bn], r, p, c]
-                for am, sk, hd, gr, sp, cn, pj, vd, uf, bn, r, p, c
+                 i_ban[bn], r, p, c]
+                for am, sk, hd, gr, sp, cn, pj, vd, bn, r, p, c
                 in zip(gs["ANO_MES"], gs["COD_PRODUTO"], gs["HEAD"],
                        gs["GERENTE"], gs["SUPERVISOR"], gs["CANAL"],
-                       gs["PROJETO"], gs["VENDEDOR"], gs["UF"], gs["BAN_CUBO"],
+                       gs["PROJETO"], gs["VENDEDOR"], gs["BAN_CUBO"],
                        escs["R"], escs["P"], escs["C"])]
     log(f"CUBO_SKU               {len(cubo_sku):>10,} linhas "
-        f"(ANO_MES x SKU x PERFIL x UF x BANDEIRA)", "ok")
+        f"(ANO_MES x SKU x PERFIL x BANDEIRA)", "ok")
 
     # ------------------------------------------------------------ calendario
     idx_ly = [(i_mes[ly] if isinstance(ly, str) and ly in i_mes else -1)
@@ -175,7 +177,6 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
         "dims": {
             "ban": bans,
             "cat": cats,
-            "uf": ufs,
             "head": heads,
             "canal": canais,
             # [head, gerente, sup./exec., canal, projeto, vendedor] — o MESMO
@@ -202,9 +203,9 @@ def reconciliar(pacote: dict, fato: pd.DataFrame) -> list[str]:
     }
     escalas = (ESC_RECEITA, ESC_PESO, ESC_CAIXAS)
     ruins = []
-    # D-48: os dois cubos passaram a ter 5 indices antes das metricas.
-    for nome, chave, base in (("CUBO_PRINCIPAL", "cubo", 5),
-                              ("CUBO_SKU", "cubo_sku", 5)):
+    # D-51: sem o eixo UF, os dois cubos tem 4 indices antes das metricas.
+    for nome, chave, base in (("CUBO_PRINCIPAL", "cubo", 4),
+                              ("CUBO_SKU", "cubo_sku", 4)):
         linhas = pacote[chave]
         for k, (metrica, esc) in enumerate(zip(alvo, escalas)):
             soma = sum(l[base + k] for l in linhas) / esc

@@ -33,8 +33,7 @@ for _fluxo in (sys.stdout, sys.stderr):
         pass
 
 from src.utils import log as L
-from src.utils.config import (CFG, PASTA_CURATED, caminho, nome_uf,
-                              preparar_pastas)
+from src.utils.config import CFG, PASTA_CURATED, caminho, preparar_pastas
 from src.utils.log import abortar, log, titulo
 
 _DASH = CFG["dashboard"]
@@ -61,9 +60,10 @@ def filtrar_por_head(pacote: dict, head: str) -> dict:
     manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[0] == head]
     mapa_perf = {i: j for j, i in enumerate(manter_perf)}
 
-    cubo = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6], l[7]]
+    # D-51: sem o eixo UF os cubos tem 7 colunas (4 indices + 3 metricas).
+    cubo = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6]]
             for l in pacote["cubo"] if l[3] in mapa_perf]
-    cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5], l[6], l[7]]
+    cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5], l[6]]
                 for l in pacote["cubo_sku"] if l[2] in mapa_perf]
 
     novo = dict(pacote)
@@ -148,9 +148,15 @@ def main() -> int:
         "gerado_em": R["gerado_em"],
         "execucao": R["execucao"],
     }
-    pacote["tops"] = {"ban": _DASH["tops_bandeira"], "sku": _DASH["tops_sku"]}
+    pacote["tops"] = {"ban": _DASH["tops_bandeira"]}
     pacote["top_ranking"] = int(_DASH["top_ranking"])
-    pacote["nome_uf"] = nome_uf()
+    # D-51: a matriz hierarquica exibe estes rotulos como linhas sintese "fora
+    # da hierarquia" (sem expansao). As strings vem do config — o template nao
+    # carrega valor de negocio.
+    pacote["rotulos_fora"] = [
+        CFG["dimensoes"]["rotulo_sem_estrutura"],
+        CFG["dimensoes"].get("rotulo_inativo"),
+    ]
 
     template = caminho(_DASH["template"])
     if not template.exists():
@@ -242,7 +248,7 @@ def main() -> int:
             perf = pac["dims"]["perfil"]
             assert all(perf[l[3]][0] == head for l in pac["cubo"])
             assert all(perf[l[2]][0] == head for l in pac["cubo_sku"])
-            rec_head = sum(l[5] for l in pac["cubo"])      # centavos, exato
+            rec_head = sum(l[4] for l in pac["cubo"])      # centavos, exato
             soma_heads += rec_head
             # L3-G: sem rodape; titulo e cabecalho seguem declarando o
             # recorte (P2-D) — a restricao de verdade continua sendo o
@@ -250,7 +256,7 @@ def main() -> int:
             pac["meta"] = {**pacote["meta"], "recorte_head": head}
             escrever(pac, f"{prefixo}{_slug(head)}.html")
         # Reconciliacao do particionamento: heads + sem-estrutura = base.
-        rec_total = sum(l[5] for l in pacote["cubo"])
+        rec_total = sum(l[4] for l in pacote["cubo"])
         rec_resto = rec_total - soma_heads
         log(f"particionamento fecha: heads R$ {br(soma_heads / 100)} + "
             f"fora da hierarquia ('{sem_estrutura}' + inativos) "
