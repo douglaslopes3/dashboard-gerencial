@@ -781,3 +781,36 @@ particionamento                  heads 2.181.581.461,40 + NAO ATRIBUIDO
 navegador                        recarregado do build novo: 5 abas, zero erro
 testes                           35/35
 ```
+
+## T-42 · Fase 2: N4, reatribuição RTM e saneamento (D-50, 02/09/2026)
+
+```
+unitarios                        40/40 (5 novos: heranca do distribuidor com
+                                 bandeira/UF preservadas; RTM sem distribuidor
+                                 fora da hierarquia com flag; inativacao exige
+                                 as DUAS condicoes; janela de CALENDARIO
+                                 ancorada na ultima competencia fechada +
+                                 virada de ano; precedencia RTM > saneamento)
+bug pego pela medicao            1a execucao serviu a estrutura do cache v6
+                                 SEM o N4 (1 vendedor no painel inteiro) —
+                                 VERSAO_CACHE 6->7, reprocessado
+pipeline                         exit 0 · cobertura 97,65% (piso restaurado
+                                 a 0,95) · RTM 1.596 reatribuidos a 27
+                                 distribuidores · 166 excecao · 612 inativados
+                                 · 158 pendentes Q5 · conflito RTM x Faltando 0
+DIM_CLIENTE (verificado)         RTM reatribuidos 100% canal DISTRIBUIDOR ·
+                                 1.045 bandeiras proprias preservadas ·
+                                 CANAL_ORIGINAL 1.596/1.596 · VENDEDOR sem
+                                 nulos · 204 N4 atribuidos
+canal DISTRIBUIDOR               R$ 559,94 mi na serie (R$ 82,62 mi entram)
+particionamento                  heads 2.264.205.766,98 + fora da hierarquia
+                                 54.545.595,39 = 2.318.751.362,37
+relatorio de qualidade           §7b quantifica os dois lados por distribuidor;
+                                 3 CSVs novos de excecao em data/quality/
+painel                           12,27 MB (cru 34,8 -> 12,0; teto 25 MB ok) ·
+                                 completo e head 20 (7,52 MB) abertos no
+                                 navegador: 5 abas, zero erro de console;
+                                 balde INATIVO (SANEAMENTO) visivel nos
+                                 filtros; NENHUM arquivo por head para os
+                                 baldes NAO ATRIBUIDO / INATIVO
+```

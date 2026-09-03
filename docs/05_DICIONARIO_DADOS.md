@@ -53,10 +53,12 @@ também **chega ao painel**: entra no eixo `perfil` dos dois cubos, vira filtro
 em todas as abas com o rótulo **Sup./Exec.** e fecha a cadeia de drill
 Head → Gerente → Sup./Exec.
 
-Nível N4 (vendedor/RCA), `CLIENTE`, `REDE`: **não ingeridos** (a
-granularidade do arquivo é cliente × vendedor; a deduplicação por cliente
-acontece depois das correções, com checagem de conflito N1–N3 e de
-`COD_BANDEIRA`). `ATENDIMENTO_PONTA` deixou de existir com a troca da base.
+**N4 ingerido desde a D-50** (02/09/2026): `(N4) CÓDIGO VEND./RCA` + `(N4)
+VEND./RCA` + `(N4) NOME VEND./RCA` → `VENDEDOR`, rótulo concatenado como os
+demais níveis, com `correcoes_vendedor` no config e checagem de conflito
+(13 clientes com dois códigos N4 medidos — vale a 1ª linha com aviso).
+`CLIENTE` e `REDE` seguem não ingeridos (a deduplicação por cliente acontece
+depois das correções, com checagem de conflito N1–N4 e de `COD_BANDEIRA`). `ATENDIMENTO_PONTA` deixou de existir com a troca da base.
 `COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` nasceram como ponte por CÓDIGO com a base
 de metas FY 26/27; com a remoção do tema Metas (**D-49**) seguem como
 ATRIBUTO do cadastro, sem função de join (o sell-in não traz código de
@@ -70,6 +72,30 @@ mesmo leitor; linha cujo cliente já está na oficial é descartada com log.
 Cliente com mais de uma linha divergente: vence a primeira, **com aviso**; o
 desempate declarado vive em `dimensoes.estrutura_comercial.desempate_cliente`.
 Cliente sem linha no de-para: `HEAD = "NÃO ATRIBUÍDO"`, `NA_ESTRUTURA = false`.
+
+## 2b. Reestruturação (D-50) — colunas novas da `DIM_CLIENTE`
+
+Duas bases entram na transformação (`src/transform/saneamento.py`) e agem SÓ
+na `DIM_CLIENTE` — a fato nunca é tocada:
+
+`bases/RTM-Transicao/RTM_DePara_Transicao.xlsx` (aba `De-Para RTM`) e
+`bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx`
+(aba `Planilha1`) — layouts em `docs/01 §2.6/§2.7`.
+
+| Coluna nova | Conteúdo |
+|---|---|
+| `ORIGEM_RTM` | cliente está na base RTM-Transicao |
+| `COD_DISTRIBUIDOR` | a quem o sell-in foi reatribuído (`<NA>` = sem distribuidor identificado, exceção) |
+| `DISTRIBUIDOR` | nome reduzido do distribuidor (da base RTM) |
+| `CANAL_ORIGINAL` | canal ANTES da reatribuição (rastreabilidade; só nos reatribuídos) |
+| `INATIVO` | regra 5.2 aplicada (HIERARQUIA=NÃO e sem sell-in na janela) |
+| `MOTIVO_INATIVO` / `DATA_INATIVACAO` | rastreabilidade da inativação |
+| `SANEAMENTO_PENDENTE` | HIERARQUIA=NÃO **com** sell-in na janela — caso não coberto (Q5), aguarda decisão |
+
+Cliente reatribuído herda `HEAD/GERENTE/SUPERVISOR/VENDEDOR/PROJETO/CANAL/
+SUBCANAL` do distribuidor e **preserva** `BANDEIRA`, `UF` e o próprio
+`COD_CLIENTE` (Q4-a). Inativado recebe o `rotulo_inativo` do config nos
+níveis N1–N4. Parâmetros: `saneamento.janela_meses` e `ancora_janela`.
 
 ## 3. `Produtos.xlsx` → `DIM_PRODUTO`
 

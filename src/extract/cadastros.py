@@ -21,6 +21,8 @@ from . import cache
 _PROD = CFG["fontes"]["produtos"]
 _EST = CFG["fontes"]["estrutura_comercial"]
 _CAN = CFG["fontes"]["canais"]
+_RTM = CFG["fontes"].get("rtm_transicao") or {}
+_FALT = CFG["fontes"].get("hierarquia_faltando") or {}
 _DIMCFG = CFG["dimensoes"]["estrutura_comercial"]
 
 
@@ -177,6 +179,9 @@ _NIVEIS = {
     "GERENTE": ["(N2) CÓDIGO GERENTE", "(N2) GERENTE", "(N2) NOME GERENTE"],
     "SUPERVISOR": ["(N3) CÓDIGO SUP./EXEC.", "(N3) SUP./EXEC.",
                    "(N3) NOME SUP./EXEC."],
+    # D-50 (Fase 2): o N4 passou a ser ingerido — nivel de ponta da matriz.
+    "VENDEDOR": ["(N4) CÓDIGO VEND./RCA", "(N4) VEND./RCA",
+                 "(N4) NOME VEND./RCA"],
 }
 
 
@@ -250,7 +255,8 @@ def ler_estrutura() -> tuple[pd.DataFrame, list[str]]:
     # ---- correcoes DECLARADAS -------------------------------------------
     for coluna, chave in (("HEAD", "correcoes_head"),
                           ("GERENTE", "correcoes_gerente"),
-                          ("SUPERVISOR", "correcoes_supervisor")):
+                          ("SUPERVISOR", "correcoes_supervisor"),
+                          ("VENDEDOR", "correcoes_vendedor")):
         mapa = _DIMCFG.get(chave) or {}
         if mapa and coluna in est.columns:
             antes = est[coluna].copy()
@@ -285,8 +291,10 @@ def ler_estrutura() -> tuple[pd.DataFrame, list[str]]:
     # ---- conflito NAO resolvido ------------------------------------------
     # COD_BANDEIRA entra na checagem (medido em 01/09/2026: zero clientes com
     # dois codigos) — se um dia conflitar, vale a 1a linha COM AVISO, igual aos
-    # niveis da estrutura.
-    for coluna in ("HEAD", "SUPERVISOR", "COD_BANDEIRA"):
+    # niveis da estrutura. VENDEDOR entrou na D-50: medido em 02/09/2026,
+    # 13 clientes com DOIS codigos N4 (mesmo representante, codigos de filial)
+    # — vale a 1a linha com aviso; desempate declarado resolve caso a caso.
+    for coluna in ("HEAD", "SUPERVISOR", "VENDEDOR", "COD_BANDEIRA"):
         if coluna not in est.columns:
             continue
         n_por_cli = est.groupby("COD_CLIENTE")[coluna].nunique()
@@ -302,3 +310,101 @@ def ler_estrutura() -> tuple[pd.DataFrame, list[str]]:
     est = est.drop_duplicates("COD_CLIENTE", keep="first").reset_index(drop=True)
     log(f"estrutura comercial: {len(est):,} clientes")
     return est, avisos
+
+
+# ------------------------------------------------- RTM — TRANSICAO (D-50)
+def _ler_rtm(arq: Path) -> tuple[pd.DataFrame, dict]:
+    """De-para cliente RTM -> distribuidor que passou a atende-lo.
+
+    Medido em 02/09/2026: 1.762 clientes, zero duplicado, zero cliente com
+    dois distribuidores; 166 linhas SEM codigo de distribuidor (placeholders
+    "NOVO ...") — essas ficam com COD_DISTRIBUIDOR <NA> e viram excecao no
+    saneamento, nunca sao descartadas aqui."""
+    df = _ler_aba(arq, _RTM["aba"], "rtm_transicao", dtype=str)
+    _validar(df, _RTM["colunas_obrigatorias"], arq)
+
+    out = pd.DataFrame(index=df.index)
+    out["COD_CLIENTE"] = digitos(df["Cód. Cliente [Antigo]"])
+    out["BANDEIRA_ANTIGA"] = texto(df["Bandeira cliente [Antigo]"])
+    # "Dsitribuidor" e a grafia DA ORIGEM (nao corrigida — fonte unica).
+    out["DISTRIBUIDOR"] = texto(df["Dsitribuidor Nome Reduzido"])
+    out["COD_DISTRIBUIDOR"] = digitos(df["Cód. Cliente [Distribuidor]"])
+    out = out.dropna(subset=["COD_CLIENTE"]).reset_index(drop=True)
+
+    extra: dict = {}
+    n_multi = int((out.groupby("COD_CLIENTE")["COD_DISTRIBUIDOR"]
+                   .nunique(dropna=True) > 1).sum())
+    if n_multi:
+        extra["multi_distribuidor"] = n_multi
+    return out.drop_duplicates("COD_CLIENTE", keep="first"), extra
+
+
+def ler_rtm() -> tuple[pd.DataFrame, list[str]]:
+    """Devolve (rtm, avisos). Ausência do arquivo NÃO derruba o pipeline —
+    o painel roda sem a reatribuição, com o aviso registrado."""
+    vazio = pd.DataFrame(columns=["COD_CLIENTE", "BANDEIRA_ANTIGA",
+                                  "DISTRIBUIDOR", "COD_DISTRIBUIDOR"])
+    avisos: list[str] = []
+    if not _RTM:
+        return vazio, avisos
+    arq = caminho(_RTM["arquivo"])
+    if not arq.exists():
+        msg = (f"base RTM-Transicao ausente ({arq.name}) — nenhum cliente e "
+               "reatribuido a distribuidor")
+        log(msg, "aviso")
+        return vazio, [msg]
+    rtm, extra = cache.ler(arq, _ler_rtm)
+    if extra.get("multi_distribuidor"):
+        # 4.2 do prompt da reestruturacao: caso novo, NAO decidir sozinho.
+        msg = (f"{extra['multi_distribuidor']} cliente(s) RTM com MAIS de um "
+               "distribuidor no de-para — vale a 1a linha; caso novo, decidir "
+               "com o Comercial")
+        log(msg, "aviso")
+        avisos.append(msg)
+    sem = int(rtm["COD_DISTRIBUIDOR"].isna().sum())
+    log(f"RTM-Transicao: {len(rtm):,} clientes · "
+        f"{rtm['COD_DISTRIBUIDOR'].nunique():,} distribuidores · "
+        f"{sem:,} sem codigo de distribuidor (excecao)", "ok")
+    return rtm, avisos
+
+
+# --------------------------------------- HIERARQUIA FALTANDO (D-50, Step 5)
+def _ler_faltando(arq: Path) -> tuple[pd.DataFrame, dict]:
+    df = _ler_aba(arq, _FALT["aba"], "hierarquia_faltando", dtype=str)
+    _validar(df, _FALT["colunas_obrigatorias"], arq)
+    out = pd.DataFrame(index=df.index)
+    out["COD_CLIENTE"] = digitos(df["CÓDIGO CLIENTE"])
+    out["NOME_FALTANDO"] = texto(df["CLIENTE"])
+    out["HIERARQUIA"] = texto(df["Hierarquia"])
+    out = out.dropna(subset=["COD_CLIENTE"]).reset_index(drop=True)
+    extra: dict = {}
+    fora = sorted(set(out["HIERARQUIA"].dropna()) - {"SIM", "NÃO", "NAO"})
+    if fora:
+        extra["valores_estranhos"] = fora
+    return out.drop_duplicates("COD_CLIENTE", keep="first"), extra
+
+
+def ler_faltando() -> tuple[pd.DataFrame, list[str]]:
+    """Devolve (faltando, avisos). Ausência do arquivo NÃO derruba o pipeline."""
+    vazio = pd.DataFrame(columns=["COD_CLIENTE", "NOME_FALTANDO", "HIERARQUIA"])
+    avisos: list[str] = []
+    if not _FALT:
+        return vazio, avisos
+    arq = caminho(_FALT["arquivo"])
+    if not arq.exists():
+        msg = (f"base Hierarquia_Clientes_Faltando ausente ({arq.name}) — "
+               "saneamento da hierarquia NAO executado")
+        log(msg, "aviso")
+        return vazio, [msg]
+    falt, extra = cache.ler(arq, _ler_faltando)
+    if extra.get("valores_estranhos"):
+        msg = (f"coluna Hierarquia com valor(es) fora de SIM/NAO: "
+               f"{extra['valores_estranhos']} — tratados como NAO COBERTOS "
+               "(nada e inativado por eles)")
+        log(msg, "aviso")
+        avisos.append(msg)
+    h = falt["HIERARQUIA"].fillna("")
+    log(f"Hierarquia_Clientes_Faltando: {len(falt):,} clientes · "
+        f"SIM {int((h == 'SIM').sum()):,} · "
+        f"NAO {int(h.isin(['NÃO', 'NAO']).sum()):,}", "ok")
+    return falt, avisos

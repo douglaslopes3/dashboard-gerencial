@@ -349,6 +349,9 @@ def _mini_modelo():
         "GERENTE": ["1000 - G1"] * 4 + ["2000 - G2"] * 2,
         "SUPERVISOR": ["1100 - S1", "1100 - S1", "1200 - S2", "1200 - S2",
                        "2100 - S3", "2100 - S3"],
+        # D-50: o N4 entrou no perfil (posicao 5, sem mexer nas posicoes 0-4).
+        "VENDEDOR": ["111 - V1", "111 - V1", "112 - V2", "112 - V2",
+                     "221 - V3", "221 - V3"],
         "CANAL": ["VAREJO"] * 6,
         "PROJETO": ["P1"] * 6,
     })
@@ -361,15 +364,19 @@ def _mini_modelo():
     return fato, dim_cli, dim_prod, dim_cal
 
 
-def test_d48_perfil_tem_os_cinco_niveis_na_ordem_declarada():
+def test_d48_perfil_tem_os_niveis_na_ordem_declarada():
+    """D-48 fixou as posicoes 0-4; a D-50 acrescentou o VENDEDOR na 5 — as
+    posicoes que o template le NAO podem mudar."""
     from src.load import cubos
     pac = cubos.construir(*_mini_modelo())
     assert cubos.COLS_PERFIL == ["HEAD", "GERENTE", "SUPERVISOR",
-                                 "CANAL", "PROJETO"]
+                                 "CANAL", "PROJETO", "VENDEDOR"]
     for p in pac["dims"]["perfil"]:
-        assert len(p) == 5, "o perfil tem de carregar os cinco componentes"
+        assert len(p) == 6, "o perfil tem de carregar os seis componentes"
     sups = {p[2] for p in pac["dims"]["perfil"]}
     assert sups == {"1100 - S1", "1200 - S2", "2100 - S3"}
+    vends = {p[5] for p in pac["dims"]["perfil"]}
+    assert vends == {"111 - V1", "112 - V2", "221 - V3"}
 
 
 def test_d48_cubo_de_sku_usa_o_mesmo_perfil_e_o_par_hc_nao_existe_mais():
@@ -415,6 +422,137 @@ def test_d48_recorte_por_head_corta_os_dois_cubos_pelo_perfil():
     assert all(perfil[l[2]][0] == "10 - H1" for l in rec["cubo_sku"])
     assert sum(l[5] for l in rec["cubo"]) == 100000      # R$ 1.000,00
     assert sum(l[5] for l in rec["cubo_sku"]) == 100000
+
+
+# ==================================== D-50 · RTM + saneamento (02/09, Fase 2)
+def _dim_saneamento():
+    """DIM minima: um distribuidor com estrutura completa (800), um cliente
+    RTM com distribuidor (900), um RTM sem distribuidor (901) e tres clientes
+    da lista Faltando (910 NAO sem sell-in recente, 911 NAO com sell-in
+    recente, 912 SIM ja na consolidada)."""
+    na = "NÃO ATRIBUÍDO"
+    dim = pd.DataFrame({
+        "COD_CLIENTE": ["800", "900", "901", "910", "911", "912"],
+        "NOME_CLIENTE": ["DISTRIB X", "CLI RTM", "CLI RTM 2", "CLI 910",
+                         "CLI 911", "CLI 912"],
+        "BANDEIRA": ["DISTRIB X", "MERCADO Y", "MERCADO Z", "B1", "B2", "B3"],
+        "UF": ["SP", "MG", "MG", "SP", "SP", "SP"],
+        "HEAD": ["10 - H1", na, na, na, na, "10 - H1"],
+        "GERENTE": ["1000 - G1", na, na, na, na, "1000 - G1"],
+        "SUPERVISOR": ["1100 - S1", na, na, na, na, "1100 - S1"],
+        "VENDEDOR": ["111 - V1", na, na, na, na, "111 - V1"],
+        "PROJETO": ["P1", na, na, na, na, "P1"],
+        "CANAL": ["DISTRIBUIDOR", "VAREJO", "VAREJO", "VAREJO", "VAREJO",
+                  "VAREJO"],
+        "SUBCANAL": ["D1", "V1", "V1", "V1", "V1", "V1"],
+        "NA_ESTRUTURA": [True, False, False, False, False, True],
+        "TEM_CANAL": [True] * 6,
+    })
+    fato = pd.DataFrame({
+        # 910: so sell-in ANTIGO (2026-01). 911: sell-in dentro da janela.
+        "ANO_MES": ["2026-08", "2026-08", "2026-08", "2026-01", "2026-08",
+                    "2026-08"],
+        "COD_CLIENTE": ["800", "900", "901", "910", "911", "912"],
+        "COD_PRODUTO": ["10"] * 6,
+        "RECEITA": [100.0] * 6,
+        "PESO_KG": [10.0] * 6,
+        "CAIXAS": [1.0] * 6,
+    })
+    rtm = pd.DataFrame({
+        "COD_CLIENTE": ["900", "901"],
+        "BANDEIRA_ANTIGA": ["MERCADO Y", "MERCADO Z"],
+        "DISTRIBUIDOR": ["DISTRIB X", "NOVO ALGUM LUGAR"],
+        "COD_DISTRIBUIDOR": pd.array(["800", None], dtype="string"),
+    })
+    faltando = pd.DataFrame({
+        "COD_CLIENTE": ["910", "911", "912"],
+        "NOME_FALTANDO": ["CLI 910", "CLI 911", "CLI 912"],
+        "HIERARQUIA": ["NÃO", "NÃO", "SIM"],
+    })
+    return dim, rtm, faltando, fato
+
+
+def test_d50_rtm_herda_hierarquia_e_canal_do_distribuidor_preservando_bandeira():
+    from src.transform import saneamento
+    dim, rtm, falt, fato = _dim_saneamento()
+    d, med, _ = saneamento.aplicar(dim, rtm, falt, fato, mes_execucao="2026-09")
+    c = d.set_index("COD_CLIENTE").loc["900"]
+    assert c["HEAD"] == "10 - H1" and c["VENDEDOR"] == "111 - V1"
+    assert c["CANAL"] == "DISTRIBUIDOR" and c["CANAL_ORIGINAL"] == "VAREJO"
+    assert bool(c["NA_ESTRUTURA"]) is True
+    # Q4-a: bandeira, UF e o proprio codigo do cliente NAO mudam.
+    assert c["BANDEIRA"] == "MERCADO Y" and c["UF"] == "MG"
+    assert bool(c["ORIGEM_RTM"]) and c["COD_DISTRIBUIDOR"] == "800"
+    # o distribuidor em si nao e tocado
+    assert d.set_index("COD_CLIENTE").loc["800", "CANAL"] == "DISTRIBUIDOR"
+    assert med["rtm_reatribuidos"] == 1
+
+
+def test_d50_rtm_sem_distribuidor_fica_fora_da_hierarquia_com_flag():
+    from src.transform import saneamento
+    dim, rtm, falt, fato = _dim_saneamento()
+    d, med, _ = saneamento.aplicar(dim, rtm, falt, fato, mes_execucao="2026-09")
+    c = d.set_index("COD_CLIENTE").loc["901"]
+    assert c["HEAD"] == "NÃO ATRIBUÍDO"          # nada inventado
+    assert c["CANAL"] == "VAREJO"                # canal original mantido
+    assert bool(c["ORIGEM_RTM"]) and pd.isna(c["COD_DISTRIBUIDOR"])
+    assert med["rtm_sem_distribuidor"] == 1
+
+
+def test_d50_inativacao_exige_as_duas_condicoes():
+    from src.transform import saneamento
+    from src.utils.config import CFG
+    rot = CFG["dimensoes"]["rotulo_inativo"]
+    dim, rtm, falt, fato = _dim_saneamento()
+    d, med, _ = saneamento.aplicar(dim, rtm, falt, fato, mes_execucao="2026-09")
+    i = d.set_index("COD_CLIENTE")
+    # 910: NAO + sem sell-in na janela -> INATIVO no balde proprio
+    assert bool(i.loc["910", "INATIVO"]) and i.loc["910", "HEAD"] == rot
+    assert i.loc["910", "VENDEDOR"] == rot
+    # Q7-i: canal/bandeira ficam — o historico permanece nos totais
+    assert i.loc["910", "CANAL"] == "VAREJO"
+    # 911: NAO + COM sell-in -> caso nao coberto, NADA aplicado (Q5)
+    assert not bool(i.loc["911", "INATIVO"])
+    assert bool(i.loc["911", "SANEAMENTO_PENDENTE"])
+    assert i.loc["911", "HEAD"] == "NÃO ATRIBUÍDO"
+    # 912: SIM ja na consolidada -> intocado, sem pendencia
+    assert i.loc["912", "HEAD"] == "10 - H1"
+    assert med["inativados"] == 1 and med["nao_cobertos"] == 1
+    assert med["sim_pendentes"] == 0
+
+
+def test_d50_janela_ancora_na_ultima_competencia_fechada():
+    from src.transform import saneamento
+    fato = pd.DataFrame({"ANO_MES": ["2026-03", "2026-04", "2026-05",
+                                     "2026-06", "2026-07", "2026-08",
+                                     "2026-09"],
+                         "COD_CLIENTE": ["1"] * 7})
+    # execucao em setembro: set/26 (parcial) fica FORA; a janela fecha em ago.
+    jan = saneamento._janela(fato, "2026-09")
+    assert jan == ["2026-03", "2026-04", "2026-05",
+                   "2026-06", "2026-07", "2026-08"]
+    # a janela e de CALENDARIO: serie esparsa nao a estica para tras
+    esparso = pd.DataFrame({"ANO_MES": ["2026-01", "2026-08", "2026-09"],
+                            "COD_CLIENTE": ["1"] * 3})
+    assert saneamento._janela(esparso, "2026-09") == [
+        "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"]
+    # e atravessa a virada do ano sem erro de aritmetica
+    assert saneamento._mes_menos("2026-02", 5) == "2025-09"
+
+
+def test_d50_precedencia_rtm_sobre_saneamento():
+    """5.4: cliente nas duas bases segue a regra RTM e o conflito e reportado."""
+    from src.transform import saneamento
+    dim, rtm, falt, fato = _dim_saneamento()
+    falt2 = pd.concat([falt, pd.DataFrame({
+        "COD_CLIENTE": ["900"], "NOME_FALTANDO": ["CLI RTM"],
+        "HIERARQUIA": ["NÃO"]})], ignore_index=True)
+    d, med, avisos = saneamento.aplicar(dim, rtm, falt2, fato,
+                                        mes_execucao="2026-09")
+    c = d.set_index("COD_CLIENTE").loc["900"]
+    assert c["HEAD"] == "10 - H1" and not bool(c["INATIVO"])
+    assert med["conflito_rtm_saneamento"] == 1
+    assert any("DUAS bases" in a for a in avisos)
 
 
 # ================================================================== runner

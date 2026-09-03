@@ -94,6 +94,12 @@ fontes:
       - "(N3) CÓDIGO SUP./EXEC."
       - "(N3) SUP./EXEC."
       - "(N3) NOME SUP./EXEC."
+      # D-50 (Fase 2): o N4 (vendedor/RCA) passou a ser ingerido — e o nivel
+      # de ponta da matriz hierarquica. Medido em 02/09/2026: 100% preenchido
+      # na base (14.054 linhas, 191 vendedores).
+      - "(N4) CÓDIGO VEND./RCA"
+      - "(N4) VEND./RCA"
+      - "(N4) NOME VEND./RCA"
     # CÓDIGO BANDEIRA/BANDEIRA (D-42): cadastro de bandeiras do Comercial
     # (serie 82xxxxx). Nasceu como ponte por codigo com a base de metas antiga;
     # com a remocao do tema Metas (D-49) segue como ATRIBUTO do cadastro, sem
@@ -124,6 +130,42 @@ fontes:
     colunas_obrigatorias: ["Cód. cliente", "Canal"]
     colunas_opcionais: ["Cód. canal", "Subcanal"]
     obrigatorio: false
+
+  # D-50 (Fase 2, Step 4): clientes que sairam do atendimento direto para
+  # distribuidor. O sell-in deles (historico E futuro, decisao Q3) passa a
+  # carregar a hierarquia e o canal do DISTRIBUIDOR que os atende; bandeira,
+  # UF e o proprio cliente sao preservados na linha (decisao Q4-a).
+  # "Dsitribuidor" esta grafado assim NA ORIGEM — nao corrigir aqui.
+  rtm_transicao:
+    arquivo: "bases/RTM-Transicao/RTM_DePara_Transicao.xlsx"
+    aba: "De-Para RTM"
+    colunas_obrigatorias:
+      - "Cód. Cliente [Antigo]"
+      - "Bandeira cliente [Antigo]"
+      - "Dsitribuidor Nome Reduzido"
+      - "Cód. Cliente [Distribuidor]"
+    # Sem o arquivo o pipeline RODA (sem reatribuicao, com aviso).
+    obrigatorio: false
+
+  # D-50 (Fase 2, Step 5): clientes sem vinculo na hierarquia consolidada.
+  # A coluna Hierarquia (SIM/NAO) decide o tratamento — ver `saneamento`.
+  hierarquia_faltando:
+    arquivo: "bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx"
+    aba: "Planilha1"
+    colunas_obrigatorias: ["CÓDIGO CLIENTE", "CLIENTE", "Hierarquia"]
+    obrigatorio: false
+
+# -----------------------------------------------------------------------------
+# SANEAMENTO DA HIERARQUIA (D-50, Step 5) — parametros, nunca hardcode
+# -----------------------------------------------------------------------------
+saneamento:
+  # 5.2: cliente com Hierarquia=NAO e SEM sell-in nesta janela e INATIVO
+  # (sai da matriz hierarquica; o historico permanece nos totais — Q7-i).
+  janela_meses: 6
+  # Ancora da janela (decisao Q6): "ultima_competencia_fechada" = a ultima
+  # competencia do fato ESTRITAMENTE anterior ao mes-calendario da execucao.
+  # Mes parcial nao "ressuscita" cliente, e a regua nao muda a cada carga.
+  ancora_janela: "ultima_competencia_fechada"
 
 # -----------------------------------------------------------------------------
 # CALENDÁRIO
@@ -159,6 +201,7 @@ dimensoes:
       "33000 - Ger. Reg._LASA+ - [Vago]": "33000 - Ger. Reg._LASA+ - [VAGO]"
       "33000 - Ger. Reg._LASA+": "33000 - Ger. Reg._LASA+ - [VAGO]"
     correcoes_supervisor: {}
+    correcoes_vendedor: {}
     # Cliente com duas linhas e supervisores diferentes: declare aqui quem vence.
     # Sem declaração, vence a 1a linha COM AVISO.
     # ex.: "1010846": "Supervisor SP Interior"
@@ -168,6 +211,10 @@ dimensoes:
   # o relatório de qualidade e as dimensões lerem a MESMA string (auditoria,
   # C2: os três de baixo estavam duplicados em dois módulos).
   rotulo_sem_estrutura: "NÃO ATRIBUÍDO"
+  # D-50 (Q7-i): cliente inativado pelo saneamento sai da matriz hierarquica
+  # mas o historico dele PERMANECE nos totais — este rotulo e o balde proprio
+  # que a matriz exibe como linha sintese "fora da hierarquia".
+  rotulo_inativo: "INATIVO (SANEAMENTO)"
   rotulo_sem_canal: "SEM CANAL"
   rotulo_sem_bandeira: "SEM BANDEIRA"
   rotulo_sem_uf: "SEM UF"
@@ -186,11 +233,10 @@ validacao:
   # Piso de cobertura da estrutura comercial sobre a receita. Abaixo disso o
   # pipeline ABORTA. Existe por um erro real do projeto anterior: `Cód. cliente`
   # zero-preenchido faz o join casar com ZERO cliente — e casar em silêncio.
-  # D-49 (02/09/2026, decisao do Douglas): piso TEMPORARIAMENTE em 0.93 — a
-  # aposentadoria do complemento derrubou a cobertura medida para 94,08%
-  # (2.641 clientes "NÃO ATRIBUÍDO", R$ ~137 mi na serie). VOLTAR PARA 0.95
-  # quando a Fase 2 (RTM + saneamento da hierarquia) reatribuir esses clientes.
-  cobertura_minima_head: 0.93
+  # D-49 baixou o piso para 0.93 temporariamente (aposentadoria do
+  # complemento); a D-50 (Fase 2) reatribuiu os clientes RTM aos
+  # distribuidores e a cobertura medida voltou a 97,65% — piso restaurado.
+  cobertura_minima_head: 0.95
   # Mesmo piso para o de-para de canais — o arquivo tambem traz o codigo
   # zero-preenchido, entao o mesmo join silencioso e possivel.
   cobertura_minima_canal: 0.95

@@ -264,6 +264,30 @@ pedidos ao Comercial abertos, ver D-42/D-43).
 
 ---
 
+### 2.6 `bases/RTM-Transicao/RTM_DePara_Transicao.xlsx` (D-50, 02/09/2026)
+
+De-para da transição RTM: clientes que saíram do atendimento direto para
+distribuidor. Aba `De-Para RTM`, medido em 02/09/2026: **1.762 clientes
+únicos** (zero duplicado, zero cliente com dois distribuidores), **27
+distribuidores** — todos com sell-in próprio, canal DISTRIBUIDOR, head
+Distribuição. **166 linhas sem código de distribuidor** (placeholders "NOVO
+RIBEIRÃO PRETO"/"NOVO SJRP") viram exceção listada, nunca descartadas.
+Colunas: `Cód. Cliente [Antigo]` · `Bandeira cliente [Antigo]` ·
+`Dsitribuidor Nome Reduzido` (grafado assim na origem) · `Cód. Cliente
+[Distribuidor]`. Não existe data de corte nem canal origem/destino — a regra
+(Q3: histórico E futuro seguem o distribuidor) vive na transformação
+(`src/transform/saneamento.py`), parametrizada no config.
+
+### 2.7 `bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx` (D-50, 02/09/2026)
+
+Saneamento da hierarquia: 850 clientes sem vínculo, coluna `Hierarquia` com
+**SIM (70)** / **NÃO (780)**. SIM deve constar da Hierarquia_Consolidada
+(medido: os 70 já constam — quem faltar vira aviso, vínculo nunca é
+inferido). NÃO **e** sem sell-in na janela de 6 meses fechados = INATIVO
+(balde próprio, histórico permanece nos totais — Q7-i); NÃO **com** sell-in
+na janela = caso não coberto, listado para decisão (Q5). Junto com a base RTM,
+cobre exatamente os 2.612 clientes do complemento aposentado (D-49).
+
 ## 3. Fontes presentes na pasta e explicitamente fora do escopo
 
 `bases/Sell Out - MTRIX/` (13 arq.) · `bases/Sell Out - FEMSA/` ·

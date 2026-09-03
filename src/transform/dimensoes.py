@@ -24,7 +24,8 @@ SEM_UF = CFG["dimensoes"]["rotulo_sem_uf"]
 SEM_CATEGORIA = CFG["dimensoes"]["rotulo_sem_categoria"]
 # ATENDIMENTO_PONTA saiu com a troca da base (D-34): a Hierarquia_Consolidada
 # nao traz a coluna, e ela nunca chegou ao painel.
-_COLS_ESTRUTURA = ["HEAD", "GERENTE", "SUPERVISOR", "PROJETO"]
+# D-50 (Fase 2): VENDEDOR (N4) entrou — nivel de ponta da matriz hierarquica.
+_COLS_ESTRUTURA = ["HEAD", "GERENTE", "SUPERVISOR", "VENDEDOR", "PROJETO"]
 
 
 def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,

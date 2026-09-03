@@ -1213,3 +1213,78 @@ N1 + 13 N2 + 55 N3 = 73 arquivos; o N4 aparece como nível expansível na
 matriz do arquivo do N3, sem arquivo próprio. FATO_META.parquet e os caches
 de staging da meta e do complemento foram removidos de `data/` (artefatos
 gerados; as origens em `bases/` ficam intocadas).
+
+---
+
+## D-50 · Fase 2 da reestruturação: N4 no modelo, reatribuição RTM e saneamento da hierarquia (02/09/2026)
+
+**Contexto.** Steps 4 e 5 do prompt da reestruturação, executados com as
+recomendações da auditoria de 02/09 aprovadas pelo Douglas ("segue as
+recomendações da auditoria em Q2-Q7"). Duas bases novas entram no pipeline:
+`bases/RTM-Transicao/RTM_DePara_Transicao.xlsx` (1.762 clientes que migraram
+do atendimento direto para distribuidor; de-para 1:1, 27 distribuidores) e
+`bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx`
+(850 clientes sem vínculo; coluna Hierarquia SIM=70/NÃO=780). Juntas elas são
+exatamente os 2.612 clientes do complemento aposentado na D-49.
+
+**Decisões aplicadas (Q2-Q7 da auditoria):**
+
+- **Q2-b** — reatribuição executada para os **1.596** com código de
+  distribuidor; os **166** sem código (placeholders "NOVO RIBEIRÃO PRETO" /
+  "NOVO SJRP", R$ 6,47 mi) ficam **fora da hierarquia** com flag
+  `ORIGEM_RTM` + `COD_DISTRIBUIDOR` vazio, canal ORIGINAL mantido (nada
+  inventado) e lista `data/quality/rtm_sem_distribuidor.csv` — pendência do
+  Comercial; quando os códigos chegarem, entram sozinhos na próxima execução.
+- **Q3** — regra única: TODO sell-in de cliente RTM (histórico e futuro)
+  segue o distribuidor. Não há data de corte: a regra vive na dimensão.
+- **Q4-a** — a linha reatribuída troca **hierarquia (N1..N4), projeto e
+  canal** pelo do distribuidor e **preserva bandeira, UF e o código do
+  cliente**: a aba Bandeiras não perde histórico; `CANAL_ORIGINAL` guarda o
+  rastro.
+- **Q5** — os **158** HIERARQUIA=NÃO **com** sell-in na janela são o caso NÃO
+  coberto: nenhuma regra aplicada, flag `SANEAMENTO_PENDENTE`, lista nominal
+  `saneamento_pendentes_decisao.csv` (R$ 36,49 mi de histórico) aguardando
+  decisão.
+- **Q6** — janela de 6 meses **de calendário** ancorada na **última
+  competência fechada** (a última do fato estritamente anterior ao mês da
+  execução): 2026-03..2026-08 nesta carga. `saneamento.janela_meses` e
+  `ancora_janela` são parâmetros de config.
+- **Q7-i** — os **612** inativados (NÃO + sem sell-in na janela) saem da
+  matriz para o balde declarado `rotulo_inativo` ("INATIVO (SANEAMENTO)"),
+  com motivo e data; o histórico deles (R$ 10,62 mi) **permanece em todos os
+  totais** — matriz + fora-da-hierarquia = total geral, sempre.
+- **5.4** — precedência RTM > saneamento implementada e testada; interseção
+  medida: zero.
+
+**Como (mecânica).** Tudo age na **DIM_CLIENTE** (`src/transform/saneamento.py`),
+a fato nunca é tocada — é o join que decide a quem o histórico aparece
+atribuído. O N4 passou a ser ingerido da Hierarquia_Consolidada (rótulo
+concatenado, mesmo padrão dos outros níveis; `correcoes_vendedor` e desempate
+disponíveis no config; os 13 clientes com dois códigos N4 saem como aviso) e
+entrou no eixo `perfil` dos dois cubos **na posição 5** — as posições 0-4 que
+o template v3 lê não mudaram, e a matriz da Fase 3 lê a 5. VERSAO_CACHE 6→7
+(a primeira execução serviu a estrutura do cache v6 SEM o N4 e o painel saiu
+com 1 vendedor — pego pela medição pós-execução, corrigido com o bump).
+
+**Resultado medido (02/09/2026, 25 meses):**
+
+| Medida | Antes (D-49) | Depois (D-50) |
+|---|---:|---:|
+| cobertura da estrutura | 94,08% | **97,65%** (piso restaurado a 0,95) |
+| fora da hierarquia | R$ 137,17 mi | **R$ 54,55 mi** (47,11 NÃO/inativos+pendentes + 6,47 RTM s/ dist. + 0,97 antigos) |
+| canal DISTRIBUIDOR (série) | ~R$ 477 mi | **R$ 559,94 mi** (R$ 82,62 mi entram — YoY do canal e do Varejo/Atacado deixa de distorcer) |
+| perfis · cubo principal · cubo SKU | 158 · 96.028 · 645.275 | **516 · 133.700 · 900.065** |
+| painel completo | 9,39 MB | **12,27 MB** (cru 34,8 → 12,0 compactado; teto de 25 MB respeitado) |
+| arquivos por head | 1,04-4,73 MB | 1,06-7,52 MB (Ademir cresce: squad mais granular) |
+| vendedores (N4) atribuídos | — | **204** |
+| testes | 35/35 | **40/40** (5 novos da D-50) |
+
+Reatribuição quantificada por distribuidor (os dois lados) em
+`data/quality/relatorio_qualidade.md §7b`.
+
+**O que NÃO mudou, de propósito.** A fato, o grão, as reconciliações (fonte,
+cubo×fato, particionamento — todas fecham), o template v3 (zero edição nesta
+fase) e as bases de origem.
+
+**Rollback.** `git` — commits da D-49 (`687db30`) para trás; esta fase é um
+commit próprio.

@@ -12,7 +12,7 @@ python run_dashboard.py     # Parquet -> painel v3 + um arquivo por head
 
 ---
 
-## Estado atual — medido em 01/09/2026 (fim do dia: ago/26 fechado + set/26 parcial)
+## Estado atual — medido em 02/09/2026 (ago/26 fechado + set/26 parcial)
 
 ```
 29 arquivos de Sell In       3.121.445 linhas de origem   25 meses (2024-09 a 2026-09)
@@ -25,7 +25,8 @@ ATENCAO (aviso do detector)  ago/26 e set/26 vieram com RECORTE de extracao
                              original", sem excluir "diversos") - ago/26 fechado
                              subiu R$ 7,68 mi sobre o parcial (105,06 -> 112,74 mi);
                              conferir com o BI se o recorte novo e o oficial
-SKUs 400 · categorias 12 · canais 7 · heads 4 · gerentes 13 · Sup./Exec. 56
+SKUs 400 · categorias 12 · canais 7 · heads 4 · gerentes 13 · Sup./Exec. 55
+                             Vend./RCA (N4) 204 (ingerido na D-50)
                               bandeiras 300 nominais + balde de 10.989
 cod. de bandeira (D-42)      13.101 de 16.122 clientes (81,3% · 93,5% da receita),
                              lido da Hierarquia_Consolidada; desde a D-49 e
@@ -37,21 +38,31 @@ METAS REMOVIDAS (D-49)       o tema Metas saiu inteiro do produto em 02/09/2026
                              ponto de reintegracao em docs/12 (D-49);
                              bases/Metas/ fica intocada
 
-reconciliacao com a fonte    28/28 arquivos, nas 3 metricas
+RTM (D-50, Step 4)           1.596 clientes migrados para distribuidor: o
+                             sell-in deles (historico e futuro) carrega a
+                             hierarquia e o canal do DISTRIBUIDOR (R$ 82,62 mi
+                             entram no canal Distribuidor; bandeira/UF
+                             preservadas — Q4-a); 166 SEM distribuidor
+                             identificado ficam fora da hierarquia (R$ 6,47 mi,
+                             lista de excecao, pendencia do Comercial)
+saneamento (D-50, Step 5)    janela 2026-03..2026-08 (ultima competencia
+                             fechada, parametro): 612 inativados no balde
+                             "INATIVO (SANEAMENTO)" — fora da matriz, historico
+                             permanece nos totais (Q7-i); 158 HIERARQUIA=NAO
+                             COM sell-in na janela aguardam decisao (Q5, lista)
+reconciliacao com a fonte    29/29 arquivos, nas 3 metricas
 grao                         zero duplicados
-cobertura da estrutura       99,96% da receita
+cobertura da estrutura       97,65% da receita (piso 95% restaurado na D-50)
 cobertura de canal           100,00% da receita
-testes                       35/35 unitarios · 6/6 cenarios ponta a ponta
-pipeline                     ~2 min a frio · ~20 s com cache · exit 0
-TRANSICAO (02/09/2026)       complemento da hierarquia APOSENTADO em definitivo
-                             (decisao do Douglas): 2.641 clientes (R$ 137,17 mi
-                             na serie — RTM 89,09 + saneamento 47,11 + antigos
-                             0,97) estao "NÃO ATRIBUÍDO" ate a Fase 2 (RTM +
-                             saneamento); piso de cobertura TEMPORARIO em 93%
-                             (voltar a 95% na Fase 2) — cobertura atual 94,08%
-painel (v3, D-49)            9,29 MB · zero requisicao de rede · 5 paginas
-                             cubos compactados no arquivo (25,5 MB -> 9,2 MB),
+fora da hierarquia           R$ 54,55 mi (2,35%): inativos + pendentes Q5 +
+                             RTM sem distribuidor + 71 antigos sem estrutura
+testes                       40/40 unitarios · 6/6 cenarios ponta a ponta
+pipeline                     ~2 min a frio · ~25 s com cache · exit 0
+painel (v3, D-50)            12,27 MB · zero requisicao de rede · 5 paginas
+                             cubos compactados no arquivo (34,8 MB -> 12,0 MB),
                              descompactados na abertura pelo navegador
+                             perfil comercial com N4: 516 perfis · cubo
+                             principal 133.700 linhas · cubo SKU 900.065
                              granularidade Mes|Trimestre|Semestre|Ano ("Ver por"),
                              periodo parcial declarado, filtros em todas as abas
                              exportacao CSV/XLSX em toda tabela
@@ -61,9 +72,10 @@ painel (v3, D-49)            9,29 MB · zero requisicao de rede · 5 paginas
                              Detalhamento com Bandeira (top N + balde) · sem
                              rodape textual · atalhos de Periodo removidos (fica
                              o "Ver por") · filtro Head oculto no arquivo por head
-por head                     4 arquivos restritos (1,07 a 4,87 MB), recorte fisico
+por head                     4 arquivos restritos (1,06 a 7,52 MB), recorte fisico
                              na geracao: o arquivo de um head nao contem os
-                             dados dos outros squads
+                             dados dos outros squads; os baldes NAO ATRIBUIDO e
+                             INATIVO (SANEAMENTO) nao geram arquivo
 ```
 
 **Auditoria completa** (26–27/08, cinco camadas, tudo medido): [`AUDIT.md`](AUDIT.md)

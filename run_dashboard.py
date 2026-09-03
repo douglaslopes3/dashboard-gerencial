@@ -226,7 +226,11 @@ def main() -> int:
     ph = _DASH.get("por_head") or {}
     if ph.get("ativo"):
         sem_estrutura = CFG["dimensoes"]["rotulo_sem_estrutura"]
-        heads = [h for h in pacote["dims"]["head"] if h != sem_estrutura]
+        # D-50: o balde de inativos do saneamento tambem nao e squad de
+        # ninguem — sem isto, sairia um "arquivo do head INATIVO (SANEAMENTO)".
+        rotulo_inativo = CFG["dimensoes"].get("rotulo_inativo")
+        fora = {sem_estrutura, rotulo_inativo}
+        heads = [h for h in pacote["dims"]["head"] if h not in fora]
         prefixo = ph.get("prefixo", "Dashboard_Gerencial_Canais_v3_HEAD_")
         soma_heads = 0
         log("")
@@ -249,8 +253,8 @@ def main() -> int:
         rec_total = sum(l[5] for l in pacote["cubo"])
         rec_resto = rec_total - soma_heads
         log(f"particionamento fecha: heads R$ {br(soma_heads / 100)} + "
-            f"'{sem_estrutura}' R$ {br(rec_resto / 100)} = "
-            f"R$ {br(rec_total / 100)}", "ok")
+            f"fora da hierarquia ('{sem_estrutura}' + inativos) "
+            f"R$ {br(rec_resto / 100)} = R$ {br(rec_total / 100)}", "ok")
 
     log("")
     log(f"tempo total ............ {time.time() - t0:.1f}s")

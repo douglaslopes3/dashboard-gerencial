@@ -33,7 +33,9 @@ _TOL_REL = float(CFG["validacao"]["tolerancia_cubo_relativa"])
 # D-48 (02/09/2026): o eixo comercial dos DOIS cubos. Esta lista e a unica
 # fonte da ordem dos componentes do perfil — o template le pelas mesmas
 # posicoes (0 head, 1 gerente, 2 sup./exec., 3 canal, 4 projeto).
-COLS_PERFIL = ["HEAD", "GERENTE", "SUPERVISOR", "CANAL", "PROJETO"]
+# D-50 (Fase 2): o VENDEDOR (N4) entra NO FIM, posicao 5 — as posicoes 0-4
+# que o template v3 le nao mudam; a matriz hierarquica da Fase 3 le a 5.
+COLS_PERFIL = ["HEAD", "GERENTE", "SUPERVISOR", "CANAL", "PROJETO", "VENDEDOR"]
 
 ESC_RECEITA = 100      # centavos
 ESC_PESO = 1000        # gramas
@@ -66,7 +68,7 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # errado ("cubo nao reconcilia"). Aqui o erro nasce com o nome certo.
     d = fato.merge(
         dim_cliente[["COD_CLIENTE", "BANDEIRA", "UF", "HEAD", "GERENTE",
-                     "SUPERVISOR", "CANAL", "PROJETO"]],
+                     "SUPERVISOR", "VENDEDOR", "CANAL", "PROJETO"]],
         on="COD_CLIENTE", how="left", validate="m:1")
     d = d.merge(dim_produto[["COD_PRODUTO", "CATEGORIA"]],
                 on="COD_PRODUTO", how="left", validate="m:1")
@@ -90,7 +92,7 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
                .sort_values(COLS_PERFIL)
                .values.tolist())
     i_perf = {tuple(p): i for i, p in enumerate(perfis)}
-    log(f"perfis (head x gerente x sup./exec. x canal x projeto): "
+    log(f"perfis (head x gerente x sup./exec. x canal x projeto x vendedor): "
         f"{len(perfis)}", "ok")
 
     # ------------------------------------------------- bandeira: top N + balde
@@ -112,12 +114,12 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
                    observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
           .sum(min_count=1).reset_index())
     esc = _escalar(g)
-    cubo = [[i_mes[am], i_ban[bn], i_cat[ct], i_perf[(hd, gr, sp, cn, pj)],
+    cubo = [[i_mes[am], i_ban[bn], i_cat[ct], i_perf[(hd, gr, sp, cn, pj, vd)],
              i_uf[uf], r, p, c]
-            for am, bn, ct, hd, gr, sp, cn, pj, uf, r, p, c
+            for am, bn, ct, hd, gr, sp, cn, pj, vd, uf, r, p, c
             in zip(g["ANO_MES"], g["BAN_CUBO"], g["CATEGORIA"], g["HEAD"],
                    g["GERENTE"], g["SUPERVISOR"], g["CANAL"], g["PROJETO"],
-                   g["UF"], esc["R"], esc["P"], esc["C"])]
+                   g["VENDEDOR"], g["UF"], esc["R"], esc["P"], esc["C"])]
     log(f"CUBO_PRINCIPAL         {len(cubo):>10,} linhas "
         f"(ANO_MES x BANDEIRA x CATEGORIA x PERFIL x UF)", "ok")
 
@@ -139,12 +141,12 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
            .sum(min_count=1).reset_index())
     skus, i_sku = _indexar(dim_produto["COD_PRODUTO"].tolist())
     escs = _escalar(gs)
-    cubo_sku = [[i_mes[am], i_sku[sk], i_perf[(hd, gr, sp, cn, pj)],
+    cubo_sku = [[i_mes[am], i_sku[sk], i_perf[(hd, gr, sp, cn, pj, vd)],
                  i_uf[uf], i_ban[bn], r, p, c]
-                for am, sk, hd, gr, sp, cn, pj, uf, bn, r, p, c
+                for am, sk, hd, gr, sp, cn, pj, vd, uf, bn, r, p, c
                 in zip(gs["ANO_MES"], gs["COD_PRODUTO"], gs["HEAD"],
                        gs["GERENTE"], gs["SUPERVISOR"], gs["CANAL"],
-                       gs["PROJETO"], gs["UF"], gs["BAN_CUBO"],
+                       gs["PROJETO"], gs["VENDEDOR"], gs["UF"], gs["BAN_CUBO"],
                        escs["R"], escs["P"], escs["C"])]
     log(f"CUBO_SKU               {len(cubo_sku):>10,} linhas "
         f"(ANO_MES x SKU x PERFIL x UF x BANDEIRA)", "ok")
@@ -176,8 +178,9 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
             "uf": ufs,
             "head": heads,
             "canal": canais,
-            # [head, gerente, sup./exec., canal, projeto] — o MESMO eixo nos
-            # dois cubos desde a D-48; o par "hc" deixou de existir.
+            # [head, gerente, sup./exec., canal, projeto, vendedor] — o MESMO
+            # eixo nos dois cubos desde a D-48; o vendedor (N4) entrou na
+            # posicao 5 na D-50, sem mexer nas posicoes que o template le.
             "perfil": perfis,
             "sku": sku_labels,     # [codigo, descricao, indice de categoria]
         },

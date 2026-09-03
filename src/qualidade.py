@@ -26,6 +26,8 @@ _ESPERADOS = CFG["validacao"]["valores_esperados"]
 # as dimensoes gravam, nunca uma copia local.
 _SEM_CANAL = CFG["dimensoes"]["rotulo_sem_canal"]
 _SEM_BANDEIRA = CFG["dimensoes"]["rotulo_sem_bandeira"]
+_SEM_ESTRUTURA = CFG["dimensoes"]["rotulo_sem_estrutura"]
+_ROT_INATIVO = CFG["dimensoes"].get("rotulo_inativo")
 
 
 def _nome_base(v) -> str:
@@ -52,7 +54,8 @@ def _fmt(x: float, casas: int = 2) -> str:
 def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
           dim_produto: pd.DataFrame, dim_cal: pd.DataFrame,
           meta: dict, cobertura_head: float, cobertura_canal: float,
-          pacote_cubo: dict, avisos: list[str]) -> dict:
+          pacote_cubo: dict, avisos: list[str],
+          saneamento: dict | None = None) -> dict:
     PASTA_QUALITY.mkdir(parents=True, exist_ok=True)
     L: list[str] = []
     resumo: dict = {}
@@ -171,7 +174,10 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     for v in sorted(cat_real - set(_ESPERADOS.get("categoria", []))):
         n = int((dim_produto["CATEGORIA"] == v).sum())
         nao_rec.append({"DIMENSAO": "CATEGORIA", "VALOR": v, "SKUS": n})
-    head_real = set(dim_cliente["HEAD"].dropna())
+    # Rotulos DECLARADOS de ausencia/inativo nao sao "valores estranhos" —
+    # mesmo tratamento que o canal ja dava ao rotulo_sem_canal.
+    head_real = set(dim_cliente["HEAD"].dropna()) - {_SEM_ESTRUTURA,
+                                                     _ROT_INATIVO}
     esperados_head = {str(e).casefold() for e in _ESPERADOS.get("head", [])}
     for v in sorted(head_real):
         # C6: igualdade do rotulo completo (casefold), nunca prefixo — um head
@@ -243,6 +249,82 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     resumo["clientes_sem_estrutura"] = len(sem_est)
     resumo["clientes_sem_canal"] = len(sem_canal)
     resumo["skus_sem_cadastro"] = len(sem_cad)
+
+    # -------------------------------------- 7b. reestruturacao (D-50)
+    # Os DOIS lados da reatribuicao RTM quantificados + o saneamento 5.2.
+    if saneamento and "ORIGEM_RTM" in dim_cliente.columns:
+        san = saneamento
+        rec_total = float(fato["RECEITA"].sum())
+
+        def _receita_de(cods) -> float:
+            return float(fato.loc[fato["COD_CLIENTE"].isin(set(cods)),
+                                  "RECEITA"].sum())
+
+        linha("## 7b. Reestruturação (D-50): RTM e saneamento da hierarquia")
+        linha()
+        rtm_ok = dim_cliente[dim_cliente["ORIGEM_RTM"]
+                             & dim_cliente["COD_DISTRIBUIDOR"].notna()]
+        rtm_sem = dim_cliente[dim_cliente["ORIGEM_RTM"]
+                              & dim_cliente["COD_DISTRIBUIDOR"].isna()]
+        rec_ok = _receita_de(rtm_ok["COD_CLIENTE"])
+        rec_sem = _receita_de(rtm_sem["COD_CLIENTE"])
+        linha(f"- **RTM reatribuídos:** {len(rtm_ok):,} clientes · receita "
+              f"histórica **R$ {_fmt(rec_ok)}** ({rec_ok / max(rec_total, 1):.2%}) "
+              f"**entra** na hierarquia e no canal de "
+              f"{san.get('rtm_distribuidores', 0)} distribuidores (o mesmo "
+              "valor **sai** do balde sem estrutura; bandeira/UF preservadas — Q4-a)")
+        if len(rtm_ok):
+            por_dist = (fato[fato["COD_CLIENTE"].isin(set(rtm_ok["COD_CLIENTE"]))]
+                        .merge(rtm_ok[["COD_CLIENTE", "DISTRIBUIDOR"]],
+                               on="COD_CLIENTE")
+                        .groupby("DISTRIBUIDOR")["RECEITA"].sum()
+                        .sort_values(ascending=False))
+            linha()
+            linha("| Distribuidor (destino) | Receita histórica que entra R$ |")
+            linha("|---|---:|")
+            for nome_d, v in por_dist.items():
+                linha(f"| {nome_d} | {_fmt(float(v))} |")
+            linha()
+        linha(f"- **RTM sem distribuidor identificado:** {len(rtm_sem):,} "
+              f"clientes · **R$ {_fmt(rec_sem)}** — ficam FORA da hierarquia, "
+              "canal original mantido, pendência do Comercial "
+              "(`rtm_sem_distribuidor.csv`)")
+        _csv(rtm_sem[["COD_CLIENTE", "NOME_CLIENTE", "BANDEIRA", "UF",
+                      "DISTRIBUIDOR", "CANAL"]], "rtm_sem_distribuidor.csv")
+
+        inat = dim_cliente[dim_cliente["INATIVO"]]
+        pend = dim_cliente[dim_cliente["SANEAMENTO_PENDENTE"]]
+        rec_inat = _receita_de(inat["COD_CLIENTE"])
+        rec_pend = _receita_de(pend["COD_CLIENTE"])
+        jan = san.get("janela") or []
+        jtxt = f"{jan[0]}..{jan[-1]}" if jan else "?"
+        linha(f"- **Inativados pelo saneamento (5.2):** {len(inat):,} clientes "
+              f"(HIERARQUIA=NÃO e sem sell-in em {jtxt}) · receita histórica "
+              f"**R$ {_fmt(rec_inat)}** — fora da matriz hierárquica no balde "
+              "próprio; o histórico permanece em TODOS os totais (Q7-i) "
+              "(`saneamento_inativados.csv`)")
+        _csv(inat[["COD_CLIENTE", "NOME_CLIENTE", "BANDEIRA", "UF", "CANAL",
+                   "MOTIVO_INATIVO", "DATA_INATIVACAO"]],
+             "saneamento_inativados.csv")
+        linha(f"- **Caso NÃO coberto (Q5, aguarda decisão):** {len(pend):,} "
+              f"clientes com HIERARQUIA=NÃO **e** sell-in na janela · receita "
+              f"histórica **R$ {_fmt(rec_pend)}** — nenhuma regra aplicada, "
+              "seguem sem estrutura (`saneamento_pendentes_decisao.csv`)")
+        _csv(pend[["COD_CLIENTE", "NOME_CLIENTE", "BANDEIRA", "UF", "CANAL"]],
+             "saneamento_pendentes_decisao.csv")
+        if san.get("sim_pendentes"):
+            linha(f"- **HIERARQUIA=SIM ainda sem vínculo na Consolidada:** "
+                  f"{san['sim_pendentes']:,} — pendência do Comercial; nada "
+                  "foi inferido")
+        if san.get("conflito_rtm_saneamento"):
+            linha(f"- **Conflito RTM × Faltando:** "
+                  f"{san['conflito_rtm_saneamento']:,} cliente(s) nas duas "
+                  "bases — valeu a regra RTM (5.4)")
+        linha()
+        resumo["rtm_reatribuidos"] = len(rtm_ok)
+        resumo["rtm_sem_distribuidor"] = len(rtm_sem)
+        resumo["inativados"] = len(inat)
+        resumo["saneamento_pendentes"] = len(pend)
 
     # ------------------------------------------------------------- 8. cubos
     corte = pacote_cubo["corte_bandeira"]

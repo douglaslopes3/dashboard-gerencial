@@ -19,6 +19,11 @@ Checagem que não roda é pior do que checagem que não existe, porque dá a sen
 de proteção.
 
 v1 (26/08/2026) — versão inicial deste projeto.
+v7 (02/09/2026) — D-50: o leitor da estrutura passou a montar o VENDEDOR (N4)
+   como quarto nível concatenado. Um cache v6 entregaria a estrutura SEM a
+   coluna — e o fillna mascararia todo mundo como NÃO ATRIBUÍDO (aconteceu na
+   primeira execução da Fase 2: 1 vendedor distinto no painel inteiro, pego
+   pela medição pós-execução).
 v6 (01/09/2026) — D-42: o leitor da estrutura comercial passou a ler CÓDIGO
    BANDEIRA/BANDEIRA da Hierarquia_Consolidada (ponte por código com a base
    de metas). Um cache v5 entregaria a estrutura sem as colunas novas.
@@ -53,7 +58,7 @@ import pandas as pd
 from ..utils.config import PASTA_STAGING, RAIZ
 from ..utils.log import log
 
-VERSAO_CACHE = 6
+VERSAO_CACHE = 7
 
 _KB64 = 65536
 

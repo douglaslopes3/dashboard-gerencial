@@ -32,7 +32,7 @@ for _fluxo in (sys.stdout, sys.stderr):
 from src.extract import cadastros, sellin
 from src.load import cubos, parquet
 from src.qualidade import gerar as gerar_qualidade
-from src.transform import calendario, dimensoes, fato as fato_mod
+from src.transform import calendario, dimensoes, fato as fato_mod, saneamento
 from src.utils import log as L
 from src.utils.config import CFG, PASTA_CURATED, preparar_pastas
 from src.utils.log import EXECUCAO_ID, abortar, log, titulo
@@ -68,6 +68,11 @@ def main() -> int:
     avisos_negocio += avisos_est
     canais, avisos_can = cadastros.ler_canais()
     avisos_negocio += avisos_can
+    # D-50 (Fase 2): reatribuicao RTM e saneamento da hierarquia.
+    rtm, avisos_rtm = cadastros.ler_rtm()
+    avisos_negocio += avisos_rtm
+    faltando, avisos_falt = cadastros.ler_faltando()
+    avisos_negocio += avisos_falt
 
     # ------------------------------------------------------------ 2. FATO
     titulo("2/6 · FATO — grao e reconciliacao contra a origem")
@@ -83,6 +88,10 @@ def main() -> int:
     dim_cli = dimensoes.dim_cliente(bruto, estrutura, canais)
     dim_prod = dimensoes.dim_produto(bruto, produtos)
     del bruto    # B4: 692 MB que ninguem mais le — fora do pico de memoria
+    # D-50: RTM + saneamento agem SO na DIM_CLIENTE — a fato nunca e tocada;
+    # e o join com a dimensao que decide a quem o historico aparece atribuido.
+    dim_cli, san, avisos_san = saneamento.aplicar(dim_cli, rtm, faltando, f)
+    avisos_negocio += avisos_san
 
     # ----------------------------------------------------- 4. INTEGRIDADE
     titulo("4/6 · INTEGRIDADE REFERENCIAL")
@@ -119,7 +128,7 @@ def main() -> int:
 
     resumo = gerar_qualidade(f, dim_cli, dim_prod, dim_cal, meta, cobertura,
                              cobertura_canal, pacote,
-                             avisos_negocio + L.avisos())
+                             avisos_negocio + L.avisos(), saneamento=san)
 
     # Resumo enxuto para o painel. Existe para que `run_dashboard.py` nao precise
     # reabrir os 3 milhoes de linhas da fato so para escrever o rodape.
