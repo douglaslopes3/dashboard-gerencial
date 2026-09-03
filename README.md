@@ -73,6 +73,17 @@ painel (v4, D-51)            11,35 MB · zero requisicao de rede · 3 ABAS:
                              por") · periodo parcial declarado · exportacao
                              CSV/XLSX (matrizes: linhas visiveis) · NENHUM
                              elemento desabilitado/acinzentado em estado algum
+VISIBILIDADE (D-54, 03/09)   botao so aparece com pelo menos UMA linha de dado
+                             atras dele: opcao sem dado some (a ja selecionada
+                             fica com o contador "0"), linha de filtro com
+                             menos de 2 opcoes some inteira, ↓CSV/↓XLSX saem
+                             com a tabela vazia. Decidido pelo cubo, sem lista
+                             de nomes. Vale para Full, N1, N2 e N3
+FORMATACAO (D-55, 03/09)     uma funcao formata todo numero de metrica:
+                             mil/mi/bi com 1 casa, omitida quando zero —
+                             R$ 1 mil · R$ 25 mil · R$ 1,5 mi · R$ 1,2 bi. O
+                             "R$" sai da metrica ativa, entao Volume (t) e
+                             Caixas (cx) nunca o recebem
                              template_v3 fica como retorno rapido (exige o
                              pipeline pre-D-51, via git)
 por nivel (D-52)             73 arquivos: Full + 4 N1 + 13 N2 + 55 N3, recorte
@@ -150,6 +161,13 @@ e **Preço Médio R$/kg** no card da Visão Geral, calculado sempre como
 `SUM(receita) / SUM(peso_kg)`
 (razão das somas; o seletor global **não** altera essa definição).
 
+**Uma única formatação de valor** (D-55): a métrica selecionada decide o
+prefixo, e ele aparece em **todo** indicador — card, rótulo de barra, eixo,
+tooltip, célula de matriz, total e destaque. Escala `mil`/`mi`/`bi` com uma
+casa decimal, omitida quando for zero: `R$ 1 mil`, `R$ 25 mil`, `R$ 1,5 mi`,
+`R$ 1,2 bi`. **Métrica não monetária nunca recebe R$** — Volume sai em ` t` e
+Caixas em ` cx`. A exportação CSV/XLSX continua levando número cru.
+
 **2 bases de comparação** — YTD Fiscal (set→ago) e YTD Calendário (jan→dez),
 com a comparação contra o mesmo período do ano anterior **embutida** (o período
 é a seleção de meses; o anterior são os mesmos meses do LY). Variação absoluta,
@@ -169,7 +187,11 @@ filtros; nas matrizes expansíveis, as linhas visíveis na expansão atual).
 Full e fica oculto nos arquivos por nível. Gerente, Sup./Exec., projeto, UF
 e as buscas de bandeira/SKU saíram: a navegação hierárquica é a matriz, e
 bandeira/SKU seguem como dimensões nas abas. Nenhum filtro ou elemento fica
-desabilitado ou acinzentado em estado algum. O painel de filtros (com o
+desabilitado ou acinzentado em estado algum — e, desde a **D-54**, um botão só
+aparece quando há pelo menos uma linha de dado atrás dele: opção sem dado some
+(a que o usuário já selecionou fica com o contador "0"), e a linha do filtro
+sai inteira quando não há escolha a fazer. A regra é decidida pelo dado, nunca
+por lista de nomes, e vale para Head, Gerente, Supervisor e Executivo. O painel de filtros (com o
 "Ver por" e a linha de estado) existe em todas as abas: abaixo do gráfico
 de Evolução na Visão Geral, no topo nas demais.
 
@@ -177,6 +199,9 @@ de Evolução na Visão Geral, no topo nas demais.
 head com o recorte aplicado no nível de dados. Os cubos embutidos no arquivo de
 um head contêm somente as linhas do squad dele; não há filtro, link ou
 parâmetro capaz de exibir outro squad, porque o dado não está no arquivo.
+Desde a **D-54**, as listas de **canal, categoria e SKU** também encolhem junto
+com o perfil — antes elas viajavam do tamanho da empresa inteira, e era por isso
+que o painel de um head exibia o chip de um canal sem nenhuma linha dele.
 Título e cabeçalho declaram a restrição (o rodapé textual saiu em D-47); o
 filtro Head fica oculto — componente preservado, visibilidade por perfil.
 Configuração em `config/config.yaml → dashboard.por_head`.
@@ -263,7 +288,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-35 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-49, com o porquê |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-55, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |

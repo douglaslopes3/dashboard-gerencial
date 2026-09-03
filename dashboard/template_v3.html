@@ -5,12 +5,25 @@
 <!--
   ============================================================================
   Este arquivo e o TEMPLATE **V3**. O template.html (v1) e o template_v2.html
-  ficam intactos como retorno rapido. Heranca do V2 (29/08/2026) sobre o v1:
+  ficam intactos como retorno rapido.
+
+  ATENCAO (03/09/2026): as decisoes D-54 (visibilidade dinamica dos botoes) e
+  D-55 (formatacao unica de valor) foram aplicadas TAMBEM aqui, para o v3 nao
+  divergir do v4 no comportamento. Elas nao mudam nenhum numero. O v3 continua
+  exigindo o pipeline PRE-D-51 (cubos COM o eixo UF) para rodar: reativa-lo e
+  `git checkout` do commit da D-50 ou anterior, e nesse checkout volta tambem o
+  `run_dashboard.py` daquela data — ou seja, o recorte de dimensoes por nivel
+  da D-54 (camada de geracao) NAO acompanha o v3; aqui vale so a camada de
+  interface.
+
+  Heranca do V2 (29/08/2026) sobre o v1:
     1. filtros recolhiveis (fechados por padrao) — os numeros abrem acima da
        dobra; a linha de estado continua sempre visivel;
     2. chips cientes do recorte: opcao sem NENHUMA linha no periodo/filtros
-       atuais fica esmaecida (classe .semdado; a .chip.vazio do v1 era CSS
-       morto E colidiria com o .vazio das tabelas);
+       atuais ficava esmaecida (classe .semdado). SUPERADO pela D-54
+       (03/09/2026): opcao sem dado nao esmaece — ela SOME; a que o usuario
+       ja selecionou fica com o contador "0"; e a linha inteira do filtro sai
+       quando sobra menos de uma escolha. Ver `aplicarVisibilidade`;
     3. ordenacao por clique no cabecalho de qualquer tabela;
     4. recorte persistente e compartilhavel: estado dos filtros serializado
        por ROTULO no hash da URL (#r=…) e no localStorage;
@@ -206,10 +219,14 @@ h1 span{color:var(--azul)}
 .chip:hover{border-color:var(--azul);background:#fff}
 .chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600;
   box-shadow:0 1px 3px rgba(0,83,159,.28)}
-/* v2: "semdado" e a marca de chip sem linha no recorte. Nao reutilizar a
-   classe .vazio: ela e o estado-vazio das TABELAS (padding 26px) e infla o
-   chip — foi exatamente o bug que a .chip.vazio do v1 teria se fosse usada. */
-.chip.semdado{opacity:.38}
+/* D-54 (03/09/2026): o esmaecimento SAIU. Opcao sem dado no recorte atual nao
+   e mais exibida — ela some. A unica que fica e a que o proprio usuario
+   selecionou, e essa carrega um CONTADOR ("0"), nao um estado cinza: o chip
+   mantem cor, contraste e clique. */
+.chip .z0{font-style:normal;font-weight:700;font-size:9.5px;line-height:1;
+  margin-left:5px;padding:1px 4px;border-radius:7px;vertical-align:1px;
+  background:#fff;color:var(--bd);border:1px solid var(--bd)}
+.chip.on .z0{background:rgba(255,255,255,.92);color:#00539f;border-color:#fff}
 .chip.off{opacity:.5;cursor:not-allowed}
 .mon-wrap,.uf-wrap{max-height:78px;overflow:auto}
 .mini{border:1px solid #bfd3e6;background:#f7fafd;border-radius:5px;
@@ -377,11 +394,11 @@ canvas{max-height:280px}
          das colunas agora e SO o seletor "Ver por" da barra de Periodo:
          dois controles com os mesmos rotulos dessincronizavam. -->
   </div>
-  <div class="frow">
+  <div class="frow" id="frowAno">
     <div class="flab">Ano</div>
     <div class="chips" id="fAno"></div>
   </div>
-  <div class="frow">
+  <div class="frow" id="frowMeses">
     <div class="flab">Meses</div>
     <div class="chips mon-wrap" id="fMeses"></div>
     <button class="mini" id="mTodos">Todos</button>
@@ -408,7 +425,8 @@ canvas{max-height:280px}
     <input class="busca" id="bSku" placeholder="buscar SKU…" autocomplete="off">
     <div class="chips" id="fSku"></div>
   </div>
-  <div class="frow">
+  <!-- D-54: sem nenhum filtro ativo nao ha o que limpar — a linha sai. -->
+  <div class="frow" id="frowLimpar">
     <div class="flab">&nbsp;</div>
     <button class="reset" id="limpar">Limpar filtros</button>
   </div>
@@ -617,14 +635,30 @@ function fmtNum(v, casas){
   if(v===null||v===undefined||!isFinite(v)) return null;
   return v.toLocaleString("pt-BR",{minimumFractionDigits:casas,maximumFractionDigits:casas});
 }
+/* D-55 (03/09/2026, espelho do v4): UMA funcao formata todo numero de metrica
+   do painel — card, rotulo de barra, tick de eixo, tooltip, celula de matriz,
+   total e destaque. Escala mil/mi/bi com UMA casa decimal, omitida quando for
+   zero ("R$ 1 mil", "R$ 25 mil", "R$ 1,5 mi", "R$ 25 mi", "R$ 1,2 bi"). O
+   prefixo NUNCA e literal: vem de METRICAS[F.metrica].un, entao Volume e
+   Caixas nao recebem R$ (a excecao legitima e fmtPreco, R$/kg). Sairam a
+   segunda escada do grafico (`rotCurto`, sem moeda) e a `escalaFixa` das
+   matrizes (numero puro com a escala so no cabecalho). */
+const ESCALAS = [[1e9,"bi"],[1e6,"mi"],[1e3,"mil"]];
+function _casa1(v){
+  const r = Math.round(v*10)/10;
+  return fmtNum(r, Number.isInteger(r) ? 0 : 1);
+}
+function _abrevNum(a){
+  let i = a>=1e9 ? 0 : a>=1e6 ? 1 : a>=1e3 ? 2 : 3;
+  if(i>=3) return fmtNum(a, a<10?2:0);
+  // 999.999 arredondaria para "1.000 mil": sobe um degrau em vez de exibir
+  // mil unidades da escala de baixo.
+  if(i>0 && Math.round(a/ESCALAS[i][0]*10)/10 >= 1000) i--;
+  return _casa1(a/ESCALAS[i][0]) + " " + ESCALAS[i][1];
+}
 function abrev(v, un){
   if(v===null||!isFinite(v)) return "n/d";
-  const s = v<0 ? "−" : "", a = Math.abs(v);
-  let t;
-  if(a>=1e9)      t = fmtNum(a/1e9,2)+" bi";
-  else if(a>=1e6) t = fmtNum(a/1e6,2)+" mi";
-  else if(a>=1e3) t = fmtNum(a/1e3,1)+" mil";
-  else            t = fmtNum(a, a<10?2:0);
+  const s = v<0 ? "−" : "", t = _abrevNum(Math.abs(v));
   return nbsp(s + (un==="R$" ? "R$ "+t : t + (un?" "+un:"")));
 }
 function fmtMetrica(v){
@@ -970,29 +1004,91 @@ const CHAVE_FILTRO = {
   proj : {id:"fProj", num:false, fn:(l,s)=> PERF(l,s)[P_PROJ]},
   uf   : {id:"fUF",   num:true,  fn:(l,s)=> UFDE(l,s)},
 };
-function marcarChipsVazios(p){
-  /* v3 (F1-E): sao 6 varreduras de cubo por render, e o resultado so aparece
-     com o painel de filtros ABERTO — que nasce fechado. Com o painel fechado
-     nao ha o que marcar; quem abre dispara a marcacao no proprio clique. */
-  if(el("fPainel").classList.contains("fechado")) return;
+/* ============================================= visibilidade dinamica (D-54)
+   Espelho da regra do v4. O que existia aqui (v2/F1-E) media a mesma coisa —
+   "esta opcao tem alguma linha no periodo, sob os DEMAIS filtros?" — mas
+   ESMAECIA o chip. A decisao de 03/09 e outra: opcao sem dado nao aparece.
+     * sem dado e sem selecao  -> o chip some;
+     * sem dado e SELECIONADO  -> fica, com o contador "0" (apagar a selecao
+       do usuario em silencio seria pior que exibir o zero);
+     * linha com menos de DUAS opcoes -> some inteira, porque botao sem
+       escolha e poluicao;
+     * nada e desabilitado nem acinzentado (regra global da D-51 preservada).
+
+   Custo: a versao antiga fazia UMA varredura de cubo POR DIMENSAO (sete) e
+   por isso so rodava com o painel de filtros aberto — o que deixava o painel
+   fechado exibindo opcoes mortas. Aqui e UMA varredura para todas as
+   dimensoes, entao ela roda em todo render, aberto ou fechado. */
+const PARES_FILTRO = Object.entries(CHAVE_FILTRO);
+function opcoesComDado(p){
   const sku=usaCuboSku();
-  for(const [dim,cfg] of Object.entries(CHAVE_FILTRO)){
-    const chips=el(cfg.id).querySelectorAll(".chip");
-    // D-48: sem excecao por camada — as duas cruzam com tudo. Sem mes
-    // selecionado continua nao havendo o que medir.
-    if(!p.atual.length){
-      chips.forEach(c=>{ c.classList.remove("semdado"); c.removeAttribute("title"); });
-      continue;
+  const idx=sku?IDX_SKU:IDX_CUBO, passa=sku?passaSku:passaPrincipal;
+  const out={}; PARES_FILTRO.forEach(([d])=>{ out[d]=new Set(); });
+  const mes=new Set(), sel=new Set(p.atual);
+  for(let mi=0;mi<NM;mi++){
+    const linhas=idx[mi], ehSel=sel.has(mi);
+    for(let k=0;k<linhas.length;k++){
+      const l=linhas[k];
+      if(!ehSel){
+        // O mes nunca filtra a si mesmo: senao desmarcar um mes o faria
+        // sumir da lista e nao haveria como marca-lo de volta.
+        if(passa(l,null)){ mes.add(mi); break; }
+        continue;
+      }
+      if(!mes.has(mi) && passa(l,null)) mes.add(mi);
+      for(let d=0;d<PARES_FILTRO.length;d++){
+        const dim=PARES_FILTRO[d][0], cfg=PARES_FILTRO[d][1];
+        if(passa(l,dim)) out[dim].add(cfg.fn(l,sku));
+      }
     }
-    const tem=somar(p.atual, cfg.fn, dim);
-    chips.forEach(c=>{
-      const k=cfg.num ? +c.dataset.k : c.dataset.k;
-      const semDado=!tem.has(k);
-      c.classList.toggle("semdado", semDado);
-      if(semDado) c.title="Sem dado no período/filtros atuais. Clicar mostra o recorte vazio.";
-      else c.removeAttribute("title");
-    });
   }
+  out.mes=mes;
+  return out;
+}
+function _marcaOuTira(c, temDado, titulo){
+  if(temDado){ c.removeAttribute("title");
+    const z=c.querySelector(".z0"); if(z) z.remove(); return true; }
+  if(!c.classList.contains("on")){ c.remove(); return false; }
+  c.title=titulo;
+  if(!c.querySelector(".z0")) c.insertAdjacentHTML("beforeend",'<i class="z0">0</i>');
+  return true;
+}
+function aplicarVisibilidade(p){
+  // Sem mes selecionado nao ha o que medir — a tela ja diz isso em texto e os
+  // chips ficam como montarFiltros() os desenhou.
+  if(!p.atual.length) return;
+  const opc=opcoesComDado(p);
+  const TIT="sem faturamento neste recorte — continua selecionado";
+  for(let d=0;d<PARES_FILTRO.length;d++){
+    const dim=PARES_FILTRO[d][0], cfg=PARES_FILTRO[d][1];
+    const cont=el(cfg.id); if(!cont) continue;
+    const tem=opc[dim];
+    [...cont.querySelectorAll(".chip")].forEach(c=>{
+      _marcaOuTira(c, tem.has(cfg.num ? +c.dataset.k : c.dataset.k), TIT);
+    });
+    const linha=cont.parentElement;
+    if(linha && linha.classList && linha.classList.contains("frow"))
+      linha.hidden = cont.querySelectorAll(".chip").length < 2;
+  }
+  // Meses: a linha so some quando nao sobra mes nenhum — "Todos" e "Nenhum"
+  // continuam sendo acoes validas sobre um mes so.
+  const cm=el("fMeses");
+  [...cm.querySelectorAll(".chip")].forEach(c=>
+    _marcaOuTira(c, opc.mes.has(+c.dataset.k), TIT));
+  el("frowMeses") && (el("frowMeses").hidden = !cm.querySelectorAll(".chip").length);
+  // Ano: some quando nenhum mes dele tem dado sob os filtros atuais.
+  const fis=F.base==="fis";
+  const anosOk=new Set([...opc.mes].map(i=>String(fis?CAL[i][C_FYROT]:CAL[i][C_ANO])));
+  const ca=el("fAno");
+  [...ca.querySelectorAll(".chip")].forEach(c=>
+    _marcaOuTira(c, anosOk.has(String(c.dataset.k)), TIT));
+  el("frowAno") && (el("frowAno").hidden = ca.querySelectorAll(".chip").length<2);
+  // L3-D/D-46: no arquivo por head o Head some por PERFIL, e essa regra vence
+  // a contagem de opcoes.
+  if(SO_HEAD) el("frowHead").hidden=true;
+  const lim=el("frowLimpar");
+  if(lim) lim.hidden = !["cat","head","ger","sup","can","proj","uf","ban","sku"]
+    .some(k=>F[k] && F[k].size);
 }
 
 /* ------------------------------------------------------------ tabela util */
@@ -1010,6 +1106,12 @@ function vazio(id, msg){
   delete RAW[id];   // tabela vazia nao exporta dado velho
   const t=el(id);   // v2: rerender zera o estado de ordenacao
   if(t){ delete t.dataset.ocol; delete t.dataset.odir; }
+  // D-54: sem dado nao ha o que exportar — os botoes ↓CSV/↓XLSX saem do
+  // cabecalho do card. Antes ficavam na tela e o clique nao fazia nada.
+  // Voltam sozinhos no primeiro render com dado (registrarExport).
+  const card=t&&t.closest(".card");
+  const btns=card&&card.querySelector(".expbtns");
+  if(btns) btns.remove();
   el(id).innerHTML = `<tbody><tr><td class="vazio" colspan="9">${msg||"Sem dados para este recorte."}</td></tr></tbody>`;
 }
 
@@ -1027,7 +1129,7 @@ function render(){
   atualizarEstado(p);
   // v3 (F1-A)/L3-B: a barra agora carrega so o "Ver por".
   montarPeriodo();
-  marcarChipsVazios(p);       // v2: esmaece opcoes sem dado neste recorte
+  aplicarVisibilidade(p);     // D-54: esconde opcao sem dado neste recorte
   gravarRecorte();            // v2: persiste o recorte (hash + localStorage)
   if(!p.atual.length){
     ["tabYTD","tabPer","tabDet","tabUF","tabUFper","tabBan","tabSku","tabPreco","tabPrecoPer"]
@@ -1181,13 +1283,9 @@ function renderEvolucao(p){
   if(chart) chart.destroy();
   // Rotulo de dados desenhado a mao (afterDatasetsDraw): o bundle embutido e
   // so o Chart.js — sem plugin externo, que violaria o "zero rede" do painel.
-  const rotCurto=v=>{
-    const s=v<0?"−":"", a=Math.abs(v);
-    if(a>=1e9) return s+fmtNum(a/1e9,2)+" bi";
-    if(a>=1e6) return s+fmtNum(a/1e6,1)+" mi";
-    if(a>=1e3) return s+fmtNum(a/1e3,1)+" mil";
-    return s+fmtNum(a,0);
-  };
+  // D-55: o rotulo da barra usa a MESMA `abrev` do eixo e do tooltip, com a
+  // unidade da metrica ativa — o `rotCurto` que morava aqui era uma segunda
+  // escada de arredondamento, sem moeda.
   const fmtVar=v=>{
     const s=v>0?"+":(v<0?"−":"");
     return s+fmtNum(Math.abs(v),1)+"%";
@@ -1214,7 +1312,7 @@ function renderEvolucao(p){
         }else{
           g.fillStyle=ehAtual?"#003a70":"#7d8fa1";
           g.textBaseline=v<0?"top":"bottom";
-          g.fillText(rotCurto(v), elb.x, v<0?elb.y+3:elb.y-3);
+          g.fillText(abrev(v, m.un), elb.x, v<0?elb.y+3:elb.y-3);
         }
       });
     });
@@ -1364,7 +1462,7 @@ function quebra(p, dim, idTab, idInfo){
       somaFn:ms=>somar(ms,fn,dim), mapA:a, mapL:l, rot:ROTULOS[dim],
       catDe:null, den:met(den), p, drillTipo, drillDim:dim,
       topN:dim==="ban"?F.topBan:0, baldeK:iBalde>=0?iBalde:null});
-    el("nDet").innerHTML=(escD?notaMatriz(escD)+"<br>":"")
+    el("nDet").innerHTML=(escD?notaMatriz()+"<br>":"")
       +`Participação % calculada sobre o total do recorte com o filtro desta
       dimensão removido, por isso a coluna soma 100%. Na quebra por
       <b>Categoria</b>, clique numa linha para abrir os SKUs dela; na quebra por
@@ -1516,16 +1614,10 @@ function rotuloColuna(k){
   const m=String(k).match(/^(?:FY)?(\d{4})-([TS])(\d)$/);
   return m ? m[2]+m[3]+"/"+m[1].slice(2) : k;
 }
-/* Escala UNICA para toda a matriz, escolhida pela maior linha e declarada no
-   cabecalho. Tem de ser unica: escala por celula faria colunas vizinhas
-   deixarem de ser comparaveis a olho — que e o unico motivo de existir matriz. */
-function escalaFixa(max){
-  const a=Math.abs(max)||0, k=F.metrica, un=METRICAS[k].un;
-  const [pre,div,casas] = a>=1e9 ? ["mi",1e6,1]
-                        : a>=1e6 ? ["mil",1e3,0]
-                        : ["",1,a>=1e3?0:2];
-  return {div, casas, rot: !pre ? un : (k==="val" ? un+" "+pre : pre+" "+un)};
-}
+/* D-55 (03/09/2026): `escalaFixa` SAIU. A F1-G imprimia numero puro nas
+   colunas da serie e declarava a escala UMA vez no cabecalho; a decisao de
+   03/09 inverte isso — cada celula carrega prefixo e escala, porque numero
+   que so faz sentido depois de ler a nota e numero que alguem le errado. */
 /* Construtor proprio de tabela: a matriz precisa de classe POR CELULA (serie,
    corte, zero) e de marcar quais colunas sao texto para a ordenacao. Fazer isso
    depois, mexendo no DOM ja montado, era fragil — o HTML ja sai pronto. */
@@ -1568,10 +1660,10 @@ function tabelaMatriz(cfg){
   if(!itens.length){ vazio(cfg.idTab); return null; }
   const universo=itens.length;
   if(cfg.topN>0) itens=itens.slice(0,cfg.topN);
-  const esc=escalaFixa(Math.max(...itens.map(i=>Math.abs(i.tot)),0));
   const ND='<span class="nd">n/d</span>';
-  const num=v=>v===0 ? '<span class="zero">–</span>'
-                     : fmtNum(v/esc.div,esc.casas);
+  // D-55: a celula declara a propria escala e a propria moeda. "–" continua
+  // sendo ausencia de faturamento, nao zero formatado.
+  const num=v=>v===0 ? '<span class="zero">–</span>' : fmtMetrica(v);
 
   // P2-A: coluna truncada (menos meses que a granularidade pede — bordas da
   // serie ou selecao parcial) leva "*"; a nota explica o simbolo.
@@ -1653,18 +1745,20 @@ function tabelaMatriz(cfg){
         else
           abrirDrill(cfg.drillTipo, cfg.drillTipo==="cat" ? +s.dataset.dk : s.dataset.dk);}
     : null;
-  return esc;
+  // D-55: devolve so "a matriz tem linhas" — a escala nao viaja mais daqui
+  // para a nota, porque cada celula ja declara a dela.
+  return true;
 }
 // "Mês" + "s" = "mêss". Plural declarado, em vez de deduzido.
 const GRANS_PL = {mes:"meses", tri:"trimestres", sem:"semestres", ano:"anos"};
-function notaMatriz(esc){
+function notaMatriz(){
   const cols=colunasSerie();
   const n=cols.length, todas=gruposSerie().length;
   const g=GRANS_PL[F.gran]||GRANS[F.gran].toLowerCase();
   const temParcial=cols.some(c=>c.meses.length<(TAM_GRUPO[F.gran]||1));
   return `Colunas: os <b>${n} últimos ${g}</b>${todas>n?` da série (de ${todas}
-    disponíveis)`:""}, em <b>${esc.rot}</b>. A granularidade é o seletor
-    <b>Ver por</b> da barra de Período.
+    disponíveis)`:""}, em <b>${METRICAS[F.metrica].rot}</b>. A granularidade é
+    o seletor <b>Ver por</b> da barra de Período.
     ${temParcial?"<b>*</b> marca período parcial: a série não cobre todos os meses dele. ":""}
     <b>TOTAL</b> é a soma das colunas exibidas.
     <b>ATUAL</b> e <b>ANT.</b> são o período selecionado e os mesmos meses do
@@ -1739,7 +1833,7 @@ function renderBandeiras(p){
   let nominal=0;
   for(const [k,v] of a){ if(k!==iBalde) nominal+=met(v); }
   const cobRec=razao(nominal,den);
-  el("nBan").innerHTML=(escB?notaMatriz(escB)+"<br>":"")
+  el("nBan").innerHTML=(escB?notaMatriz()+"<br>":"")
     +`As <b>${c.top}</b> maiores bandeiras da base aparecem
     nominalmente. As outras <b>${c.demais.toLocaleString("pt-BR")}</b> <b>não somem</b>:
     entram agregadas na linha “${c.rotulo_demais}”, então o total continua batendo
@@ -1796,7 +1890,7 @@ function renderSkus(p){
     topN:F.topSku, baldeK:null});
   el("sSku").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot
     +(escS?" · colunas em "+escS.rot:"");
-  el("nSku").innerHTML=(escS?notaMatriz(escS)+"<br>":"")
+  el("nSku").innerHTML=(escS?notaMatriz()+"<br>":"")
     +`Todos os <b>${D.sku.length}</b> SKUs, sem corte de cobertura.
     A camada de SKU cruza com <b>categoria, head, canal e UF</b>, <b>não</b> com
     gerente, bandeira nem projeto. Ordenação dos destaques por <b>variação absoluta</b>.`;
@@ -2081,7 +2175,7 @@ function renderDrillHead(){
   const ign=[];
   if(F.head.size)ign.push("o filtro de head (o escopo é o head clicado)");
   if(F.ger.size)ign.push("o filtro de gerente");
-  el("nDrill").innerHTML=(escG?notaMatriz(escG)+"<br>":"")
+  el("nDrill").innerHTML=(escG?notaMatriz()+"<br>":"")
     +"Mesmo período, mesma base e mesmos filtros da tela"
     +" (canal, categoria, projeto, bandeira, UF). A hierarquia vem do de-para"
     +" de estrutura, não é inferida."
@@ -2133,7 +2227,7 @@ function renderDrillGer(){
     +(escS?" · colunas em "+escS.rot:"");
   const ign=["o filtro de gerente (o escopo é o gerente clicado)"];
   if(F.sup.size) ign.push("o filtro de Sup./Exec.");
-  el("nDrill").innerHTML=(escS?notaMatriz(escS)+"<br>":"")
+  el("nDrill").innerHTML=(escS?notaMatriz()+"<br>":"")
     +"Mesmo período, mesma base e mesmos filtros da tela"
     +" (canal, categoria, projeto, bandeira, UF). A hierarquia vem do de-para"
     +" de estrutura, não é inferida."
@@ -2180,7 +2274,7 @@ function renderDrillCat(){
     +(escC?" · colunas em "+escC.rot:"");
   const ign=[];
   if(F.sku.size)ign.push("o filtro de SKU");
-  el("nDrill").innerHTML=(escC?notaMatriz(escC)+"<br>":"")
+  el("nDrill").innerHTML=(escC?notaMatriz()+"<br>":"")
     +"Mesmo período, mesma base de comparação e mesmos filtros"
     +" da tela. Vem da camada de SKU, que desde a D-48 cruza com head,"
     +" gerente, Sup./Exec., canal, projeto, categoria, UF e bandeira."
@@ -2248,7 +2342,7 @@ function renderDrillDimCat(){
     uf:"UF",ban:"bandeira",head:"head"}[dim]||dim)
     +" (o escopo é o item clicado)"];
   if(F.cat.size) ign.push("o filtro de categoria");
-  el("nDrill").innerHTML=(escK?notaMatriz(escK)+"<br>":"")
+  el("nDrill").innerHTML=(escK?notaMatriz()+"<br>":"")
     +"Mesmo período, mesma base de comparação e mesmos filtros da tela."
     +" <b>Ignorados neste detalhe:</b> "+ign.join(", ")+".";
 }
@@ -2429,9 +2523,11 @@ function ligar(){
     if(c.dataset.t==="fy") F.fy=c.dataset.k; else F.ano=+c.dataset.k;
     preSelecionarMeses(); montarFiltros(); render();
   });
-  ligarChips("fMeses", k=>{ alterna(F.meses,+k); montarMeses(); });
-  el("mTodos").onclick=()=>{ mesesOferecidos().forEach(i=>F.meses.add(i)); montarMeses(); render(); };
-  el("mNenhum").onclick=()=>{ F.meses.clear(); montarMeses(); render(); };
+  // D-54: mexer nos meses muda quais dimensoes ainda tem dado, entao o painel
+  // inteiro de filtros e remontado (montarFiltros ja chama montarMeses).
+  ligarChips("fMeses", k=>{ alterna(F.meses,+k); montarFiltros(); });
+  el("mTodos").onclick=()=>{ mesesOferecidos().forEach(i=>F.meses.add(i)); montarFiltros(); render(); };
+  el("mNenhum").onclick=()=>{ F.meses.clear(); montarFiltros(); render(); };
   ligarChips("fCat", k=>{ alterna(F.cat,+k); montarFiltros(); });
   ligarChips("fCanal", k=>{ alterna(F.can,k); montarFiltros(); });
   ligarChips("fHead", k=>{ alterna(F.head,k); montarFiltros(); });
@@ -2460,10 +2556,9 @@ function ligar(){
   el("drillVoltar").onclick=fecharDrill;
   el("fToggle").onclick=()=>{
     el("fPainel").classList.toggle("fechado");
-    // v3 (F1-E): a marcacao de chips sem dado custa 6 varreduras de cubo e so e
-    // visivel com o painel aberto — entao ela roda AQUI, na abertura, em vez de
-    // em todo render com o painel fechado.
-    if(!el("fPainel").classList.contains("fechado")) marcarChipsVazios(periodo());
+    // D-54: a visibilidade e recalculada em todo render (uma varredura so, nao
+    // sete), entao abrir o painel nao precisa mais disparar nada — o que ele
+    // mostra ja esta certo antes de ser aberto.
     atualizarToggle(); gravarRecorte();
   };
   el("copiarLink").onclick=copiarRecorte;

@@ -599,6 +599,120 @@ def test_d51_cubos_sem_eixo_uf_e_posicoes_do_template():
     assert all(l[1] < len(pac["dims"]["ban"]) for l in pac["cubo"])
 
 
+
+# =========================================== D-54 / D-55 (03/09/2026)
+def _modelo_dois_canais():
+    """`_mini_modelo` com os dois heads em canais DIFERENTES — e o unico jeito
+    de provar que o recorte encolhe a lista de canais do arquivo."""
+    fato, dim_cli, dim_prod, dim_cal = _mini_modelo()
+    dim_cli = dim_cli.copy()
+    dim_cli["CANAL"] = ["VAREJO"] * 4 + ["ATACADO"] * 2
+    return fato, dim_cli, dim_prod, dim_cal
+
+
+def test_d54_recorte_encolhe_canal_categoria_e_sku_do_arquivo():
+    """D-54: o arquivo de um nivel so carrega as dimensoes que existem NELE.
+
+    E a causa do problema relatado em 03/09: o painel do head exibia o chip de
+    um canal em que o squad dele nao tem uma unica linha, porque `dims.canal`
+    viajava do tamanho da empresa inteira. Ate a D-52 so `perfil` e `head`
+    encolhiam. Nao ha lista de nomes em lugar nenhum — quem decide e o cubo."""
+    from src.load import cubos
+    from run_dashboard import filtrar_por_nivel
+    pac = cubos.construir(*_modelo_dois_canais())
+    assert set(pac["dims"]["canal"]) == {"ATACADO", "VAREJO"}
+    assert set(pac["dims"]["cat"]) == {"BALA", "GOMAS"}
+
+    h1 = filtrar_por_nivel(pac, 0, "10 - H1")
+    assert h1["dims"]["head"] == ["10 - H1"]
+    assert h1["dims"]["canal"] == ["VAREJO"]      # ATACADO nao esta no arquivo
+    h2 = filtrar_por_nivel(pac, 0, "20 - H2")
+    assert h2["dims"]["canal"] == ["ATACADO"]
+    # H2 so movimenta o SKU 30, da categoria BALA
+    assert h2["dims"]["cat"] == ["BALA"]
+    assert [s[0] for s in h2["dims"]["sku"]] == ["30"]
+    # e a regra vale em QUALQUER nivel, nao so no head (aqui o N3)
+    s3 = filtrar_por_nivel(pac, 2, "2100 - S3")
+    assert s3["dims"]["canal"] == ["ATACADO"] and s3["dims"]["cat"] == ["BALA"]
+
+
+def test_d54_reindexacao_de_categoria_e_sku_aponta_para_o_rotulo_certo():
+    """Encolher a lista sem remapear os indices apontaria para a categoria
+    errada — o erro mais silencioso possivel, porque a soma continuaria
+    fechando. Os DOIS cubos sao conferidos, e o dinheiro tem de ser o mesmo."""
+    from src.load import cubos
+    from run_dashboard import filtrar_por_nivel
+    pac = cubos.construir(*_mini_modelo())
+    rec = filtrar_por_nivel(pac, 0, "20 - H2")
+    cats, skus = rec["dims"]["cat"], rec["dims"]["sku"]
+    assert all(cats[l[2]] == "BALA" for l in rec["cubo"])
+    assert all(cats[skus[l[1]][2]] == "BALA" for l in rec["cubo_sku"])
+    assert all(skus[l[1]][0] == "30" for l in rec["cubo_sku"])
+    assert sum(l[4] for l in rec["cubo"]) == 110000          # R$ 1.100,00
+    assert sum(l[4] for l in rec["cubo_sku"]) == 110000
+
+
+def test_d54_recorte_preserva_calendario_e_corte_de_bandeira():
+    """Duas listas ficam intactas DE PROPOSITO: `cal`, porque remapear mes
+    reindexaria os dois cubos e os ponteiros de LY (mes sem faturamento e
+    resolvido na interface), e o corte de bandeira, que a tela declara como
+    calculado sobre a base inteira, ANTES dos filtros."""
+    from src.load import cubos
+    from run_dashboard import filtrar_por_nivel
+    pac = cubos.construir(*_mini_modelo())
+    rec = filtrar_por_nivel(pac, 0, "20 - H2")
+    assert rec["cal"] == pac["cal"]
+    assert rec["dims"]["ban"] == pac["dims"]["ban"]
+    assert rec["corte_bandeira"] == pac["corte_bandeira"]
+
+
+def _ler_templates():
+    from src.utils.config import caminho
+    raiz = Path(__file__).resolve().parents[1]
+    achados = {}
+    for nome in ("template_v4.html", "template_v3.html"):
+        arq = raiz / "dashboard" / nome
+        if arq.exists():
+            achados[nome] = arq.read_text(encoding="utf-8")
+    assert achados, "nenhum template encontrado em dashboard/"
+    return achados
+
+
+def test_d54_template_decide_visibilidade_pelo_dado_e_nao_por_lista_de_nomes():
+    """Guarda de regressao lida no TEMPLATE, como texto. A visibilidade tem de
+    sair do cubo: um nome de head, de pessoa ou de canal escrito no template
+    seria a correcao pontual que a governanca proibe."""
+    proibidos = ["MICHEL", "ADEMIR", "IZABELA", "MAYKON",
+                 "CASH & CARRY", "ATACADO GENERALISTA", "VAREJO ESPECIALIZADO"]
+    for nome, txt in _ler_templates().items():
+        alto = txt.upper()
+        for termo in proibidos:
+            assert termo not in alto, f"{nome} carrega o valor de negocio {termo!r}"
+        assert "atualizarOpcoes" in txt or "opcoesComDado" in txt, \
+            f"{nome} perdeu a funcao de visibilidade dinamica (D-54)"
+
+
+def test_d51_nada_cinza_continua_valendo_depois_da_d54():
+    """A D-54 esconde, nunca esmaece: o estado cinza segue proibido."""
+    for nome, txt in _ler_templates().items():
+        assert ".chip.semdado" not in txt, f"{nome} reintroduziu o chip esmaecido"
+        assert "marcarChipsVazios" not in txt, f"{nome} voltou a marcar em vez de esconder"
+        assert "[disabled]" not in txt, f"{nome} reintroduziu elemento desabilitado"
+
+
+def test_d55_template_tem_uma_unica_escada_de_formatacao():
+    """D-55: `abrev` e a unica formatacao de metrica. As duas concorrentes
+    (`rotCurto` no grafico e `escalaFixa` nas matrizes) nao podem voltar —
+    era delas a divergencia "112,7 mi" no rotulo x "R$ 112,74 mi" no tooltip."""
+    for nome, txt in _ler_templates().items():
+        corpo = txt
+        for morto in ("const rotCurto", "function escalaFixa"):
+            assert morto not in corpo, f"{nome} reintroduziu {morto}"
+        assert "const ESCALAS" in corpo, f"{nome} perdeu a tabela unica de escala"
+        # o prefixo de moeda nunca e literal: sai da unidade da metrica
+        assert 'un==="R$"' in corpo, f"{nome} perdeu o prefixo dirigido pela metrica"
+
+
 # ================================================================== runner
 def _rodar_sem_pytest() -> int:
     testes = [(n, o) for n, o in sorted(globals().items())

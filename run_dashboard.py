@@ -32,12 +32,18 @@ for _fluxo in (sys.stdout, sys.stderr):
     except (AttributeError, OSError):
         pass
 
+from src.load.cubos import COLS_PERFIL
 from src.utils import log as L
 from src.utils.config import CFG, PASTA_CURATED, caminho, preparar_pastas
 from src.utils.log import abortar, log, titulo
 
 _DASH = CFG["dashboard"]
 RE_LIB = re.compile(r"<!--LIB:([a-zA-Z0-9_-]+)-->")
+
+# D-54: as posicoes do perfil sao lidas da MESMA lista que monta o cubo — sem
+# numero magico aqui e sem risco de divergir se a ordem de COLS_PERFIL mudar.
+P_HEAD = COLS_PERFIL.index("HEAD")
+P_CANAL = COLS_PERFIL.index("CANAL")
 
 
 def _slug(s: str) -> str:
@@ -53,8 +59,24 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str) -> dict:
     contem as linhas de cubo cujo perfil carrega `rotulo` na posicao `pos`
     (0 = head, 1 = gerente, 2 = sup./exec.). E o filtro no nivel de DADOS: o
     que nao esta no arquivo nao existe para quem o abre — nao ha parametro de
-    interface que traga de volta. O indice de perfil e remapeado porque a
-    lista encolhe; a lista de heads tambem, para os chips do arquivo."""
+    interface que traga de volta.
+
+    D-54 (03/09/2026): TODA lista de dimensao que vira chip ou rotulo na tela e
+    recalculada sobre o cubo JA RECORTADO — nao so a de heads. Ate a D-52 so
+    `perfil` e `head` encolhiam, e o arquivo de um head continuava carregando a
+    lista de canais, de categorias e de SKUs da empresa inteira: o painel do
+    Michel Meira exibia o chip de um canal em que o squad dele nao tem uma
+    unica linha, e a nota de Categorias prometia "os 400 SKUs da base". A regra
+    e uma so, e vale para qualquer nivel: **opcao sem linha por tras dela nao
+    entra no arquivo**. Nada de lista de nomes, nada de excecao por pessoa.
+
+    O que NAO encolhe, de proposito:
+      * `cal` — remapear mes reindexaria os dois cubos e os ponteiros de LY;
+        mes sem faturamento e resolvido na interface, que ja sabe olhar o
+        indice por mes (`opcoesComDado`, template v4);
+      * `ban` e `corte_bandeira` — o corte das N maiores e declarado como
+        calculado sobre a base inteira, ANTES dos filtros (nota da aba
+        Bandeiras). Encolher aqui mudaria o significado do numero."""
     dims = pacote["dims"]
     manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[pos] == rotulo]
     mapa_perf = {i: j for j, i in enumerate(manter_perf)}
@@ -66,9 +88,30 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str) -> dict:
                 for l in pacote["cubo_sku"] if l[2] in mapa_perf]
 
     perfil = [dims["perfil"][i] for i in manter_perf]
+
+    # ---- categoria e SKU: reindexados sobre o que sobrou -----------------
+    # A categoria viaja como INDICE nos dois cubos (coluna 2 do principal e a
+    # 3a posicao do rotulo de SKU). Encolher a lista sem remapear os dois
+    # apontaria para a categoria errada — por isso o mapa e aplicado nas duas
+    # pontas na mesma passada.
+    manter_cat = sorted({l[2] for l in cubo})
+    mapa_cat = {c: i for i, c in enumerate(manter_cat)}
+    manter_sku = sorted({l[1] for l in cubo_sku})
+    mapa_sku = {s: i for i, s in enumerate(manter_sku)}
+
+    cubo = [[l[0], l[1], mapa_cat[l[2]], l[3], l[4], l[5], l[6]] for l in cubo]
+    cubo_sku = [[l[0], mapa_sku[l[1]], l[2], l[3], l[4], l[5], l[6]]
+                for l in cubo_sku]
+
+    sku = [[cod, desc, mapa_cat.get(ic, -1)]
+           for cod, desc, ic in (dims["sku"][i] for i in manter_sku)]
+
     novo = dict(pacote)
     novo["dims"] = {**dims,
-                    "head": sorted({p[0] for p in perfil}),
+                    "head": sorted({perfil[l[3]][P_HEAD] for l in cubo}),
+                    "canal": sorted({perfil[l[3]][P_CANAL] for l in cubo}),
+                    "cat": [dims["cat"][i] for i in manter_cat],
+                    "sku": sku,
                     "perfil": perfil}
     novo["cubo"] = cubo
     novo["cubo_sku"] = cubo_sku

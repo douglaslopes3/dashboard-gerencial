@@ -41,11 +41,27 @@ ninguém consegue explicar depois.
 
 * **Combináveis** — todos aplicam em `AND` entre dimensões e em `OR` dentro da
   mesma dimensão.
-* **Só valores disponíveis** — a lista de cada filtro sai da dimensão, e o chip de
-  um valor que ficou sem dado no recorte atual aparece **esmaecido**.
+* **Só valores disponíveis** — a lista de cada filtro sai da dimensão, e a opção
+  que ficou sem dado no recorte atual **não é exibida** (D-54, 03/09/2026).
+  Até a D-51 ela aparecia **esmaecida**; o esmaecimento saiu com a regra global
+  "nada cinza" e, na D-54, foi substituído por **esconder**:
+  * opção sem dado e sem seleção → some;
+  * opção sem dado **já selecionada** → fica, com o contador **"0"** (apagar
+    uma seleção do usuário em silêncio é pior que exibir o zero). O "0" é um
+    contador, não um estado cinza: o chip mantém cor, contraste e clique;
+  * **linha de filtro com menos de duas opções some inteira** — botão sem
+    escolha é poluição;
+  * a regra vale para Canal, Categoria, Head, Ano, Meses e o "Top" de
+    Bandeiras, em **todos** os níveis (Full, N1, N2, N3), e é decidida pelo
+    dado — nunca por lista de nomes.
 * **Seleção vazia = sem filtro**, nunca "nenhum dado". Desmarcar tudo em Meses é
   o único caso que zera a tela, e ela diz isso em texto.
-* **`✕ Limpar filtros`** sempre visível.
+* **`✕ Limpar filtros`** aparece quando há filtro de dimensão ativo (D-54);
+  sem nada para limpar, a linha sai da tela.
+* **Escopo se resolve no dado, não na tela** — o arquivo de um colaborador
+  (N1/N2/N3) já nasce sem as dimensões que não existem no escopo dele
+  (`filtrar_por_nivel`): não há filtro, link ou parâmetro capaz de trazer de
+  volta o que não está no arquivo.
 * **Estado visível** — uma linha de status permanente diz o que está ativo, por
   ex.: *"FY2026 · set/25–ago/26 · 3 categorias · 1 head · métrica: Valor R$"*.
 * **Título dinâmico** — cada card diz período e base de comparação.
@@ -129,16 +145,30 @@ explicação.
 
 | Grandeza | Formato | Exemplo |
 |---|---|---|
-| Receita | `R$` + abreviação | `R$ 2,26 bi` · `R$ 106,6 mi` · `R$ 1.234` |
-| Volume | toneladas, 1 casa | `161.321,5 t` |
-| Caixas | inteiro com separador | `32.659.819` |
-| Preço | `R$ 14,01 /kg` | 2 casas |
+| Receita | `R$` + abreviação | `R$ 2,3 bi` · `R$ 25 mi` · `R$ 1,5 mi` · `R$ 25 mil` |
+| Volume | toneladas | `165,1 mil t` |
+| Caixas | caixas | `33,5 mi cx` |
+| Preço | `R$ 14,01 /kg` | 2 casas, **nunca abreviado** |
 | Percentual | 1 casa + sinal | `+12,4%` · `−3,1%` |
 | Negativo | **sinal `−` e cor**, nunca só cor | `−R$ 1,2 mi` |
 | Ganho / queda | **seta + sinal + cor** | `▲ +12,4%` · `▼ −3,1%` |
 
-Abreviação: `mil` a partir de 1.000, `mi` a partir de 1.000.000, `bi` a partir de
-1.000.000.000 — **consistente em toda a interface**.
+Abreviação (D-55, 03/09/2026): `mil` a partir de 1.000, `mi` a partir de
+1.000.000, `bi` a partir de 1.000.000.000, **uma casa decimal, omitida quando
+for zero** — `R$ 1 mil`, `R$ 25 mil`, `R$ 1,5 mi`, `R$ 25 mi`, `R$ 1,2 bi`.
+
+**Uma única função formata todo número de métrica** (`abrev`): card, big
+number, rótulo de barra, tick de eixo, tooltip, célula de matriz, total,
+subtotal e destaque. Não existe segunda escada de arredondamento.
+
+**O prefixo `R$` nunca é literal**: sai da unidade da métrica selecionada, e
+por isso **métrica não monetária nunca o recebe** — Volume sai com ` t`,
+Caixas com ` cx`, percentual sem nada. A única exceção é o preço médio
+(`R$ x,xx /kg`), que não é a métrica selecionada e sim uma razão com moeda
+própria (D-22).
+
+**Exportação continua crua**: o CSV/XLSX leva número sem `R$`, sem separador de
+milhar e com decimal por ponto. A formatação pt-BR é só de tela.
 
 **Cor nunca é o único indicador.** Toda variação leva seta e sinal, o que também
 resolve daltonismo e impressão em preto e branco.

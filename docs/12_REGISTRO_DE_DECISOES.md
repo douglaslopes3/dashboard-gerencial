@@ -1422,3 +1422,184 @@ Verificado DEPOIS: pipeline exit 0 e testes verdes. `_arquivo/` entrou no
 `.gitignore` (os poucos arquivos versionados lá dentro seguem rastreados,
 movidos com `git mv`). A raiz ficou com: bases, config, dashboard, data,
 docs, logs, src, tests, os dois run_*.py, README, AUDIT e requirements.
+
+---
+
+## D-54 · Visibilidade dinâmica dos botões: opção sem dado **some** (03/09/2026)
+
+**Contexto.** Teste do Douglas no painel do head **Michel Meira**: o botão de
+Canal aparecia mesmo sem conteúdo, dado ou opção por trás dele. A varredura do
+projeto mostrou que o caso não era do canal nem daquele head.
+
+**Diagnóstico (medido no código, 03/09/2026).**
+
+1. A regra "só valores disponíveis" existia na `docs/08 §1.2` e era
+   implementada como **esmaecimento** (`.chip.semdado`, `marcarChipsVazios`).
+   A **D-51 removeu o mecanismo inteiro** pela regra global "nada cinza", e
+   **nada ficou no lugar**: desde então nenhum chip tem validação de conteúdo.
+2. A causa raiz do caso do Michel é da **geração**, não da interface:
+   `run_dashboard.py → filtrar_por_nivel` recortava fisicamente os cubos e
+   recalculava **só** `perfil` e `head`. `canal`, `cat` e `sku` viajavam do
+   tamanho da empresa inteira para dentro dos 72 arquivos por nível. O painel
+   do head oferecia canais em que o squad dele não tem uma única linha, e a
+   nota da aba Categorias prometia "os 400 SKUs da base" em arquivos que têm
+   uma fração disso.
+3. O mesmo valia para **Categoria**, **Ano** e **Meses**, para **todos** os
+   níveis (N1, N2 e N3) e também para o Template Full sob filtros.
+4. Achados menores da mesma varredura: os botões **↓CSV/↓XLSX** ficavam na tela
+   com a tabela vazia e o clique não fazia nada (`registrarExport` os criava
+   uma vez e nunca os removia; `vazio()` apagava o `RAW[id]` que
+   `exportarTabela` procura); **Limpar filtros** aparecia sem nada para
+   limpar; e os cortes do seletor **Top** de Bandeiras eram idênticos entre si
+   quando o recorte tem menos bandeiras que o corte.
+
+**Decisão (aprovada pelo Douglas em 03/09/2026).** Uma regra só, para todo
+botão do painel e todo nível da hierarquia: **um botão só aparece quando existe
+pelo menos uma linha de dado por trás dele no contexto atual** — recorte do
+arquivo + filtros de dimensão + meses selecionados.
+
+- opção sem dado e **sem seleção** → não é desenhada;
+- opção sem dado **já selecionada** → fica, com o contador **"0"**. Apagar uma
+  seleção do usuário em silêncio é pior que exibir o zero. O "0" é um
+  contador, **não** um esmaecimento: o chip mantém cor, contraste e clique, e
+  a regra global da D-51 continua verificada (zero `[disabled]`, zero cinza);
+- **linha de filtro com menos de duas opções some inteira** — botão sem
+  escolha é poluição. O que era exceção de um filtro (Head oculto no arquivo
+  por nível, L3-D/D-52) virou a regra geral;
+- ↓CSV/↓XLSX saem do cabeçalho do card quando a tabela fica vazia e voltam
+  sozinhos no primeiro render com dado; **Limpar filtros** só existe com
+  filtro ativo; o **Top** oferece os cortes abaixo do universo do recorte mais
+  o primeiro que o cobre inteiro.
+
+**Onde mora, em duas camadas — e por quê.**
+
+| Camada | Arquivo | O que faz |
+|---|---|---|
+| Geração | `run_dashboard.py → filtrar_por_nivel` | `canal`, `cat` e `sku` passam a ser recalculados sobre o cubo **já recortado**, como `head` e `perfil` já eram. Escopo se resolve no DADO: o que não está no arquivo não pode ser exibido nem recuperado por parâmetro de interface |
+| Interface | `dashboard/template_v4.html → atualizarOpcoes` / `chips` | dentro do arquivo, o que os filtros ativos zeram também sai da tela |
+
+**Sem hardcode.** Não há lista de nomes, cargos, canais ou pessoas em lugar
+nenhum: quem decide é o cubo. A varredura confirmou que a única lista nominal
+do projeto é `validacao.valores_esperados`, que segue sendo só gabarito de
+conferência. Guardas de regressão em `tests/test_regras.py`.
+
+**Custo.** `passaPrincipal(l, ignorar)` já sabia remover uma dimensão do filtro
+(era assim que o denominador da participação % era montado): a mesma função
+responde "esta opção teria dado se ela mesma não estivesse filtrando?" — nenhuma
+linha de agregação foi duplicada. A varredura é **uma só** para todas as
+dimensões, por render.
+
+**O que NÃO encolhe, de propósito.** `cal` (remapear mês reindexaria os dois
+cubos e os ponteiros de LY — mês sem faturamento é resolvido na interface) e o
+corte de bandeira, que a própria tela declara como calculado sobre a base
+inteira, **antes** dos filtros.
+
+**Nenhum número muda.** As listas de chip não entram em nenhuma soma; o recorte
+físico já garantia os totais. Reconciliação e particionamento por nível
+seguem idênticos.
+
+**Aplicado também no `template_v3.html`** (decisão do Douglas), para o retorno
+rápido não divergir no comportamento — lá vale só a camada de interface, porque
+reativar o v3 exige `git checkout` do pipeline pré-D-51, e nesse checkout volta
+o `run_dashboard.py` daquela data.
+
+**Rollback.** git (commit da D-53).
+
+---
+
+## D-55 · Formatação única de valor: um "R$" para todo o painel (03/09/2026)
+
+**Contexto.** Pedido do Douglas: com a métrica **Valor R$** selecionada, todo
+indicador monetário deve sair com prefixo, escala abreviada e formato
+consistente — e métrica não monetária **nunca** pode receber R$.
+
+**Diagnóstico (medido, 03/09/2026).** A formatação já era razoavelmente
+central (`abrev` + `fmtMetrica`) e o R$ já vinha da métrica ativa
+(`METRICAS[F.metrica].un`), então **não havia R$ aplicado indevidamente** em
+Volume, Caixas ou percentuais. Os problemas eram três:
+
+1. **`rotCurto`** — uma segunda função de abreviação, privada do gráfico de
+   Evolução, que **não recebia unidade**: os rótulos desenhados sobre as barras
+   saíam sem R$ enquanto o eixo e o tooltip da mesma barra saíam com R$;
+2. **casas decimais divergentes** entre as duas escadas (mi com 2 casas em
+   `abrev`, 1 em `rotCurto`): a mesma barra mostrava `112,7 mi` no rótulo e
+   `R$ 112,74 mi` no tooltip;
+3. **`escalaFixa`** — as matrizes imprimiam número puro nas colunas de série e
+   declaravam a escala uma vez no cabeçalho (F1-G), convivendo com as colunas
+   ATUAL/ANT./Δ que traziam R$. Dentro da mesma tabela, parte tinha moeda e
+   parte não.
+
+**Decisão (aprovada pelo Douglas em 03/09/2026).**
+
+- **`abrev(v, un)` é a única formatação de métrica do painel** — card, big
+  number, rótulo de barra, tick de eixo, tooltip, célula de matriz, total,
+  subtotal e destaque de ganho/queda. `rotCurto` e `escalaFixa` **saíram**;
+- escala **mil / mi / bi**, **uma casa decimal, omitida quando for zero**:
+  `R$ 1 mil` · `R$ 25 mil` · `R$ 1,5 mi` · `R$ 25 mi` · `R$ 1,2 bi`;
+- o prefixo **nunca é literal**: vem sempre de `METRICAS[F.metrica].un`, que é
+  `R$` só em Valor. Volume sai ` t`, Caixas ` cx`, percentual não passa por
+  aqui. A única exceção legítima é `fmtPreco` (`R$ x,xx /kg`), porque R$/kg não
+  é a métrica selecionada — é uma razão com moeda própria, e o seletor global
+  não altera essa definição (D-22);
+- **isto SUPERA a F1-G**: a célula da matriz passou a repetir o prefixo. O
+  motivo declarado da F1-G era legibilidade; o motivo de superá-la é que número
+  que só faz sentido depois de ler a nota é número que alguém lê errado. As
+  colunas ficam mais largas de propósito (`white-space:nowrap` impede que
+  "R$ 7 mi" quebre em duas linhas).
+
+**Preservado.** Negativo com o sinal "−" de verdade sobre o módulo; zero como
+`–` na matriz; nulo como `n/d` (nunca `R$ NaN`, nunca falso −100%); `varPct` e
+`razao` inalteradas; e a **exportação CSV/XLSX continua levando número cru**,
+sem R$, sem separador de milhar e com decimal por ponto — a formatação pt-BR é
+só de tela.
+
+**Nenhum número muda** — só a forma de escrevê-lo. Guardas de regressão em
+`tests/test_regras.py`. **Aplicado também no `template_v3.html`.**
+
+**Rollback.** git (commit da D-53).
+
+---
+
+## D-56 · `desempate_vendedor_N4.csv` aposentado: a Hierarquia_Consolidada é a única fonte (03/09/2026)
+
+**Contexto.** O Douglas informou que o desempate dos vendedores N4 foi
+incorporado direto na `Hierarquia_Consolidada.xlsx` e que as linhas duplicadas
+foram removidas, e pediu a verificação antes de aposentar o arquivo de pedido.
+
+**Verificado (varredura de 03/09/2026).** `docs/pedidos/desempate_vendedor_N4.csv`
+**não tem nenhuma dependência de código**: zero ocorrências do nome em
+`run_pipeline.py`, `run_dashboard.py`, `cadastros.py`, `dimensoes.py`,
+`cubos.py`, `saneamento.py`, `qualidade.py`, `config.yaml` e `tests/`. Ele
+nunca foi lido nem escrito pelo pipeline — `qualidade.py` só grava em
+`data/quality/`, nunca em `docs/pedidos/`. Era um artefato de **pedido ao
+Comercial**: 13 linhas com a coluna `VENDEDOR CORRETO (preencher)` em branco.
+
+**Decisão.** Aposentado. Movido para `_arquivo/pedidos-encerrados/`
+(inventário em `_arquivo/LEIA-ME.md`), com o registro do encerramento em
+`docs/pedidos/LEIA-ME.md`. A `Hierarquia_Consolidada.xlsx` é a **única fonte**
+da estrutura comercial N1→N4.
+
+**O que NÃO sai.** O detector que gerou o pedido continua no lugar
+(`cadastros.py`: `HEAD/SUPERVISOR/VENDEDOR/COD_BANDEIRA` conflitantes por
+cliente → vale a 1ª linha COM AVISO) e a chave declarativa
+`dimensoes.estrutura_comercial.desempate_cliente` continua vazia no config.
+Nenhum dos dois é workaround de duplicidade antiga: o `drop_duplicates` é a
+**garantia de cardinalidade** que sustenta o `validate="m:1"` de `dim_cliente`
+(sem ela, uma duplicata futura multiplicaria o cubo em silêncio), e o detector
+é justamente o que **prova** que a base está limpa — quando está, ele não
+imprime nada.
+
+**Condição de aceite, ainda pendente.** A última execução do pipeline
+(`logs/pipeline_20260902-220859-7291ab.log`, 03/09 01:09) ainda registra
+`aviso 13 cliente(s) com VENDEDOR conflitante no de-para`, e a
+`Hierarquia_Consolidada.xlsx` foi modificada **depois** disso (03/09, 11:54).
+A aposentadoria só está confirmada quando um `python run_pipeline.py` sobre a
+base nova **não** trouxer mais esse aviso. O mesmo reprocessamento dirá se as
+correções declaradas `correcoes_head`/`correcoes_gerente` (`[Vago]` → `[VAGO]`,
+436 + 783 linhas na execução anterior) também ficaram ociosas — se ficarem,
+saem do config em decisão própria.
+
+**Legado identificado e mantido por ora.** `ROT_AUSENCIA` no template ainda
+carrega `"SEM UF"`, que é rótulo morto desde a D-51/Q10 (o eixo UF saiu dos
+cubos). Documentado aqui; a limpeza não foi feita junto com a D-54/D-55 para
+não misturar assuntos.
