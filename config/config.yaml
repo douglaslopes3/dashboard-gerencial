@@ -283,12 +283,32 @@ dashboard:
   # categoria expandida.)
   tops_bandeira: [10, 50, 100, 200, 300]
 
-  # Um arquivo por head, com o recorte aplicado na GERAÇÃO (o arquivo do head
-  # só carrega as linhas de cubo do próprio squad; não é filtro de interface).
-  # "NÃO ATRIBUÍDO" fica de fora: não é squad de ninguém.
-  por_head:
+  # D-52 (Fase 4): um arquivo por COLABORADOR, do N1 ao N3, com o recorte
+  # aplicado na GERACAO — o arquivo de um nivel so carrega as linhas de cubo
+  # do proprio escopo; nao e filtro de interface. O N4 NAO gera arquivo
+  # (decisao de 02/09: publicacao so ate N3; o N4 e o nivel expansivel dentro
+  # do arquivo do N3). Os baldes "NÃO ATRIBUÍDO" e "INATIVO (SANEAMENTO)"
+  # ficam de fora: nao sao escopo de ninguem.
+  # A chave de cada nivel e a POSICAO do componente no perfil do cubo:
+  # 0 = head (N1), 1 = gerente (N2), 2 = sup./exec. (N3).
+  por_nivel:
     ativo: true
-    prefixo: "Dashboard_Gerencial_Canais_v4_HEAD_"
+    niveis:
+      N1: 0
+      N2: 1
+      N3: 2
+    prefixo: "Dashboard_Gerencial_Canais_v4_"
+
+  # D-52 + Q13 (decisao do Douglas, 02/09/2026): publicar SUBSTITUINDO nas
+  # pastas por usuario em Paineis Comerciais\Gerencial\ — o Douglas
+  # compartilha cada pasta com o proprio usuario no SharePoint (permissao por
+  # heranca da pasta; arquivo substituido mantem o nome, entao os links
+  # continuam validos). O painel Full fica na RAIZ, fora das pastas
+  # compartilhadas. O nome da pasta e o rotulo completo do colaborador, com
+  # os caracteres invalidos de nome de pasta trocados por "-".
+  publicacao:
+    ativo: true
+    destino: "../Painéis Comerciais/Gerencial"
 
 logs:
   nivel: "info"

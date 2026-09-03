@@ -844,3 +844,25 @@ guardiao de erro                 pegou o esquecimento de renderHier na 1a
                                  geracao (tela de erro com a mensagem, nunca
                                  pagina em branco) — corrigido e regerado
 ```
+
+## T-44 · Arquivos por nível e publicação por pasta (D-52, 02/09/2026)
+
+```
+unitarios                        43/43 (novos: recorte por N3 com
+                                 particionamento do nivel no mini modelo;
+                                 sanitizacao do nome de pasta)
+geracao                          73 arquivos (Full + 4 N1 + 13 N2 + 55 N3)
+                                 em 12,4s, asserts de recorte por arquivo
+particionamento por nivel        N1 = N2 = N3: 2.264.205.766,93 + fora
+                                 54.545.595,37 = 2.318.751.362,30 (ao centavo)
+publicacao (Q13)                 72 pastas por usuario + Full na raiz de
+                                 Paineis Comerciais\Gerencial\ · substituicao
+                                 com MD5 conferido · nomes sanitizados
+                                 (Superv_RS/SC -> Superv_RS-SC)
+navegador (N3 Murilo Cunha)      matriz comeca em Sup./Exec. -> Vend./RCA ·
+                                 1 linha propria -> expande ao N4 (leaf sem
+                                 expansor) · filtro Head oculto · titulo
+                                 declara o recorte · console zero erros
+payload (N2 Marcelo Hunter)      85 perfis · um unico gerente no arquivo ·
+                                 R$ 270.982.163,63
+```

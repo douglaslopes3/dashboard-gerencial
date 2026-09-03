@@ -411,10 +411,11 @@ def test_d48_receita_por_sup_exec_bate_entre_os_dois_cubos():
 
 
 def test_d48_recorte_por_head_corta_os_dois_cubos_pelo_perfil():
+    # D-52: filtrar_por_head virou filtrar_por_nivel(pacote, 0, head).
     from src.load import cubos
-    from run_dashboard import filtrar_por_head
+    from run_dashboard import filtrar_por_nivel
     pac = cubos.construir(*_mini_modelo())
-    rec = filtrar_por_head(pac, "10 - H1")
+    rec = filtrar_por_nivel(pac, 0, "10 - H1")
     perfil = rec["dims"]["perfil"]
     assert rec["dims"]["head"] == ["10 - H1"]
     assert all(perfil[l[3]][0] == "10 - H1" for l in rec["cubo"])
@@ -422,6 +423,33 @@ def test_d48_recorte_por_head_corta_os_dois_cubos_pelo_perfil():
     assert all(perfil[l[2]][0] == "10 - H1" for l in rec["cubo_sku"])
     assert sum(l[4] for l in rec["cubo"]) == 100000      # R$ 1.000,00
     assert sum(l[4] for l in rec["cubo_sku"]) == 100000
+
+
+def test_d52_recorte_por_n3_e_particionamento_do_nivel():
+    """Fase 4: o mesmo recorte fisico vale para qualquer nivel do perfil, e
+    cada nivel PARTICIONA a base — a soma dos recortes fecha com o total."""
+    from src.load import cubos
+    from run_dashboard import filtrar_por_nivel
+    pac = cubos.construir(*_mini_modelo())
+    # N3 (posicao 2): sup "1200 - S2" atende os clientes 3 e 4 (300+400)
+    rec = filtrar_por_nivel(pac, 2, "1200 - S2")
+    perfil = rec["dims"]["perfil"]
+    assert all(perfil[l[3]][2] == "1200 - S2" for l in rec["cubo"])
+    assert all(perfil[l[2]][2] == "1200 - S2" for l in rec["cubo_sku"])
+    assert sum(l[4] for l in rec["cubo"]) == 70000       # R$ 700,00
+    # a lista de heads do arquivo encolhe junto (chips coerentes)
+    assert rec["dims"]["head"] == ["10 - H1"]
+    # particionamento do nivel N3: soma dos 3 sups = total
+    sups = {p[2] for p in pac["dims"]["perfil"]}
+    soma = sum(sum(l[4] for l in filtrar_por_nivel(pac, 2, s)["cubo"])
+               for s in sups)
+    assert soma == sum(l[4] for l in pac["cubo"]) == 210000
+
+
+def test_d52_pasta_usuario_sanitiza_caracteres_invalidos():
+    from run_dashboard import _pasta_usuario
+    assert _pasta_usuario("2320 - Superv_RS/SC - ALITSON") ==         "2320 - Superv_RS-SC - ALITSON"
+    assert _pasta_usuario('a<b>c:d"e|f?g*h\i') == "a-b-c-d-e-f-g-h-i"
 
 
 # ==================================== D-50 · RTM + saneamento (02/09, Fase 2)

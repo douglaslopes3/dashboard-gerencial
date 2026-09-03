@@ -456,7 +456,7 @@ canvas{max-height:280px}
        Detalhamento e o drill deram lugar a MATRIZ HIERARQUICA EXPANSIVEL
        Head > Gerente > Sup./Exec. > Vend./RCA. -->
   <div class="grid" style="grid-template-columns:1fr">
-    <div class="card"><h3>Matriz hierárquica <small>· Head → Gerente → Sup./Exec. → Vend./RCA</small><small id="sHier"></small></h3>
+    <div class="card"><h3>Matriz hierárquica <small id="cadHier"></small><small id="sHier"></small></h3>
       <div class="scroll"><table id="tabHier"></table></div>
       <div class="note" id="nHier"></div></div>
   </div>
@@ -520,8 +520,8 @@ const DB_CARGA = /*DADOS_INICIO*/null/*DADOS_FIM*/;
    14,66 MB do painel anterior, que ainda ignorava quatro filtros.
    A descompactacao e assincrona (DecompressionStream, nativo do navegador,
    sem rede) — por isso o motor so e "ligado" depois dela, em prepararDB(). */
-let DB, ESC, CAL, D, CUBO, CUBO_SKU, NM, SO_HEAD, IDX_CUBO, IDX_SKU,
-    METRICAS, CHAVE_LS;
+let DB, ESC, CAL, D, CUBO, CUBO_SKU, NM, RESTRITO, NIVEL0, IDX_CUBO,
+    IDX_SKU, METRICAS, CHAVE_LS;
 
 async function carregarDB(carga){
   if(carga && carga.z === "gzip+base64"){
@@ -542,7 +542,11 @@ function prepararDB(){
   NM = CAL.length;
   // D-46: arquivo gerado por head (P2-D). Num arquivo de head unico, detalhar
   // "por Head" e uma tabela de uma linha — a opcao sai dos seletores.
-  SO_HEAD = !!(DB.meta && DB.meta.recorte_head);
+  // D-52: arquivo restrito a um nivel (N1/N2/N3). RESTRITO oculta o filtro
+  // Head (so o Template Full o tem); NIVEL0 diz em que nivel a matriz
+  // hierarquica COMECA (N1 e Full em 0; N2 em 1; N3 em 2).
+  RESTRITO = !!(DB.meta && DB.meta.recorte);
+  NIVEL0 = ({N2:1, N3:2})[DB.meta && DB.meta.recorte_nivel] || 0;
   /* B1 (auditoria): indice por mes, construido UMA vez. Uma passada de mes
      unico visitava as linhas do cubo inteiro para usar uma fracao; com o
      indice, cada somar() so anda pelas linhas dos meses selecionados. */
@@ -560,7 +564,7 @@ function prepararDB(){
   // saneamento) chegam do gerador — o template nao carrega valor de negocio.
   (DB.rotulos_fora||[]).forEach(r=>{ if(r) ROT_AUSENCIA.add(r); });
   CHAVE_LS = "dashDoriCanais.recorte.v4"
-    + (DB.meta && DB.meta.recorte_head ? ".head."+DB.meta.recorte_head : "");
+    + (DB.meta && DB.meta.recorte ? ".rec."+DB.meta.recorte : "");
 }
 
 /* D-48: acessores unicos dos DOIS cubos. O eixo comercial passou a ser o mesmo
@@ -1385,11 +1389,16 @@ function notaMatriz(esc){
    permanece no Total geral, que fecha com os cards acima. */
 function renderHier(p){
   el("sHier").textContent=" · "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
+  // D-52: a profundidade e do TEMPLATE — o arquivo do N2 comeca no gerente,
+  // o do N3 no sup./exec. (os niveis acima nem existem no arquivo).
+  const NIVEIS=["Head","Gerente","Sup./Exec.","Vend./RCA"].slice(NIVEL0);
+  const POSN=[P_HEAD,P_GER,P_SUP,P_VEND].slice(NIVEL0);
+  el("cadHier").textContent="· "+NIVEIS.join(" → ");
   const fora=new Set((DB.rotulos_fora||[]).filter(Boolean));
   const escH=matrizNiveis({idTab:"tabHier", aba:"geral",
-    niveis:["Head","Gerente","Sup./Exec.","Vend./RCA"],
+    niveis:NIVEIS,
     pathFn:l=>{const pf=D.perfil[l[3]];
-      return [pf[P_HEAD],pf[P_GER],pf[P_SUP],pf[P_VEND]];},
+      return POSN.map(i=>pf[i]);},
     rotNo:(niv,k)=>k,
     usaSku:false, p, den:met(total(p.atual)), expSet:EXP.geral,
     topN:0, baldeK:null, foraSet:fora, ignorar:null});
@@ -1803,15 +1812,17 @@ function iniciar(){
   /* P2-D: arquivo gerado por head. A marca so DECLARA o recorte no titulo e
      no cabecalho; a restricao de verdade e do run_dashboard.py, que nao
      embute neste arquivo nenhuma linha de cubo de outro head. */
-  if(DB.meta.recorte_head){
-    document.title += " · " + DB.meta.recorte_head;
+  if(DB.meta.recorte){
+    document.title += " · " + DB.meta.recorte;
     const sp=document.querySelector("h1 span");
-    if(sp) sp.textContent = "· Sell In · " + DB.meta.recorte_head;
+    if(sp) sp.textContent = "· Sell In · " + DB.meta.recorte;
   }
   // L3-D (Q4): no arquivo por head a LINHA do filtro Head fica oculta — o
   // componente, a logica e os listeners continuam; e visibilidade por perfil,
   // nunca remocao. Nos demais perfis nada muda.
-  if(SO_HEAD) el("frowHead").hidden=true;
+  // D-52: so o Template Full tem o filtro Head — nos arquivos por nivel a
+  // linha fica oculta (ocultar/remover, nunca acinzentar).
+  if(RESTRITO) el("frowHead").hidden=true;
   const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
   const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
   F.fy=fys[fys.length-1]; F.ano=anos[anos.length-1];

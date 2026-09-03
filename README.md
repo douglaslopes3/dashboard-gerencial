@@ -7,7 +7,7 @@ Roda **100% local**, sem servidor, sem internet e **sem nenhuma IA**.
 
 ```
 python run_pipeline.py      # bases -> Parquet -> relatorio de qualidade
-python run_dashboard.py     # Parquet -> painel v4 + um arquivo por head
+python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publicados
 ```
 
 ---
@@ -56,7 +56,7 @@ cobertura da estrutura       97,65% da receita (piso 95% restaurado na D-50)
 cobertura de canal           100,00% da receita
 fora da hierarquia           R$ 54,55 mi (2,35%): inativos + pendentes Q5 +
                              RTM sem distribuidor + 71 antigos sem estrutura
-testes                       41/41 unitarios · 6/6 cenarios ponta a ponta
+testes                       43/43 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~25 s com cache · exit 0
 painel (v4, D-51)            11,35 MB · zero requisicao de rede · 3 ABAS:
                              Visao Geral · Bandeiras · Categorias
@@ -75,10 +75,19 @@ painel (v4, D-51)            11,35 MB · zero requisicao de rede · 3 ABAS:
                              elemento desabilitado/acinzentado em estado algum
                              template_v3 fica como retorno rapido (exige o
                              pipeline pre-D-51, via git)
-por head                     4 arquivos restritos (0,93 a 7,05 MB), recorte fisico
-                             na geracao: o arquivo de um head nao contem os
-                             dados dos outros squads; os baldes NAO ATRIBUIDO e
-                             INATIVO (SANEAMENTO) nao geram arquivo
+por nivel (D-52)             73 arquivos: Full + 4 N1 + 13 N2 + 55 N3, recorte
+                             FISICO na geracao (o arquivo de um nivel nao
+                             contem dados de fora do escopo; assert por
+                             arquivo); a matriz de cada arquivo comeca no
+                             proprio nivel (N2 -> Gerente..., N3 -> Sup./Exec...)
+                             o N4 nao gera arquivo (decisao 02/09); baldes
+                             fora-da-hierarquia tambem nao; particionamento
+                             reconciliado nos 3 niveis, ao centavo
+publicacao (Q13)             substituicao automatica na geracao: 72 pastas por
+                             usuario + o Full na raiz de Paineis Comerciais\
+                             Gerencial\, com MD5 conferido; o Douglas
+                             compartilha cada pasta com o proprio usuario
+                             (permissao por heranca; links preservados)
 ```
 
 **Auditoria completa** (26–27/08, cinco camadas, tudo medido): [`AUDIT.md`](AUDIT.md)
@@ -91,10 +100,10 @@ O caminho do dado bruto ao painel, sem ler código:
 em [docs/fluxo_geracao_painel.html](docs/fluxo_geracao_painel.html)). Cadência
 de atualização (Sell In diário; o resto estático):
 **[docs/14](docs/14_CADENCIA_DE_ATUALIZACAO.md)**. Saída do ambiente de IA para
-o SharePoint: **[docs/15](docs/15_PLANO_SHAREPOINT.md)**. Primeiro passo
-executado em 01/09/2026 (painéis publicados em `Documentos\Painéis
-Comerciais\Gerencial\`, permissões pendentes com o Douglas); as 5 decisões
-D-a a D-e seguem em aberto.
+o SharePoint: **[docs/15](docs/15_PLANO_SHAREPOINT.md)** — decidido e
+executado em 02/09/2026 (D-52/Q13): pasta por usuário em `Documentos\Painéis
+Comerciais\Gerencial\`, publicação por substituição na própria geração.
+Pendente do Douglas: compartilhar as 72 pastas e apagar os v3 antigos da raiz.
 
 ---
 
@@ -105,9 +114,11 @@ D-a a D-e seguem em aberto.
 3. Confira `data\quality\relatorio_qualidade.md`.
 4. `python run_dashboard.py` → abra
    `dashboard\build\Dashboard_Gerencial_Canais_v4.html` por **duplo clique**.
-   Saem também os 4 arquivos `..._v4_HEAD_<head>.html`, um por head, cada um
-   contendo apenas os dados do próprio squad. Regra de distribuição: cada head
-   recebe só o seu.
+   Saem também os **72 arquivos por nível** (`..._v4_N1_/_N2_/_N3_...`), cada
+   um contendo apenas os dados do próprio escopo — e a geração já **publica
+   substituindo** nas pastas por usuário de `Painéis Comerciais\Gerencial\`
+   (D-52/Q13; `dashboard.publicacao.ativo: false` desliga). Regra de
+   distribuição: cada colaborador recebe só a própria pasta.
 
 Nenhuma edição de código em nenhuma etapa. Detalhes e mensagens de erro em
 **[docs/10_GUIA_OPERACIONAL.md](docs/10_GUIA_OPERACIONAL.md)**.

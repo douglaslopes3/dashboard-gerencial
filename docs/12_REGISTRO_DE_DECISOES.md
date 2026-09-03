@@ -1355,3 +1355,52 @@ filtro Head e só com o próprio squad; zero erro de console.
 
 **Rollback.** git (commit da D-50) + `template_v3.html` na pasta (exige o
 pipeline da época, ver acima).
+
+---
+
+## D-52 · Fase 4: um arquivo por colaborador (N1–N3) e publicação por pasta de usuário (02/09/2026)
+
+**Contexto.** Step 3 do prompt da reestruturação, com duas decisões do
+Douglas: publicação **só até o N3** (02/09: "vamos publicar arquivos só até
+N3" — o N4 é o nível expansível dentro do arquivo do N3, sem arquivo
+próprio) e **Q13**: pastas com o nome de cada usuário em
+`Documentos\Painéis Comerciais\Gerencial\`, que ele compartilha no
+SharePoint com o próprio usuário (permissão por herança da pasta), e toda
+atualização **substitui** o arquivo dentro da pasta — mesmo nome, links
+preservados.
+
+**Decisão/implementação.**
+
+- `filtrar_por_head` generalizou para **`filtrar_por_nivel(pacote, pos,
+  rotulo)`**: o mesmo recorte físico de sempre, pela posição do componente
+  no perfil (0=head, 1=gerente, 2=sup./exec.), com assert de prova por
+  arquivo e a lista de heads do arquivo encolhida junto. Config em
+  `dashboard.por_nivel` (níveis e posições declarados) e
+  `dashboard.publicacao` (destino; `ativo: false` desliga a publicação).
+- Cada nível **particiona a base inteira** e a reconciliação roda nível a
+  nível: N1, N2 e N3 fecham idênticos em R$ 2.264.205.766,93 + fora da
+  hierarquia R$ 54.545.595,37 = R$ 2.318.751.362,30.
+- Template v4: `recorte`/`recorte_nivel` no lugar de `recorte_head`; a
+  matriz hierárquica **começa no nível do template** (Full/N1 em Head; N2
+  em Gerente; N3 em Sup./Exec. — profundidades exatas dos Templates 2-5 do
+  prompt; o Template 1/N4 não existe por decisão); cadeia declarada no
+  cabeçalho do card; filtro Head só no Full (oculto nos restritos).
+- Publicação: 72 pastas (4 N1 + 13 N2 + 55 N3) com o rótulo completo do
+  colaborador (caracteres inválidos → "-"), arquivo substituído com hash
+  MD5 conferido; **o Full vai para a raiz**, fora das pastas compartilhadas.
+  Postos [VAGO] (1 N2, 8 N3) geram pasta e arquivo normalmente — o Douglas
+  decide não compartilhar ou apontar o interino.
+
+**Medido (02/09/2026):** 73 arquivos (Full 11,35 MB · N1 0,93–7,05 MB · N2
+0,26–1,05 MB · N3 dezenas a centenas de KB) · geração + publicação em
+**12,4 s** · 95 MB no destino · verificado no navegador: arquivo N3 abre com
+matriz Sup./Exec. → Vend./RCA, uma linha própria expandindo aos N4, filtro
+Head oculto, título declarando o recorte, zero erro de console; payload do
+N2 contém um único gerente. Testes 43/43 + 6/6.
+
+**Pendências operacionais (do Douglas):** compartilhar as 72 pastas com os
+respectivos usuários (uma vez); apagar da raiz do destino os 5 arquivos v3
+de 01/09/2026 (substituídos pelo v4 — a geração não apaga nada que ela não
+criou); P7/docs-15 segue como registro histórico.
+
+**Rollback.** git (commit da D-51); a publicação é regenerável do build.

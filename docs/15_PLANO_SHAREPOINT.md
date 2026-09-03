@@ -1,5 +1,15 @@
 # 15 · Plano de disponibilização no SharePoint (saída do ambiente de IA)
 
+> **DECIDIDO E EXECUTADO em 02/09/2026 (D-52, Q13 da reestruturação):** o
+> modelo passou a ser **pasta por usuário** em `Painéis Comerciais\
+> Gerencial\` — 72 pastas (4 N1 + 13 N2 + 55 N3) criadas e populadas pela
+> própria geração (`run_dashboard.py` publica substituindo, com MD5
+> conferido; o Full fica na raiz). O Douglas compartilha cada pasta com o
+> respectivo usuário UMA vez; as atualizações mantêm nome e link. Isso
+> substitui o modelo de permissão por arquivo discutido abaixo; o restante
+> deste documento fica como registro. Pendente do Douglas: compartilhar as
+> 72 pastas e apagar da raiz os 5 arquivos v3 de 01/09.
+
 Objetivo: os heads consumirem os painéis **sem depender do ambiente de
 desenvolvimento**. O que segue é plano + **decisões em aberto para o Douglas**
 — nada aqui foi decidido nem executado.

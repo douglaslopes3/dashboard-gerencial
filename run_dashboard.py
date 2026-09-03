@@ -48,16 +48,15 @@ def _slug(s: str) -> str:
     return t[:60]
 
 
-def filtrar_por_head(pacote: dict, head: str) -> dict:
-    """Recorte FISICO por head: o pacote devolvido so contem as linhas de cubo
-    cujo perfil (cubo principal) ou par head/canal (cubo de SKU) pertencem ao
-    head pedido. E o filtro no nivel de DADOS: o que nao esta no arquivo nao
-    existe para quem o abre, nao ha parametro de interface que traga de volta.
-    O indice de perfil e remapeado porque a lista encolhe."""
-    # D-48: os DOIS cubos passaram a viajar pelo mesmo indice de perfil — o
-    # par `hc` deixou de existir, e o recorte por head virou um mapeamento so.
+def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str) -> dict:
+    """Recorte FISICO por um nivel da hierarquia (D-52): o pacote devolvido so
+    contem as linhas de cubo cujo perfil carrega `rotulo` na posicao `pos`
+    (0 = head, 1 = gerente, 2 = sup./exec.). E o filtro no nivel de DADOS: o
+    que nao esta no arquivo nao existe para quem o abre — nao ha parametro de
+    interface que traga de volta. O indice de perfil e remapeado porque a
+    lista encolhe; a lista de heads tambem, para os chips do arquivo."""
     dims = pacote["dims"]
-    manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[0] == head]
+    manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[pos] == rotulo]
     mapa_perf = {i: j for j, i in enumerate(manter_perf)}
 
     # D-51: sem o eixo UF os cubos tem 7 colunas (4 indices + 3 metricas).
@@ -66,13 +65,36 @@ def filtrar_por_head(pacote: dict, head: str) -> dict:
     cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5], l[6]]
                 for l in pacote["cubo_sku"] if l[2] in mapa_perf]
 
+    perfil = [dims["perfil"][i] for i in manter_perf]
     novo = dict(pacote)
     novo["dims"] = {**dims,
-                    "head": [head],
-                    "perfil": [dims["perfil"][i] for i in manter_perf]}
+                    "head": sorted({p[0] for p in perfil}),
+                    "perfil": perfil}
     novo["cubo"] = cubo
     novo["cubo_sku"] = cubo_sku
     return novo
+
+
+def _pasta_usuario(rotulo: str) -> str:
+    """Nome da pasta por usuario no SharePoint (Q13): o rotulo completo do
+    colaborador, legivel, com os caracteres invalidos de pasta trocados por
+    '-' (ex.: 'Superv_RS/SC' -> 'Superv_RS-SC')."""
+    nome = re.sub(r'[<>:"/\\|?*]', "-", str(rotulo)).strip(" .")
+    return nome[:100]
+
+
+def publicar(origem: Path, destino_dir: Path) -> None:
+    """Copia SUBSTITUINDO (mesmo nome -> links do SharePoint continuam
+    validos) e confere o hash — padrao da publicacao de 01/09/2026."""
+    import hashlib
+    import shutil
+    destino_dir.mkdir(parents=True, exist_ok=True)
+    alvo = destino_dir / origem.name
+    shutil.copy2(origem, alvo)
+    h1 = hashlib.md5(origem.read_bytes()).hexdigest()
+    h2 = hashlib.md5(alvo.read_bytes()).hexdigest()
+    if h1 != h2:
+        abortar(f"publicacao corrompida: hash divergente em {alvo}")
 
 
 def embutir_libs(html: str) -> str:
@@ -229,38 +251,55 @@ def main() -> int:
     # do head so carrega as linhas de cubo do proprio squad. Nao e filtro de
     # interface — o que nao esta no arquivo nao pode ser exibido nem recuperado
     # por manipulacao de parametros.
-    ph = _DASH.get("por_head") or {}
-    if ph.get("ativo"):
+    # ------------------------------------------- arquivos por nivel (D-52)
+    # Um arquivo por colaborador, N1 a N3, recorte fisico na geracao. O N4
+    # nao gera arquivo (decisao de 02/09); os baldes fora-da-hierarquia
+    # tambem nao. Cada NIVEL particiona a base inteira — a reconciliacao
+    # roda nivel a nivel.
+    pn = _DASH.get("por_nivel") or {}
+    if pn.get("ativo"):
         sem_estrutura = CFG["dimensoes"]["rotulo_sem_estrutura"]
-        # D-50: o balde de inativos do saneamento tambem nao e squad de
-        # ninguem — sem isto, sairia um "arquivo do head INATIVO (SANEAMENTO)".
         rotulo_inativo = CFG["dimensoes"].get("rotulo_inativo")
         fora = {sem_estrutura, rotulo_inativo}
-        heads = [h for h in pacote["dims"]["head"] if h not in fora]
-        prefixo = ph.get("prefixo", "Dashboard_Gerencial_Canais_v3_HEAD_")
-        soma_heads = 0
-        log("")
-        log(f"recortes por head ({len(heads)}) — '{sem_estrutura}' fica de "
-            "fora: nao e squad de ninguem")
-        for head in heads:
-            pac = filtrar_por_head(pacote, head)
-            # Prova do recorte, nao confianca: nenhuma linha de outro head.
-            perf = pac["dims"]["perfil"]
-            assert all(perf[l[3]][0] == head for l in pac["cubo"])
-            assert all(perf[l[2]][0] == head for l in pac["cubo_sku"])
-            rec_head = sum(l[4] for l in pac["cubo"])      # centavos, exato
-            soma_heads += rec_head
-            # L3-G: sem rodape; titulo e cabecalho seguem declarando o
-            # recorte (P2-D) — a restricao de verdade continua sendo o
-            # recorte fisico das linhas de cubo, feito acima.
-            pac["meta"] = {**pacote["meta"], "recorte_head": head}
-            escrever(pac, f"{prefixo}{_slug(head)}.html")
-        # Reconciliacao do particionamento: heads + sem-estrutura = base.
-        rec_total = sum(l[4] for l in pacote["cubo"])
-        rec_resto = rec_total - soma_heads
-        log(f"particionamento fecha: heads R$ {br(soma_heads / 100)} + "
-            f"fora da hierarquia ('{sem_estrutura}' + inativos) "
-            f"R$ {br(rec_resto / 100)} = R$ {br(rec_total / 100)}", "ok")
+        prefixo = pn.get("prefixo", "Dashboard_Gerencial_Canais_v4_")
+        pub = _DASH.get("publicacao") or {}
+        destino = caminho(pub["destino"]) if pub.get("ativo") else None
+        rec_total = sum(l[4] for l in pacote["cubo"])      # centavos, exato
+        n_arquivos = 0
+        for nome_nivel, pos in (pn.get("niveis") or {}).items():
+            pos = int(pos)
+            rotulos = sorted({p[pos] for p in pacote["dims"]["perfil"]} - fora)
+            log("")
+            log(f"recortes {nome_nivel} ({len(rotulos)}) — baldes "
+                "fora-da-hierarquia nao geram arquivo")
+            soma_nivel = 0
+            for rot in rotulos:
+                pac = filtrar_por_nivel(pacote, pos, rot)
+                # Prova do recorte, nao confianca: nenhuma linha de fora.
+                perf = pac["dims"]["perfil"]
+                assert all(perf[l[3]][pos] == rot for l in pac["cubo"])
+                assert all(perf[l[2]][pos] == rot for l in pac["cubo_sku"])
+                soma_nivel += sum(l[4] for l in pac["cubo"])
+                # P2-D/L3-G: titulo e cabecalho declaram o recorte; a
+                # restricao de verdade e o recorte fisico feito acima.
+                pac["meta"] = {**pacote["meta"], "recorte": rot,
+                               "recorte_nivel": nome_nivel}
+                alvo_n = escrever(pac, f"{prefixo}{nome_nivel}_{_slug(rot)}.html")
+                n_arquivos += 1
+                if destino:
+                    publicar(alvo_n, destino / _pasta_usuario(rot))
+            # Cada nivel particiona a base: rotulos + fora = total.
+            resto = rec_total - soma_nivel
+            log(f"particionamento {nome_nivel} fecha: "
+                f"R$ {br(soma_nivel / 100)} + fora da hierarquia "
+                f"R$ {br(resto / 100)} = R$ {br(rec_total / 100)}", "ok")
+        if destino:
+            # Q13: o painel Full vai para a RAIZ do destino, fora das pastas
+            # compartilhadas — e o unico com a visao corporativa inteira.
+            publicar(alvo, destino)
+            log("")
+            log(f"publicados {n_arquivos} arquivos por nivel (pasta por "
+                f"usuario) + o Full na raiz de {destino}", "ok")
 
     log("")
     log(f"tempo total ............ {time.time() - t0:.1f}s")
