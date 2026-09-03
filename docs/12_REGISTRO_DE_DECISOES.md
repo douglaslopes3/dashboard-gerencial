@@ -1404,3 +1404,21 @@ de 01/09/2026 (substituídos pelo v4 — a geração não apaga nada que ela nã
 criou); P7/docs-15 segue como registro histórico.
 
 **Rollback.** git (commit da D-51); a publicação é regenerável do build.
+
+---
+
+## D-53 · Arrumação do ambiente: pasta `_arquivo/` (03/09/2026)
+
+**Contexto.** Pedido do Douglas: despoluir a raiz do projeto para achar as
+coisas com facilidade. **Nada foi apagado** — tudo que não é lido pelo
+pipeline foi movido para `_arquivo/` (inventário e motivos em
+`_arquivo/LEIA-ME.md`): bases fora do escopo (Sell Out MTRIX/FEMSA/KAN,
+Previsão, Estoque, Alavancas, scorecards-comerciais, de-paras de sell-out —
+~518 MB), o protótipo e o prompt originais, os templates v1/v2 (o retorno
+rápido documentado é o v3), os backups pré-fases (conteúdo todo no git),
+o cache do DePara aposentado (D-34) e a `working/`. Verificado ANTES de
+mover: o projeto vizinho dos Scorecards não referencia esta pasta (grep).
+Verificado DEPOIS: pipeline exit 0 e testes verdes. `_arquivo/` entrou no
+`.gitignore` (os poucos arquivos versionados lá dentro seguem rastreados,
+movidos com `git mv`). A raiz ficou com: bases, config, dashboard, data,
+docs, logs, src, tests, os dois run_*.py, README, AUDIT e requirements.

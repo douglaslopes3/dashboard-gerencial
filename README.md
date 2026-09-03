@@ -235,13 +235,17 @@ vem do **conteúdo**, nunca do nome do arquivo.
 ## Estrutura
 
 ```
-bases/                     origem (somente leitura)
+bases/                     origem (somente leitura): Sell In, Canais,
+                           dimensões, RTM-Transicao, Metas
 data/{raw,staging,curated,quality}/
 src/{extract,transform,load,utils}/
-dashboard/{lib,template_v4.html,build/}   (template.html, template_v2.html e template_v3.html: retorno rapido)
+dashboard/{lib,template_v4.html,build/}   (template_v3.html: retorno rapido)
 config/{config.yaml,geografia.yaml}
 docs/  logs/  tests/
 run_pipeline.py  run_dashboard.py
+_arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
+                           templates v1/v2, backups pré-fases — nada lido pelo
+                           pipeline; ver _arquivo/LEIA-ME.md
 ```
 
 ## Documentação
