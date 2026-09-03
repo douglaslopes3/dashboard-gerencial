@@ -685,19 +685,51 @@ def test_d54_template_decide_visibilidade_pelo_dado_e_nao_por_lista_de_nomes():
     proibidos = ["MICHEL", "ADEMIR", "IZABELA", "MAYKON",
                  "CASH & CARRY", "ATACADO GENERALISTA", "VAREJO ESPECIALIZADO"]
     for nome, txt in _ler_templates().items():
-        alto = txt.upper()
+        alto = _sem_comentarios(txt).upper()
         for termo in proibidos:
             assert termo not in alto, f"{nome} carrega o valor de negocio {termo!r}"
         assert "atualizarOpcoes" in txt or "opcoesComDado" in txt, \
             f"{nome} perdeu a funcao de visibilidade dinamica (D-54)"
 
 
+def _sem_comentarios(txt: str) -> str:
+    """Tira comentarios /* */ e // do template.
+
+    Existe porque a 1a versao desta guarda dava FALSO POSITIVO: os templates
+    documentam, em comentario, que `.chip.semdado` e `marcarChipsVazios`
+    SAIRAM — e o teste acusava a propria documentacao da remocao. O que
+    interessa e o codigo: a regra CSS e a funcao, nao a mencao a elas.
+    """
+    fora, i, n = [], 0, len(txt)
+    while i < n:
+        j = txt.find("/*", i)
+        if j < 0:
+            fora.append(txt[i:])
+            break
+        fora.append(txt[i:j])
+        k = txt.find("*/", j + 2)
+        i = n if k < 0 else k + 2
+    limpo = "".join(fora)
+    return "\n".join(l for l in limpo.split("\n")
+                     if not l.lstrip().startswith("//"))
+
+
 def test_d51_nada_cinza_continua_valendo_depois_da_d54():
-    """A D-54 esconde, nunca esmaece: o estado cinza segue proibido."""
+    """A D-54 esconde, nunca esmaece: o estado cinza segue proibido.
+
+    Lido no CODIGO (comentarios fora): a regra CSS `.chip.semdado{`, a funcao
+    `marcarChipsVazios` e qualquer `[disabled]` nao podem voltar."""
     for nome, txt in _ler_templates().items():
-        assert ".chip.semdado" not in txt, f"{nome} reintroduziu o chip esmaecido"
-        assert "marcarChipsVazios" not in txt, f"{nome} voltou a marcar em vez de esconder"
-        assert "[disabled]" not in txt, f"{nome} reintroduziu elemento desabilitado"
+        codigo = _sem_comentarios(txt)
+        assert ".chip.semdado{" not in codigo.replace(" ", ""), \
+            f"{nome} reintroduziu a regra do chip esmaecido"
+        assert "marcarChipsVazios" not in codigo, \
+            f"{nome} voltou a marcar em vez de esconder"
+        assert "[disabled]" not in codigo, \
+            f"{nome} reintroduziu elemento desabilitado"
+        # a marca de ausencia de dado agora e um CONTADOR, nao um estado cinza
+        assert "opacity:.38" not in codigo.replace(" ", ""), \
+            f"{nome} reintroduziu esmaecimento por opacidade"
 
 
 def test_d55_template_tem_uma_unica_escada_de_formatacao():
@@ -705,7 +737,7 @@ def test_d55_template_tem_uma_unica_escada_de_formatacao():
     (`rotCurto` no grafico e `escalaFixa` nas matrizes) nao podem voltar —
     era delas a divergencia "112,7 mi" no rotulo x "R$ 112,74 mi" no tooltip."""
     for nome, txt in _ler_templates().items():
-        corpo = txt
+        corpo = _sem_comentarios(txt)
         for morto in ("const rotCurto", "function escalaFixa"):
             assert morto not in corpo, f"{nome} reintroduziu {morto}"
         assert "const ESCALAS" in corpo, f"{nome} perdeu a tabela unica de escala"

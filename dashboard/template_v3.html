@@ -301,9 +301,10 @@ tr.balde td:first-child::before{content:"Σ ";font-style:normal;font-weight:700;
   padding-top:8px;border-top:1px dashed #d3e0ee}
 .pbar .plab{font-size:11px;font-weight:700;color:var(--azul);margin-right:4px;
   text-transform:uppercase;letter-spacing:.4px}
-/* L3-B: .pnav e .prot sairam com os atalhos de periodo. */
-.mini[disabled]{opacity:.35;cursor:default}
-.mini[disabled]:hover{border-color:#bfd3e6;color:var(--txt2);background:#f7fafd}
+/* L3-B: .pnav e .prot sairam com os atalhos de periodo.
+   D-54 (03/09/2026): `.mini[disabled]` saiu junto — era CSS MORTO desde o
+   L3-B (nenhum elemento do v3 recebe o atributo `disabled`) e contrariava a
+   regra global "nada cinza", que a partir da D-54 vale nos dois templates. */
 /* v3 lote 2 (P2-A3): o painel de filtros movido para o TOPO de uma aba ganha
    respiro embaixo; abaixo do grafico (Visao Geral) o .grid ja da o espaco. */
 .panel > .filters:first-child{margin-top:2px}
