@@ -114,10 +114,11 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
     manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[pos] == rotulo]
     mapa_perf = {i: j for j, i in enumerate(manter_perf)}
 
-    # D-51: sem o eixo UF os cubos tem 7 colunas (4 indices + 3 metricas).
+    # D-51: sem o eixo UF o cubo principal tem 7 colunas (4 indices + 3
+    # metricas). D-64: o de SKU tem 6 (mes, sku, perfil + 3 metricas).
     cubo = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6]]
             for l in pacote["cubo"] if l[3] in mapa_perf]
-    cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5], l[6]]
+    cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5]]
                 for l in pacote["cubo_sku"] if l[2] in mapa_perf]
 
     perfil = [dims["perfil"][i] for i in manter_perf]
@@ -133,7 +134,7 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
     mapa_sku = {s: i for i, s in enumerate(manter_sku)}
 
     cubo = [[l[0], l[1], mapa_cat[l[2]], l[3], l[4], l[5], l[6]] for l in cubo]
-    cubo_sku = [[l[0], mapa_sku[l[1]], l[2], l[3], l[4], l[5], l[6]]
+    cubo_sku = [[l[0], mapa_sku[l[1]], l[2], l[3], l[4], l[5]]
                 for l in cubo_sku]
 
     sku = [[cod, desc, mapa_cat.get(ic, -1)]

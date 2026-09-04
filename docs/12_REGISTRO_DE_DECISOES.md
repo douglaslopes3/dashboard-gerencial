@@ -1927,3 +1927,25 @@ usuário escolher.
 guarda em `tests/test_regras.py`. Nenhum número muda.
 
 **Rollback.** git.
+
+
+---
+
+## D-64 · O eixo bandeira sai do cubo de SKU (03/09/2026)
+
+**Contexto.** A bandeira entrou no cubo de SKU na D-48 para o filtro de
+bandeira valer na aba de SKU. A D-51 removeu esse filtro e a matriz
+Categoria → SKU nunca leu o eixo: no template v4 o acessor `BANDE` só estava
+definido (medido por grep, zero usos). Era peso morto que multiplicava o cubo.
+
+**Medido (fato de 03/09):** cubo de SKU 866.028 linhas com bandeira →
+**680.530 sem** (base inteira); Atacado 501.706; Sul/CO 143.340; RS/SC
+118.891. É a folga que paga a D-65.
+
+**Decisão.** `cubo_sku` passa a ser `[mês, SKU, perfil, R, P, C]` (3 índices +
+3 métricas; o principal segue com 4 + 3). `cubos.py`, `reconciliar` (base 3),
+`filtrar_por_nivel` (remapeamento) e o template (`BASE_SKU`, `matrizNiveis`)
+acompanham; 5 testes atualizaram a posição da receita. Reconciliação cubo ×
+fato continua ao centavo. O template v3 já não lia este formato (D-51).
+
+**Rollback.** git.

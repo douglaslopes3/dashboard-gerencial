@@ -626,9 +626,10 @@ function prepararDB(){
 const PERF = (l,sku)=> D.perfil[sku ? l[2] : l[3]];
 // D-50: o VENDEDOR (N4) viaja na posicao 5 do perfil.
 const P_HEAD=0, P_GER=1, P_SUP=2, P_CAN=3, P_PROJ=4, P_VEND=5;
-// D-51: o eixo UF saiu dos cubos (Q10) — a bandeira do cubo de SKU andou uma
-// posicao; os dois cubos tem 4 indices + 3 metricas.
-const BANDE = (l,sku)=> sku ? l[3] : l[1];
+// D-51: o eixo UF saiu dos cubos (Q10). D-64 (03/09/2026): a BANDEIRA saiu do
+// cubo de SKU — nenhuma tela do v4 a lia de la (o acessor `BANDE` so estava
+// definido). Cubo principal: 4 indices + 3 metricas; cubo de SKU: 3 + 3.
+const BANDE = (l)=> l[1];                 // so no cubo principal
 const CATDE = (l,sku)=> sku ? D.sku[l[1]][2] : l[2];
 
 // indices das colunas do calendario
@@ -875,7 +876,8 @@ function passaSku(l, ignorar){
 
 /* ------------------------------------------------------------- agregacao */
 const MZERO = ()=>[0,0,0];
-const BASE_MET = 4;               // D-51: 4 indices nos DOIS cubos
+const BASE_MET = 4;               // D-51: 4 indices no cubo principal
+const BASE_SKU = 3;               // D-64: 3 indices no cubo de SKU
 function somar(meses, chaveFn, ignorar){
   const out = new Map();
   for(const mi of meses){
@@ -1427,6 +1429,7 @@ function matrizNiveis(cfg){
     const out=new Map();
     const idx=cfg.usaSku?IDX_SKU:IDX_CUBO;
     const passa=cfg.usaSku?passaSku:passaPrincipal;
+    const b=cfg.usaSku?BASE_SKU:BASE_MET;   // D-64: metricas em posicoes distintas
     for(const mi of ms){
       const linhas=idx[mi];
       for(let k=0;k<linhas.length;k++){
@@ -1434,7 +1437,7 @@ function matrizNiveis(cfg){
         if(!passa(l, cfg.ignorar)) continue;
         const ch=cfg.pathFn(l).join(SEP);
         let v=out.get(ch); if(!v){v=MZERO(); out.set(ch,v);}
-        v[0]+=l[BASE_MET]; v[1]+=l[BASE_MET+1]; v[2]+=l[BASE_MET+2];
+        v[0]+=l[b]; v[1]+=l[b+1]; v[2]+=l[b+2];
       }
     }
     return out;

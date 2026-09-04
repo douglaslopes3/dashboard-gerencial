@@ -169,20 +169,27 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # e por isso que run_dashboard.py grava os cubos COMPACTADOS — medido:
     # 7,44 MB no arquivo final, metade do painel anterior. As duas mudancas
     # (eixo e compactacao) andam juntas de proposito.
-    gs = (d.groupby(["ANO_MES", "COD_PRODUTO"] + COLS_PERFIL + ["BAN_CUBO"],
+    #
+    # D-64 (03/09/2026): a BANDEIRA SAIU deste cubo. Ela entrou na D-48 para
+    # o filtro de bandeira valer na aba de SKU; a D-51 tirou esse filtro e a
+    # matriz Categoria > SKU nunca leu o eixo (medido no template v4: `BANDE`
+    # so estava definido). Era peso morto: 866.028 -> ~680.530 linhas na base
+    # inteira, e e o que paga a D-65 (todas as bandeiras no cubo principal).
+    # Linha: [mes, sku, perfil, R, P, C] — 3 indices + 3 metricas.
+    gs = (d.groupby(["ANO_MES", "COD_PRODUTO"] + COLS_PERFIL,
                     observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
            .sum(min_count=1).reset_index())
     skus, i_sku = _indexar(dim_produto["COD_PRODUTO"].tolist())
     escs = _escalar(gs)
     cubo_sku = [[i_mes[am], i_sku[sk], i_perf[(hd, gr, sp, cn, pj, vd)],
-                 i_ban[bn], r, p, c]
-                for am, sk, hd, gr, sp, cn, pj, vd, bn, r, p, c
+                 r, p, c]
+                for am, sk, hd, gr, sp, cn, pj, vd, r, p, c
                 in zip(gs["ANO_MES"], gs["COD_PRODUTO"], gs["HEAD"],
                        gs["GERENTE"], gs["SUPERVISOR"], gs["CANAL"],
-                       gs["PROJETO"], gs["VENDEDOR"], gs["BAN_CUBO"],
+                       gs["PROJETO"], gs["VENDEDOR"],
                        escs["R"], escs["P"], escs["C"])]
     log(f"CUBO_SKU               {len(cubo_sku):>10,} linhas "
-        f"(ANO_MES x SKU x PERFIL x BANDEIRA)", "ok")
+        f"(ANO_MES x SKU x PERFIL)", "ok")
 
     # ------------------------------------------------------------ calendario
     idx_ly = [(i_mes[ly] if isinstance(ly, str) and ly in i_mes else -1)
@@ -240,9 +247,10 @@ def reconciliar(pacote: dict, fato: pd.DataFrame) -> list[str]:
     }
     escalas = (ESC_RECEITA, ESC_PESO, ESC_CAIXAS)
     ruins = []
-    # D-51: sem o eixo UF, os dois cubos tem 4 indices antes das metricas.
+    # D-51: sem o eixo UF, o cubo principal tem 4 indices antes das metricas.
+    # D-64: o de SKU tem 3 (a bandeira saiu dele).
     for nome, chave, base in (("CUBO_PRINCIPAL", "cubo", 4),
-                              ("CUBO_SKU", "cubo_sku", 4)):
+                              ("CUBO_SKU", "cubo_sku", 3)):
         linhas = pacote[chave]
         for k, (metrica, esc) in enumerate(zip(alvo, escalas)):
             soma = sum(l[base + k] for l in linhas) / esc

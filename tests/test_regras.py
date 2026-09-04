@@ -384,10 +384,9 @@ def test_d48_cubo_de_sku_usa_o_mesmo_perfil_e_o_par_hc_nao_existe_mais():
     pac = cubos.construir(*_mini_modelo())
     # o par head x canal saiu: era ele que fazia a aba de SKU ignorar filtros
     assert "hc" not in pac["dims"]
-    # D-51: sem o eixo UF — [mes, sku, perfil, bandeira] + [R, P, C]
-    assert all(len(l) == 7 for l in pac["cubo_sku"])
+    # D-51: sem o eixo UF; D-64: sem a bandeira — [mes, sku, perfil] + [R, P, C]
+    assert all(len(l) == 6 for l in pac["cubo_sku"])
     assert all(l[2] < len(pac["dims"]["perfil"]) for l in pac["cubo_sku"])
-    assert all(l[3] < len(pac["dims"]["ban"]) for l in pac["cubo_sku"])
 
 
 def test_d48_receita_por_sup_exec_bate_entre_os_dois_cubos():
@@ -402,7 +401,7 @@ def test_d48_receita_por_sup_exec_bate_entre_os_dois_cubos():
         por_sup_principal[k] = por_sup_principal.get(k, 0) + l[4]
     for l in pac["cubo_sku"]:
         k = perfil[l[2]][2]
-        por_sup_sku[k] = por_sup_sku.get(k, 0) + l[4]
+        por_sup_sku[k] = por_sup_sku.get(k, 0) + l[3]      # D-64: receita em 3
     assert set(por_sup_principal) == set(por_sup_sku)
     for k in por_sup_principal:
         # centavos: a diferenca aceita e a do arredondamento por grupo
@@ -422,7 +421,7 @@ def test_d48_recorte_por_head_corta_os_dois_cubos_pelo_perfil():
     # o cubo de SKU e cortado pelo MESMO indice de perfil (posicao 2)
     assert all(perfil[l[2]][0] == "10 - H1" for l in rec["cubo_sku"])
     assert sum(l[4] for l in rec["cubo"]) == 100000      # R$ 1.000,00
-    assert sum(l[4] for l in rec["cubo_sku"]) == 100000
+    assert sum(l[3] for l in rec["cubo_sku"]) == 100000
 
 
 def test_d52_recorte_por_n3_e_particionamento_do_nivel():
@@ -672,7 +671,7 @@ def test_d51_cubos_sem_eixo_uf_e_posicoes_do_template():
     assert all(len(l) == 7 for l in pac["cubo"])
     # soma da receita na posicao 4 = total do mini modelo (R$ 2.100 em centavos)
     assert sum(l[4] for l in pac["cubo"]) == 210000
-    assert sum(l[4] for l in pac["cubo_sku"]) == 210000
+    assert sum(l[3] for l in pac["cubo_sku"]) == 210000    # D-64: 3 indices
     # bandeira do cubo principal segue na posicao 1
     assert all(l[1] < len(pac["dims"]["ban"]) for l in pac["cubo"])
 
@@ -727,7 +726,7 @@ def test_d54_reindexacao_de_categoria_e_sku_aponta_para_o_rotulo_certo():
     assert all(cats[skus[l[1]][2]] == "BALA" for l in rec["cubo_sku"])
     assert all(skus[l[1]][0] == "30" for l in rec["cubo_sku"])
     assert sum(l[4] for l in rec["cubo"]) == 110000          # R$ 1.100,00
-    assert sum(l[4] for l in rec["cubo_sku"]) == 110000
+    assert sum(l[3] for l in rec["cubo_sku"]) == 110000
 
 
 def test_d54_recorte_preserva_calendario_e_o_corte_global():
