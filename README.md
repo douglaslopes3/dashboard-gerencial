@@ -12,25 +12,33 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 
 ---
 
-## Estado atual — medido em 02/09/2026 (ago/26 fechado + set/26 parcial)
+## Estado atual — medido em 03/09/2026 (execucao 20260903-155531; ago/26 fechado + set/26 parcial)
 
 ```
-29 arquivos de Sell In       3.121.445 linhas de origem   25 meses (2024-09 a 2026-09)
-receita liquida              R$ 2.318.751.361,89
-peso                         165.122,14 t
-caixas                       33.516.211
-fato                         3.117.999 linhas (3.446 100% zeradas descartadas, D-36)
-ATENCAO (aviso do detector)  ago/26 e set/26 vieram com RECORTE de extracao
-                             diferente dos 19 meses anteriores ("tipo mercado
-                             original", sem excluir "diversos") - ago/26 fechado
-                             subiu R$ 7,68 mi sobre o parcial (105,06 -> 112,74 mi);
-                             conferir com o BI se o recorte novo e o oficial
+29 arquivos de Sell In       3.130.712 linhas de origem   25 meses (2024-09 a 2026-09)
+receita liquida              R$ 2.325.132.314,80
+peso                         165.547,35 t
+caixas                       33.601.335
+fato                         3.127.196 linhas (3.516 100% zeradas descartadas, D-36)
+ATENCAO (aviso do detector)  3 recortes de extracao na serie: 19 meses ate
+                             jul/26, ago/26 ("tipo mercado original") e set/26
+                             ("tipo mercado e interno"); ago/26 fechado subiu
+                             R$ 7,68 mi sobre o parcial (105,06 -> 112,74 mi).
+                             Conferir com o BI qual recorte e o oficial (aberto
+                             desde 01/09)
 SKUs 400 · categorias 12 · canais 7 · heads 4 · gerentes 13 · Sup./Exec. 55
-                             Vend./RCA (N4) 204 (ingerido na D-50)
-                              bandeiras 300 nominais + balde de 10.989
-cod. de bandeira (D-42)      13.101 de 16.122 clientes (81,3% · 93,5% da receita),
+                             Vend./RCA (N4) 203 (ingerido na D-50)
+                             bandeiras 300 nominais (76,7% da receita) + balde
+                             de 10.048 (universo 10.348 depois da D-59)
+cod. de bandeira (D-42)      13.169 de 16.136 clientes (81,6% · 93,6% da receita),
                              lido da Hierarquia_Consolidada; desde a D-49 e
                              atributo do cadastro, sem funcao de join
+HIERARQUIA (D-56, D-61)      Hierarquia_Consolidada e a UNICA fonte (13.516
+                             clientes; desempate N4 incorporado na origem em
+                             03/09). Editar a base sem os 27 distribuidores
+                             derruba a cobertura para 75,40% e o pipeline
+                             aborta (aconteceu e foi restaurado em 03/09);
+                             ferramentas/diagnostico_cobertura.py explica
 METAS REMOVIDAS (D-49)       o tema Metas saiu inteiro do produto em 02/09/2026
                              (leitor D-43, CUBO_META/aba D-44, meta na Evolucao
                              D-45, bloco Meta x Realizado D-47): havera novo
@@ -63,15 +71,16 @@ reconciliacao com a fonte    29/29 arquivos, nas 3 metricas
 grao                         zero duplicados
 cobertura da estrutura       97,65% da receita (piso 95% restaurado na D-50)
 cobertura de canal           100,00% da receita
-fora da hierarquia           R$ 54,55 mi (2,35%): inativos + pendentes Q5 +
-                             RTM sem distribuidor + 71 antigos sem estrutura
-testes                       43/43 unitarios · 6/6 cenarios ponta a ponta
-pipeline                     ~2 min a frio · ~25 s com cache · exit 0
-painel (v4, D-51)            11,35 MB · zero requisicao de rede · 3 ABAS:
+fora da hierarquia           R$ 54,69 mi (2,35%), 1.053 clientes: 612 inativos
+                             + 158 pendentes Q5 + 166 RTM sem distribuidor +
+                             117 sem linha em base nenhuma
+testes                       55/55 unitarios · 6/6 cenarios ponta a ponta
+pipeline                     ~2 min a frio · ~20 s com cache · exit 0
+painel (v4, D-51)            11,38 MB · zero requisicao de rede · 3 ABAS:
                              Visao Geral · Bandeiras · Categorias
-                             cubos compactados no arquivo (30,8 MB -> 11,1 MB),
-                             SEM o eixo UF (Q10): 516 perfis com N4 · cubo
-                             principal 124.493 linhas · cubo SKU 866.562
+                             cubos compactados no arquivo (30,7 MB -> 11,1 MB),
+                             SEM o eixo UF (Q10): 517 perfis com N4 · cubo
+                             principal 123.900 linhas · cubo SKU 866.028
                              MATRIZ HIERARQUICA EXPANSIVEL na Visao Geral
                              (Head > Gerente > Sup./Exec. > Vend./RCA; linhas
                              sintese Σ para fora-da-hierarquia) · Bandeiras
@@ -127,7 +136,9 @@ de atualização (Sell In diário; o resto estático):
 o SharePoint: **[docs/15](docs/15_PLANO_SHAREPOINT.md)** — decidido e
 executado em 02/09/2026 (D-52/Q13): pasta por usuário em `Documentos\Painéis
 Comerciais\Gerencial\`, publicação por substituição na própria geração.
-Pendente do Douglas: compartilhar as 72 pastas e apagar os v3 antigos da raiz.
+Nomes sem sufixo de versão desde a D-58; painéis antigos recolhidos (D-60).
+Pendente do Douglas: compartilhar as 72 pastas (previsto para 04/09/2026, após
+a apresentação).
 
 ---
 
@@ -204,20 +215,24 @@ desabilitado ou acinzentado em estado algum — e, desde a **D-54**, um botão s
 aparece quando há pelo menos uma linha de dado atrás dele: opção sem dado some
 (a que o usuário já selecionou fica com o contador "0"), e a linha do filtro
 sai inteira quando não há escolha a fazer. A regra é decidida pelo dado, nunca
-por lista de nomes, e vale para Head, Gerente, Supervisor e Executivo. O painel de filtros (com o
+por lista de nomes, e vale para Canal, Categoria, Head, Ano, Meses e o "Top"
+de Bandeiras, em todos os arquivos (Full, N1, N2 e N3). O painel de filtros (com o
 "Ver por" e a linha de estado) existe em todas as abas: abaixo do gráfico
 de Evolução na Visão Geral, no topo nas demais.
 
-**Visão por head**: além do painel completo, a geração produz um arquivo por
-head com o recorte aplicado no nível de dados. Os cubos embutidos no arquivo de
-um head contêm somente as linhas do squad dele; não há filtro, link ou
-parâmetro capaz de exibir outro squad, porque o dado não está no arquivo.
+**Visão por colaborador (N1 a N3)**: além do painel completo, a geração
+produz um arquivo por head, por gerente e por Sup./Exec. com o recorte
+aplicado no nível de dados (D-52). Os cubos embutidos no arquivo de um
+colaborador contêm somente as linhas do escopo dele; não há filtro, link ou
+parâmetro capaz de exibir outro escopo, porque o dado não está no arquivo.
 Desde a **D-54**, as listas de **canal, categoria e SKU** também encolhem junto
-com o perfil — antes elas viajavam do tamanho da empresa inteira, e era por isso
-que o painel de um head exibia o chip de um canal sem nenhuma linha dele.
-Título e cabeçalho declaram a restrição (o rodapé textual saiu em D-47); o
-filtro Head fica oculto — componente preservado, visibilidade por perfil.
-Configuração em `config/config.yaml → dashboard.por_head`.
+com o perfil (antes elas viajavam do tamanho da empresa inteira, e era por isso
+que o painel de um head exibia o chip de um canal sem nenhuma linha dele), e
+desde a **D-57** a linha Σ de bandeiras declara a contagem do próprio arquivo.
+Título e cabeçalho declaram o recorte (o rodapé textual saiu em D-47); a matriz
+começa no nível do colaborador e o filtro Head fica oculto. O N4 não gera
+arquivo: é o nível expansível dentro do arquivo do N3. Configuração em
+`config/config.yaml → dashboard.por_nivel` e `dashboard.publicacao`.
 
 ---
 
@@ -235,10 +250,11 @@ Configuração em `config/config.yaml → dashboard.por_head`.
 1. **Caixas é métrica bruta.** Valor e Volume são líquidos de devolução; Caixas
    não — 93,7% das linhas de devolução não têm quantidade na origem. Desvio
    medido: **0,28%**.
-2. **O ranking de bandeiras é nominal nas 300 maiores** (73,7% do faturamento,
-   medido em 01/09/2026; na tela do v4 a cobertura é recalculada sob o recorte
-   ativo). As outras 10.989 **não somem**: entram agregadas, e todo total
-   continua reconciliando com a base.
+2. **O ranking de bandeiras é nominal nas 300 maiores** (76,7% do faturamento,
+   medido em 03/09/2026; na tela a cobertura é recalculada sob o recorte
+   ativo). As outras 10.048 **não somem**: entram agregadas na linha Σ, cuja
+   contagem é a do arquivo (D-57), e todo total continua reconciliando com a
+   base. O corte é o mesmo em todos os 73 arquivos.
 3. ~~**A camada de SKU cruza com head, canal, categoria e UF — não com
    gerente, bandeira nem projeto.**~~ **Resolvido em 02/09/2026 (D-48):** o
    cubo de SKU passou a carregar o mesmo perfil comercial do cubo principal
@@ -304,7 +320,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 08 | [Especificação funcional](docs/08_ESPECIFICACAO_FUNCIONAL_DASHBOARD.md) |
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
-| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-35 |
+| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-44 |
 | 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-61, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
@@ -316,13 +332,15 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 
 | # | Pendência | Dono | Tamanho medido | Onde está o material |
 |---|---|---|---|---|
-| P1 | Colar os **71 clientes sem estrutura** no DePara (head `Vago - 2600` já preenchido; falta gerente/supervisor) | **Comercial** | R$ 421 mil (0,02%) | `docs/pedidos/incluir_no_DePara_estrutura.xlsx` |
+| P1 | Classificar na `Hierarquia_Consolidada.xlsx` os clientes que faturam e não constam de base nenhuma (117 em 03/09/2026) | **Comercial** | dentro dos R$ 54,69 mi fora da hierarquia | `docs/pedidos/clientes_sem_estrutura.xlsx` (lista viva em `data/quality/clientes_sem_estrutura.csv`) |
+| P8 | **Q5**: os **158 clientes** com `Hierarquia = NÃO` e sell-in na janela (100 faturaram em jul/ago/26; 17 são distribuidores) precisam de N1–N4 na hierarquia. Sem decisão em 03/09; pedido gerado | **Comercial** | R$ 36,5 mi hist. · R$ 5,46 mi na janela mar–ago/26 | `docs/pedidos/pedido_Q5_hierarquia_158.xlsx` + `.md` (D-62) |
+| P9 | Confirmar qual **recorte de extração** do Sell In é o oficial (3 recortes na série desde ago/26) | **BI** | ago/26: +R$ 7,68 mi entre parcial e fechado | §10 do relatório de qualidade |
 | P2 | Reclassificar no `Canais.xlsx` os 3 clientes `KEY ACCOUNT` (R$ 0) e as 2 linhas de P&L (`Orçado/Rateio KR`) | **BI** | impacto zero de receita | `docs/pedidos/clientes_canal_key_account.csv` |
 | P3 | `KEY ACCOUNT NACIONAL/REGIONAL` são canais novos ou reclassificação? | **Comercial** | 90 clientes no de-para | GAP-01 / D-27 |
 | P4 | Caixas na devolução: pedir `Qtde` negativa ao BI (opção A), estimar pelo fator kg/caixa (B, cobre 98,6%) ou manter bruta (C, atual) | **Douglas decide** + BI | 0,28% das caixas | GAP-04 e a tabela de opções na conversa de 26/08 |
-| P5 | 7 SKUs fora do `Produtos.xlsx` | **Cadastro de Produtos** | R$ 910 mil (0,04%) | `data/quality/skus_sem_cadastro.csv` |
+| P5 | 4 SKUs fora do `Produtos.xlsx` (eram 7) | **Cadastro de Produtos** | R$ 1,04 mi (0,04%) | `data/quality/skus_sem_cadastro.csv` |
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
-| P7 | As **5 decisões do SharePoint** (D-a a D-e). Primeiro passo já executado em 01/09/2026: painéis publicados em `Painéis Comerciais\Gerencial\`; **falta o Douglas configurar as permissões** (cada `_HEAD_` só para o próprio head) | **Douglas decide** | — | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
+| P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática) | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
 
 ---
 

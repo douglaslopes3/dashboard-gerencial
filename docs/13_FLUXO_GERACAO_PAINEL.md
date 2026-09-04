@@ -2,38 +2,44 @@
 
 > Para entender o caminho do dado bruto até o painel publicado **sem ler
 > código**. Diagrama navegável em [`fluxo_geracao_painel.html`](fluxo_geracao_painel.html)
-> (abre por duplo clique). Estado medido em 26/08/2026; publicação (seção 5)
-> atualizada em 31/08/2026 com o painel v3 e os arquivos por head.
+> (abre por duplo clique). Reescrito em 03/09/2026 para o estado atual: painel
+> v4 (D-51), reatribuição RTM e saneamento (D-50, D-59), um arquivo por
+> colaborador com publicação automática (D-52, D-58). Números da execução
+> `20260903-155531`.
 
 ## O fluxo em uma linha
 
 ```
- 4 bases Excel ──► run_pipeline.py (6 passos) ──► modelo estrela (Parquet)
+ 6 bases Excel ──► run_pipeline.py (6 passos) ──► modelo estrela (Parquet)
                                                        │
-                     dashboard/template_v3.html ◄──────┤ cubos.json + resumo.json
+                     dashboard/template_v4.html ◄──────┤ cubos.json + resumo.json
                      + Chart.js embutido               │
                                 ▼                      ▼
-                     run_dashboard.py ──► dashboard/build/Dashboard_Gerencial_Canais_v3.html
-                                          (14,4 MB · um arquivo · abre por duplo clique)
-                                     └──► Dashboard_Gerencial_Canais_v3_HEAD_<head>.html
-                                          (um por head · so os dados do proprio squad)
+                     run_dashboard.py ──► dashboard/build/Dashboard_Gerencial.html
+                                          (11,4 MB · um arquivo · abre por duplo clique)
+                                     └──► Dashboard_Gerencial_N1_/N2_/N3_<colaborador>.html
+                                          (72 arquivos · só os dados do próprio escopo)
+                                     └──► publica substituindo em Painéis Comerciais\Gerencial\
+                                          (Full na raiz · um por pasta de colaborador · MD5 conferido)
 ```
 
 ---
 
 ## 1. Bases de origem — o que entra
 
-| # | Arquivo | Formato | Aba | O que traz | Cadência |
-|---|---|---|---|---|---|
-| 1 | `bases/Sell In/sellin_*.xlsx` (28 arquivos) e/ou `data/raw/sell_in/*.xlsx` | Excel | `Export` | **o faturamento**: 3.081.986 linhas úteis (D-36: 3.133 linhas 100% zeradas descartadas), mês × cliente × SKU, com Receita Líquida, Peso Líquido (kg) e Qtde Faturado (caixas). Cada arquivo tem um rodapé com a linha `Total` e o texto dos filtros da extração | **diária** (ver doc 14) |
-| 2 | `bases/Bases para tabelas dimensões/Produtos.xlsx` | Excel | `Produtos` | cadastro de SKU: código, descrição, **categoria**, **marca** (1.712 SKUs) | estática |
-| 3 | `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` + `Hierarquia_Complemento.xlsx` (D-34) | Excel | `Planilha1` | estrutura comercial por cliente: **head, gerente, supervisor, projeto** como rótulo `código - papel - nome` (13.448 clientes na oficial + 2.612 no complemento) | estática |
-| 4 | `bases/Canais/Canais.xlsx` | Excel | `Export` | **canal e subcanal** por cliente (43.073 clientes; cobre 100% do sell-in) | estática |
-| — | `config/config.yaml` + `config/geografia.yaml` | YAML | — | parâmetros: pastas, colunas obrigatórias, ano fiscal (set→ago), tolerâncias, correções declaradas (ex.: Maykon→Vago), cortes de exibição, nomes de UF | muda por decisão |
+| # | Arquivo | Aba | O que traz | Cadência |
+|---|---|---|---|---|
+| 1 | `bases/Sell In/sellin_*.xlsx` (29 arquivos) e/ou `data/raw/sell_in/*.xlsx` | `Export` | **o faturamento**: 3.127.196 linhas úteis (3.516 linhas 100% zeradas descartadas, D-36), mês × cliente × SKU, com Receita Líquida, Peso Líquido (kg) e Qtde Faturado (caixas). Cada arquivo tem um rodapé com a linha `Total` e o texto dos filtros da extração | **diária** (ver doc 14) |
+| 2 | `bases/Bases para tabelas dimensões/Produtos.xlsx` | `Produtos` | cadastro de SKU: código, descrição, **categoria**, **marca** | estática |
+| 3 | `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` | `Planilha1` | estrutura comercial por cliente, **N1 a N4** (head, gerente, sup./exec., vend./RCA) como rótulo `código - papel - nome`, mais projeto e código de bandeira. **Única fonte** da hierarquia (D-56): 13.516 clientes | estática, dono no Comercial |
+| 4 | `bases/Canais/Canais.xlsx` | `Export` | **canal e subcanal** por cliente (43.072 clientes; cobre 100% do sell-in) | estática |
+| 5 | `bases/RTM-Transicao/RTM_DePara_Transicao.xlsx` | `De-Para RTM` | 1.762 clientes que passaram a ser atendidos por **27 distribuidores** (166 sem código de distribuidor = exceção) | estática (D-50) |
+| 6 | `bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx` | `Planilha1` | 850 clientes sem vínculo, com a coluna `Hierarquia` SIM (70) / NÃO (780) que decide o saneamento | estática (D-50) |
+| — | `config/config.yaml` + `config/geografia.yaml` | — | parâmetros: pastas, colunas obrigatórias, ano fiscal (set→ago), tolerâncias, correções declaradas (`[Vago]` → `[VAGO]`), regras do saneamento (`rtm_herda_bandeira`, janela), cortes de exibição, nomes de saída e destino de publicação | muda por decisão |
 
-**O que NÃO entra:** Sell Out (MTRIX/FEMSA/KAN), Metas, Previsão, Estoque e
-Alavancas estão na pasta `bases/` mas **nenhum é lido** — fora do escopo deste
-painel (são insumo dos Scorecards de canal, projeto vizinho).
+**O que NÃO entra:** Sell Out (MTRIX/FEMSA/KAN), Previsão, Estoque, Alavancas
+e o arquivo de Metas foram para `_arquivo/bases-fora-do-escopo/` (D-53) ou
+ficaram em `bases/Metas/` sem leitor (D-49). Nenhum é lido.
 
 ---
 
@@ -43,12 +49,14 @@ painel (são insumo dos Scorecards de canal, projeto vizinho).
 1. **Localiza** os arquivos nas duas pastas declaradas no config; rejeita
    qualquer um sem as 12 colunas obrigatórias (aborta, nunca ingere pela metade).
 2. **Remove o rodapé**: a linha `Total` vira **gabarito de reconciliação** e o
-   texto `Filtros aplicados` é guardado para comparar o recorte entre meses.
+   texto `Filtros aplicados` é guardado para comparar o recorte entre meses
+   (hoje há 3 recortes na série: 19 meses, ago/26 e set/26; o aviso está
+   aberto com o BI).
 3. **Normaliza**: `Ano mês` → `AAAA-MM`; `Cód. cliente`/`Cód. material` → só
    dígitos, **sem zeros à esquerda**; textos com trim/maiúscula; números com
    sinal preservado (devolução é negativa e **fica**); caixas nulas **ficam
-   nulas** (não viram zero).
-4. **Cache**: cada Excel lido vira um Parquet em `data/staging/` — reexecutar
+   nulas**; linha 100% zerada é descartada e contada (D-36).
+4. **Cache**: cada Excel lido vira um Parquet em `data/staging/`; reexecutar
    sem mudança de arquivo pula a leitura (chave = nome+tamanho+mtime+versão).
 
 ### Produtos (`src/extract/cadastros.py`)
@@ -56,23 +64,34 @@ Código sem zeros, textos normalizados. **Marca vem do cadastro, nunca é
 inferida da descrição.**
 
 ### Estrutura comercial (`src/extract/cadastros.py`)
-Código zero-preenchido (`0001010846`) → sem zeros (`1010846`) — sem isso o join
-casa com **zero** clientes. Correções **declaradas** no config são aplicadas
-aqui (hoje: `Maykon - 2600 → Vago - 2600`) e saem no log. Cliente duplicado:
-vence a 1ª linha, com aviso; desempate declarável no config.
+Código zero-preenchido (`0001010846`) → sem zeros (`1010846`); sem isso o join
+casa com **zero** clientes. Cabeçalhos com quebra de linha são normalizados.
+Cada nível N1–N4 vira um rótulo `código - papel - nome`. Correções
+**declaradas** no config são aplicadas aqui e saem no log. Cliente com linhas
+conflitantes: vence a 1ª, com aviso (desde a D-56 a base vem limpa; o detector
+continua).
 
 ### Canais (`src/extract/cadastros.py`)
 Mesmo tratamento de código; remove o rodapé de filtros; cliente com dois canais
 viraria aviso (hoje: zero).
 
+### RTM e Faltando (`src/extract/cadastros.py` → `src/transform/saneamento.py`)
+Só códigos e textos normalizados na extração. A regra vive na transformação e
+age **só na DIM_CLIENTE**: o cliente RTM herda do distribuidor hierarquia,
+projeto, canal e, desde a D-59, a **bandeira** (a de origem fica em
+`BANDEIRA_ORIGINAL`); cliente `Hierarquia = NÃO` sem sell-in na janela de 6
+meses fechados vira `INATIVO (SANEAMENTO)`; `NÃO` com sell-in fica listado
+para decisão (Q5, 158 clientes). Tudo parametrizado em `config → saneamento`.
+
 ### Derivadas (`src/transform/`)
-- `DIM_CALENDARIO`: gerada da amplitude dos meses do sell-in — os **dois
+- `DIM_CALENDARIO`: gerada da amplitude dos meses do sell-in; os **dois
   calendários** (civil e fiscal set→ago) como colunas da mesma tabela, mais o
   pareamento explícito `ANO_MES_LY` (junção, nunca deslocamento).
-- `DIM_CLIENTE`: nome/bandeira/UF **mais recentes** do sell-in + head/gerente/
-  supervisor/projeto do de-para + canal/subcanal do Canais.xlsx. Quem não está
-  num de-para entra **marcado** (`NÃO ATRIBUÍDO` / `SEM CANAL`), nunca descartado.
-- `DIM_PRODUTO`: cadastro + os 7 SKUs órfãos adotados do próprio sell-in
+- `DIM_CLIENTE`: nome/bandeira/UF **mais recentes** do sell-in + N1–N4/projeto
+  da hierarquia + canal/subcanal do Canais.xlsx + as colunas do RTM e do
+  saneamento. Quem não está em base nenhuma entra **marcado** (`NÃO
+  ATRIBUÍDO` / `SEM CANAL`), nunca descartado.
+- `DIM_PRODUTO`: cadastro + os 4 SKUs órfãos adotados do próprio sell-in
   (`FORA_DO_CADASTRO = true`).
 
 ---
@@ -80,75 +99,82 @@ viraria aviso (hoje: zero).
 ## 3. Relacionamentos — como as bases se conectam
 
 ```
-                       DIM_CALENDARIO (24 linhas · PK ANO_MES)
+                       DIM_CALENDARIO (25 linhas · PK ANO_MES)
                               │ 1:N
   DIM_PRODUTO ────────── FATO_SELLIN ────────── DIM_CLIENTE
-  (494 · PK COD_PRODUTO)  3.081.986 linhas      (16.092 · PK COD_CLIENTE)
+  (400 · PK COD_PRODUTO)  3.127.196 linhas      (16.136 · PK COD_CLIENTE)
         1:N                                          1:N
 ```
 
 | Ligação | Chave | Cardinalidade | Integridade |
 |---|---|---|---|
-| Fato → Calendário | `ANO_MES` (`AAAA-MM`) | N:1 — 24 meses | 100%, aborta se quebrar |
-| Fato → Cliente | `COD_CLIENTE` (dígitos sem zeros) | N:1 — 16.092 clientes | 100% (a dimensão adota órfãos) |
-| Fato → Produto | `COD_PRODUTO` (idem) | N:1 — 494 SKUs | 100% (idem) |
-| Cliente → canal/head/gerente/projeto/bandeira/UF | atributos na própria `DIM_CLIENTE` | 1:1 por cliente | coberturas com piso: estrutura 99,98%, canal 100,00% (abaixo de 95% o pipeline aborta) |
+| Fato → Calendário | `ANO_MES` (`AAAA-MM`) | N:1, 25 meses | 100%, aborta se quebrar |
+| Fato → Cliente | `COD_CLIENTE` (dígitos sem zeros) | N:1, 16.136 clientes | 100% (a dimensão adota órfãos) |
+| Fato → Produto | `COD_PRODUTO` (idem) | N:1, 400 SKUs | 100% (idem) |
+| Cliente → canal/N1–N4/projeto/bandeira/UF | atributos na própria `DIM_CLIENTE` | 1:1 por cliente | coberturas com piso: estrutura 97,65%, canal 100,00% (abaixo de 95% o pipeline aborta) |
 | Produto → categoria/marca | atributos na própria `DIM_PRODUTO` | 1:1 por SKU | zero divergência medida entre sell-in e cadastro |
 
 **Grão da fato (declarado e medido):** *uma linha = o faturamento líquido de um
-SKU para um cliente em um mês* — zero duplicados em 24 meses. Não há snowflake:
+SKU para um cliente em um mês*; zero duplicados em 25 meses. Não há snowflake:
 toda dimensão liga direto na fato.
 
 ---
 
 ## 4. Pipeline — ordem, e o que cada etapa produz
 
-`python run_pipeline.py` — 6 passos, ~2 min a frio / ~20 s com cache, `exit 0`
+`python run_pipeline.py`: 6 passos, ~2 min a frio / ~20 s com cache, `exit 0`
 ou aborta com a causa (nenhum Parquet é atualizado num aborto):
 
 | # | Passo | O que faz | Produz |
 |---|---|---|---|
-| 1 | **EXTRAIR** | localiza, valida schema, tira rodapé, lê as 4 bases | `data/staging/*.parquet` (cache) |
+| 1 | **EXTRAIR** | localiza, valida schema, tira rodapé, lê as 6 bases | `data/staging/*.parquet` (cache) |
 | 2 | **FATO** | monta a fato, confere o **grão** (zero duplicados) e **reconcilia contra a linha `Total`** de cada arquivo, nas 3 métricas | — |
-| 3 | **DIMENSÕES** | calendário, cliente (com canal/estrutura), produto | — |
-| 4 | **INTEGRIDADE** | FKs 100% + pisos de cobertura (estrutura ≥95%, canal ≥95%) | — |
-| 5 | **AGREGAR** | os 2 cubos (principal 90.644 linhas: mês × bandeira × categoria × perfil × UF; SKU 368.699: mês × SKU × head/canal × UF) e a **reconciliação cubo × fato** — tudo **antes** de qualquer gravação (auditoria A6) | — |
+| 3 | **DIMENSÕES** | calendário, cliente (com canal, estrutura N1–N4, RTM e saneamento), produto | — |
+| 4 | **INTEGRIDADE** | FKs 100% + pisos de cobertura (estrutura ≥95%, canal ≥95%). Foi aqui que a edição da hierarquia sem os distribuidores abortou a 75,40% em 03/09 (D-61) | — |
+| 5 | **AGREGAR** | os 2 cubos, **sem o eixo UF** desde a D-51 (principal 123.900 linhas: mês × bandeira × categoria × perfil; SKU 866.028: mês × SKU × perfil × bandeira; perfil = head, gerente, sup./exec., canal, projeto, vendedor, 517 tuplas) e a **reconciliação cubo × fato**, tudo **antes** de qualquer gravação. A contagem do balde de bandeiras por nível nasce aqui (D-57) | — |
 | 6 | **GRAVAR + RELATAR** | o modelo estrela em Parquet; `cubos.json`/`resumo.json` gravados de forma **atômica** e carimbados com a execução (conferida pelo `run_dashboard.py`); relatório de qualidade | `data/curated/DIM_*.parquet`, `FATO_SELLIN/ANO=*/`, `cubos.json`, `resumo.json`, `data/quality/*` |
 
-**Regra de ouro do passo 6:** linha transacional **nunca** chega ao HTML — só
+**Regra de ouro do passo 6:** linha transacional **nunca** chega ao HTML, só
 agregado; e camada agregada que não reconcilia com a fato **não é publicada**.
 
 ## 5. Publicação — como o painel final nasce
 
-`python run_dashboard.py` (~1,3 s):
+`python run_dashboard.py` (~10 s para os 73 arquivos):
 
 1. Lê `data/curated/cubos.json` e `resumo.json` (e confere que os dois vêm da
    **mesma execução**; par trocado aborta).
-2. Abre o template apontado no config (hoje `dashboard/template_v3.html`) —
-   **a interface inteira vive aqui**, editada à mão; nenhuma linha de
-   HTML/CSS/JS nasce em Python.
-3. Faz **duas substituições de texto**: embute o
-   `dashboard/lib/chart.umd.min.js` no marcador de biblioteca e injeta o JSON
-   dos cubos entre os marcadores de dados (cada marcador precisa existir
-   exatamente 1 vez, senão aborta).
-4. Grava **`dashboard/build/Dashboard_Gerencial_Canais_v3.html`** — 14,4 MB,
-   um arquivo só, **zero requisições de rede**. Abre por duplo clique,
-   inclusive em `file://` no OneDrive, sem servidor e sem internet.
-5. **Arquivos por head** (config `dashboard.por_head`, 31/08/2026): para cada
-   head da base (menos `NÃO ATRIBUÍDO`, que não é squad de ninguém), gera
-   `..._HEAD_<head>.html` com o **recorte aplicado no nível de dados**: os
-   dois cubos são filtrados pelo perfil do squad antes de entrar no arquivo e
-   os índices são remapeados. O que é de outro head **não existe** dentro do
-   arquivo, então nenhuma manipulação de interface ou de parâmetro o traz de
-   volta. A geração confere por assert que nenhuma linha de outro head vazou
-   e loga a reconciliação do particionamento (soma dos heads + não atribuído
-   = base completa). Título, cabeçalho e rodapé de cada arquivo declaram a
-   restrição. **Distribuição: cada head recebe só o próprio arquivo.**
+2. Abre o template apontado no config (`dashboard/template_v4.html`): **a
+   interface inteira vive aqui**, editada à mão; nenhuma linha de HTML/CSS/JS
+   nasce em Python.
+3. Faz **duas substituições de texto**: embute o `dashboard/lib/chart.umd.min.js`
+   no marcador de biblioteca e injeta os cubos, **compactados** (gzip+base64,
+   30,7 MB → 11,1 MB; o navegador descompacta na abertura, sem rede), entre os
+   marcadores de dados (cada marcador precisa existir exatamente 1 vez).
+4. Grava **`dashboard/build/Dashboard_Gerencial.html`** (11,4 MB, um arquivo
+   só, **zero requisições de rede**; abre por duplo clique, inclusive em
+   `file://` no OneDrive).
+5. **Arquivos por nível** (config `dashboard.por_nivel`, D-52): para cada
+   head (N1), gerente (N2) e sup./exec. (N3) da base, `filtrar_por_nivel`
+   recorta os dois cubos no **nível de dados** e remapeia os índices; desde a
+   D-54 as listas de canal, categoria e SKU também encolhem, e desde a D-57 a
+   linha Σ de bandeiras é recontada para o arquivo. O que é de outro escopo
+   **não existe** dentro do arquivo. A geração confere por assert que nenhuma
+   linha vazou e loga o particionamento (soma do nível + fora da hierarquia =
+   base completa, ao centavo). Os baldes `NÃO ATRIBUÍDO` e `INATIVO
+   (SANEAMENTO)` não geram arquivo. Nomes: `Dashboard_Gerencial_N1_<head>.html`,
+   `_N2_<gerente>`, `_N3_<sup-exec>` (D-58).
+6. **Publicação** (config `dashboard.publicacao`, D-52/Q13): cada arquivo por
+   nível é copiado **substituindo** para a pasta do próprio colaborador em
+   `Documentos\Painéis Comerciais\Gerencial\` (nome da pasta = rótulo do
+   colaborador, caracteres inválidos trocados por `-`), e o Full vai para a
+   raiz; MD5 conferido em cada cópia. O Douglas compartilha cada pasta com o
+   respectivo colaborador uma vez; as gerações seguintes mantêm nome e link.
+   A geração **não apaga** o que ela não criou: painel antigo que sobrar numa
+   pasta é recolhido por `ferramentas/limpar_paineis_antigos.py` (D-60).
 
-O rodapé do painel é gerado nesta etapa a partir do `resumo.json` — nada é
-digitado à mão: nº de arquivos, linhas, período, totais, execução e as
-ressalvas medidas. Nos arquivos por head, uma linha inicial declara o recorte;
-os números de contexto do rodapé seguem sendo os da base completa.
+Não há rodapé textual desde a D-47: título e cabeçalho declaram o recorte, e
+as ressalvas (caixas bruta, corte de bandeiras, linhas Σ) ficam nas próprias
+telas que elas afetam.
 
-> Distribuição para os heads (SharePoint): plano e decisões em
+> Modelo de distribuição no SharePoint e o que ficou decidido:
 > [`15_PLANO_SHAREPOINT.md`](15_PLANO_SHAREPOINT.md).

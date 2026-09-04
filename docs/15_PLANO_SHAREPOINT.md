@@ -1,160 +1,63 @@
-# 15 · Plano de disponibilização no SharePoint (saída do ambiente de IA)
+# 15 · Distribuição no SharePoint — o que está em vigor e o que ficou aberto
 
-> **DECIDIDO E EXECUTADO em 02/09/2026 (D-52, Q13 da reestruturação):** o
-> modelo passou a ser **pasta por usuário** em `Painéis Comerciais\
-> Gerencial\` — 72 pastas (4 N1 + 13 N2 + 55 N3) criadas e populadas pela
-> própria geração (`run_dashboard.py` publica substituindo, com MD5
-> conferido; o Full fica na raiz). O Douglas compartilha cada pasta com o
-> respectivo usuário UMA vez; as atualizações mantêm nome e link. Isso
-> substitui o modelo de permissão por arquivo discutido abaixo; o restante
-> deste documento fica como registro. Pendente do Douglas: compartilhar as
-> 72 pastas e apagar da raiz os 5 arquivos v3 de 01/09.
+> Reescrito em 03/09/2026. O plano original de 26/08 (5 decisões D-a a D-e,
+> permissão por arquivo) foi **superado pela D-52/Q13** de 02/09/2026: pasta
+> por colaborador, publicação feita pela própria geração. O histórico das
+> opções está no git (`docs/15` até o commit da D-52) e em `docs/12`.
 
-Objetivo: os heads consumirem os painéis **sem depender do ambiente de
-desenvolvimento**. O que segue é plano + **decisões em aberto para o Douglas**
-— nada aqui foi decidido nem executado.
+## 1. O modelo em vigor (D-52/Q13, D-58, D-60)
 
-> **Executado em 01/09/2026 (primeiro passo, a pedido do Douglas):** criada a
-> pasta `Documentos\Painéis Comerciais\Gerencial\` no OneDrive corporativo e
-> publicados o painel completo v3 + os 4 arquivos por head (cópia com nome
-> temporário e renome, hashes conferidos contra o build). **Pendente e
-> importante:** as permissões são ação do Douglas na interface do
-> SharePoint/OneDrive — compartilhar cada arquivo `_HEAD_` **somente com o
-> próprio head** e restringir o painel completo à diretoria; sem isso a
-> segregação por arquivo não está em vigor. As decisões D-a a D-e continuam
-> abertas; os Scorecards não foram tocados.
+```
+Documentos\Painéis Comerciais\Gerencial\
+├── Dashboard_Gerencial.html                         Full: visão corporativa, só diretoria
+├── 10 - DISTRIBUICAO - MICHEL MEIRA\
+│   └── Dashboard_Gerencial_N1_10-distribuicao-michel-meira.html
+├── 21000 - Ger Reg_SP - HEBER SILVA\
+│   └── Dashboard_Gerencial_N2_21000-ger-reg-sp-heber-silva.html
+├── 1110 - Superv_SPI - MURILO CUNHA\
+│   └── Dashboard_Gerencial_N3_1110-superv-spi-murilo-cunha.html
+└── ... (72 pastas: 4 N1 + 13 N2 + 55 N3)
+```
 
-## 0. O que existe hoje, medido (26/08/2026)
-
-| Painel | Arquivo | Tamanho | Onde está |
-|---|---|---:|---|
-| **Gerencial de Canais** | `Dashboard_Gerencial_Canais.html` | **14,3 MB** | `Dashboard - Gerencial\dashboard\build\` |
-| Scorecard Distribuição | `Scorecard_Distribuição.html` | 16,9 MB | `Dashboards - Heads - Canais\Scorecards\` |
-| Scorecard Atacado | `Scorecard_Atacado.html` | 6,8 MB | idem |
-| Scorecard KAR | `Scorecard_KAR.html` | 4,8 MB | idem |
-| Scorecard KAN | `Scorecard_KAN.html` | 0,7 MB | idem |
-
-Todos são **HTML autocontidos**: um arquivo, zero rede, abrem por duplo clique.
-As duas pastas de projeto já vivem em `OneDrive - Dori Alimentos S.A` — ou
-seja, o armazenamento **já é** SharePoint/OneDrive corporativo; o que falta é a
-**camada de distribuição** (biblioteca própria, permissões e rotina de cópia),
-para os heads não enxergarem o projeto inteiro (bases, código, docs).
-
-## 1. O que vai para o SharePoint
-
-**Proposta: só os artefatos finais — nunca a pasta do projeto.**
-
-| Vai | Não vai (fica no ambiente de desenvolvimento) |
+| Aspecto | Como fica |
 |---|---|
-| os 5 HTML dos painéis | `bases/` (dado bruto — 16 mil clientes, receita por cliente), `data/` (parquets), `src/`, `config/`, `docs/`, `tests/`, `.git/`, logs |
-| (opcional, decisão D-e) 1 PDF de visão executiva por painel | os CSVs de exceção de `data/quality/` — são material de trabalho do BI/Comercial, não dos heads |
+| **O que vai** | só os 73 HTML autocontidos (agregado; linha transacional nunca chega ao HTML). `bases/`, `data/`, `src/`, `config/`, `docs/`, logs e os CSVs de exceção ficam no ambiente de desenvolvimento |
+| **Quem publica** | `python run_dashboard.py` (config `dashboard.publicacao`): copia **substituindo pelo mesmo nome** e confere o MD5 de cada cópia. Não há passo manual de cópia |
+| **Segregação** | por **conteúdo**: o arquivo de um colaborador só contém os dados do escopo dele (recorte físico na geração, D-52). A permissão da pasta é a segunda camada, não a única |
+| **Permissão** | o Douglas compartilha cada pasta com o respectivo colaborador **uma vez** (herança de permissão da pasta). Como o nome do arquivo não muda entre gerações, o link continua válido. O Full fica na raiz, fora das pastas |
+| **Como o colaborador abre** | o SharePoint Online **não renderiza `.html`** no navegador (clicar baixa o arquivo). Modo de uso: sincronizar a pasta no OneDrive e abrir por duplo clique no Explorer, o mesmo dos Scorecards. Link por Teams abre o visualizador, que não executa o painel |
+| **Nomes** | sem sufixo de versão desde a D-58 (`Dashboard_Gerencial*.html`); a versão do template é rastreada no config e no git |
+| **Painel antigo que sobra numa pasta** | a geração não apaga o que não criou. `ferramentas/limpar_paineis_antigos.py` recolhe para quarentena (D-60) |
+| **Foto do momento** | o painel embute os dados da última geração (é o que permite abrir offline); título e cabeçalho declaram execução e período |
 
-Motivo: o painel já embute **só agregado** (linha transacional nunca chega ao
-HTML). Publicar a pasta completa exporia a base por cliente e o código sem
-necessidade.
+## 2. Estado em 03/09/2026
 
-## 2. Estrutura sugerida na biblioteca
+| Item | Situação |
+|---|---|
+| 72 pastas criadas e populadas, Full na raiz | **feito** pela geração (02/09; regenerado em 03/09 com os nomes da D-58) |
+| Painéis v3 de 01/09 na raiz do destino | **apagados** (02/09 à noite) |
+| Painéis `_Canais_v4` antigos nas 72 pastas | **apagados** à mão em 03/09 (D-60) |
+| Compartilhar cada pasta com o colaborador | **pendente**: previsto para 04/09/2026, após a apresentação. Até lá a segregação por pasta não está em vigor (a segregação por conteúdo já está) |
+| Full restrito à diretoria | fica na raiz; sem compartilhamento explícito, só quem tem acesso à raiz vê |
 
-```
-Painéis Comerciais/                    (biblioteca ou pasta dedicada no site do Comercial)
-├── Gerencial/
-│   └── Dashboard_Gerencial_Canais.html
-├── Distribuição/
-│   └── Scorecard_Distribuição.html
-├── Atacado/
-│   └── Scorecard_Atacado.html
-├── KAR/
-│   └── Scorecard_KAR.html
-├── KAN/
-│   └── Scorecard_KAN.html
-└── _historico/                        (opcional: 1 cópia datada por mês fechado)
-```
+## 3. O que ficou das decisões D-a a D-e
 
-Permissões — ver decisão **D-b** (quem vê o quê é escolha sua, não técnica).
+| Decisão original | Situação |
+|---|---|
+| D-a · como o head abre o painel | **na prática, opção A** (pasta sincronizada + duplo clique). `.aspx` e hospedagem interna não foram pedidos |
+| D-b · quem vê o quê | **superada pela D-52/Q13**: pasta por colaborador, Full na raiz |
+| D-c · quem roda a atualização diária | **na prática, opção A**: o Douglas, manualmente (2 comandos, ~1 min). Agendador e servidor não foram pedidos |
+| D-d · publicação com ou sem trava | **superada pela D-52**: a publicação é a própria geração, com MD5; a trava é o pipeline abortar em dado ruim (nenhum Parquet nem painel sai de execução abortada) |
+| D-e · PDF executivo além do HTML | **na prática, opção A**: só HTML. Não pedido |
 
-## 3. Fluxo de atualização diária depois da migração
+Nenhuma das três "na prática" foi formalizada como decisão numerada; se algum
+dia a resposta mudar (agendador, PDF, hospedagem), entra no `docs/12`.
 
-```
-extração do BI ──► bases\Sell In\ ──► run_pipeline.py ──► run_dashboard.py ──► cópia para
-   (diária)         (substituir           (~20 s)             (~1 s)          Painéis Comerciais\Gerencial\
-                     o mês corrente)                                          (pasta sincronizada — o OneDrive sobe sozinho)
-```
+## 4. Limitações que continuam valendo
 
-* **Onde roda:** na máquina de quem operar — o pipeline é Python local, sem
-  servidor (5 dependências, todas já instaladas). *Quem* roda e *como* dispara
-  é a decisão **D-c**.
-* **Como chega ao SharePoint:** a pasta de publicação fica **sincronizada** pelo
-  cliente OneDrive; copiar o HTML para ela publica. A cópia pode ser manual,
-  por um `.bat` de um clique, ou por um `publicar.py` com trava (decisão
-  **D-d**). Detalhe prático já vivido neste projeto: o OneDrive segura arquivos
-  durante a sincronização — a cópia deve **gravar em nome temporário e
-  renomear**, nunca sobrescrever direto.
-* Os Scorecards de canal seguem o ciclo do projeto vizinho (mensal, com
-  `publicar.py` próprio, ensaio e pasta de referência de aceite); a mudança
-  para eles é apenas **apontar a publicação** para a nova biblioteca.
-
-## 4. Limitações conhecidas e alternativas
-
-| # | Limitação | O que causa | Alternativas |
-|---|---|---|---|
-| L1 | **SharePoint Online não renderiza `.html` no navegador** — clicar num `.html` na biblioteca **baixa** o arquivo em vez de abrir a página | política padrão do SPO moderno (bloqueio de script em conteúdo de biblioteca) | (a) o head **sincroniza** a pasta e abre por duplo clique no Explorer — é exatamente o modo de uso atual dos Scorecards; (b) abrir o arquivo baixado (funciona, mas vira cópia local desatualizada); (c) renomear para `.aspx` **exige** TI habilitar *custom scripts* no site — decisão D-a |
-| L2 | Painéis de 5–17 MB | tamanho dos dados embutidos | irrelevante para sync/download; só pesa na opção `.aspx` via navegador. Reduzível cortando `dashboard.top_bandeiras` (300→200 poupa ~0,8 MB) se um dia precisar |
-| L3 | Link enviado por Teams/e-mail abre o **visualizador** do SharePoint, que não executa o painel | mesmo motivo de L1 | instruir uma vez: "sincronize a pasta e abra pelo Explorer"; ou decidir por PDF para quem só quer olhar (D-e) |
-| L4 | Atualização diária depende de uma máquina ligada com Python | não há servidor no desenho atual | conviver (é 1 min/dia); agendador do Windows; ou transferir a execução ao BI/TI — decisão D-c |
-| L5 | Painel aberto é uma **foto** do momento da última geração | dados embutidos por construção (é o que permite abrir offline) | o rodapé já declara data/hora e execução; o ciclo diário resolve o resto |
-
-## 5. Decisões em aberto — para o Douglas
-
-### D-a · Como o head ABRE o painel
-
-| Opção | Prós | Contras | Esforço |
-|---|---|---|---|
-| **A. Pasta sincronizada + duplo clique** (modo atual dos Scorecards) | zero mudança nos painéis; interatividade completa; funciona offline; sem TI | primeiro acesso exige "Sincronizar" uma vez; clicar pelo site baixa em vez de abrir (L1) | **baixo** — criar a biblioteca e um guia de 3 linhas |
-| B. Renomear para `.aspx` (abre dentro do site) | link clicável direto no navegador | depende de TI habilitar *custom scripts* (política de segurança que muitas TIs negam); arquivos grandes no viewer; a cada publicação renomear | médio + **dependência de TI** |
-| C. Hospedagem web interna (IIS / Azure Static) | URL de verdade, sem sync | novo ambiente para pedir, manter e proteger; sai do SharePoint | alto + TI |
-
-### D-b · Permissões — quem vê o quê
-
-| Opção | Prós | Contras | Esforço |
-|---|---|---|---|
-| **A. Uma permissão só**: todos os heads veem as 5 pastas | simples de manter; o Gerencial é multi-canal por natureza | cada head vê o scorecard dos outros canais | baixo |
-| B. Pasta por canal com permissão própria; Gerencial só para a diretoria | cada um só o seu | quebra de herança de permissão = manutenção manual a cada mudança de head (e houve: posição 2600 vaga) | médio |
-| C. Híbrido: scorecards por canal restritos + Gerencial aberto aos 4 heads | equilíbrio | duas regras para lembrar | médio |
-
-### D-c · Quem roda a atualização diária do Sell In
-
-| Opção | Prós | Contras | Esforço |
-|---|---|---|---|
-| **A. Você, manualmente** (2 comandos + troca de arquivo, ~1 min) | controle total; o passo "conferir qualidade" é humano de propósito | depende de você todo dia | zero |
-| B. Agendador de Tarefas do Windows na sua máquina (um `.bat`: pipeline → dashboard → cópia) | roda sozinho; o pipeline já aborta sozinho em dado ruim | máquina precisa estar ligada; troca de senha derruba a tarefa; a conferência do relatório vira disciplina, não etapa | baixo (1 `.bat` + agendamento) |
-| C. Transferir para BI/TI num servidor | sai da sua máquina | precisa Python + acesso às bases + alguém que assuma; o projeto foi desenhado para não depender de servidor | alto |
-
-### D-d · Publicação com ou sem trava
-
-| Opção | Prós | Contras | Esforço |
-|---|---|---|---|
-| A. Copiar o HTML direto para a pasta publicada | simples | um painel gerado com dado ruim que passou despercebido vai direto aos heads | zero |
-| **B. `publicar.py` com ensaio** (mesmo desenho dos Scorecards: valida o exit do pipeline + confere o rodapé + grava em nome temporário e renomeia; `--publicar` confirma) | publicar continua **ato humano deliberado**; resolve o lock do OneDrive (já vivido) | um passo a mais no dia | baixo (script de ~1 h, espelhado no `publicar.py` existente) |
-
-### D-e · PDF executivo além do HTML?
-
-| Opção | Prós | Contras | Esforço |
-|---|---|---|---|
-| **A. Não — só HTML** | um artefato só; o painel já cobre | quem só quer "ver o número" precisa abrir o painel | zero |
-| B. Gerar 1 PDF da Visão Geral por publicação | abre em qualquer lugar, inclusive celular no corredor | é foto: sem filtro, sem drill, sem export; mais um passo no pipeline | médio (impressão automatizada do HTML) |
-
-> Minha leitura, sem decidir por você: **A + A + A + B + A** é o caminho de
-> menor atrito que preserva tudo o que foi construído — e nenhuma dessas
-> escolhas tranca a porta para mudar depois. Mas as cinco são suas.
-
-## 6. Checklist de migração (quando as decisões saírem)
-
-1. Criar a biblioteca/pasta `Painéis Comerciais` no site do Comercial (D-b).
-2. Sincronizar a pasta na máquina de quem publica.
-3. (Se D-d = B) criar o `publicar.py` deste projeto espelhado no dos Scorecards.
-4. Publicar os 5 painéis atuais; validar com um head piloto o fluxo
-   "sincronizar → duplo clique" (D-a).
-5. Apontar o `publicar.py` dos Scorecards para a nova biblioteca.
-6. Guia de 3 linhas para os heads (como sincronizar uma vez e abrir).
-7. (Se D-c = B) criar e agendar o `.bat` diário; combinar quem olha o
-   relatório de qualidade.
+| # | Limitação | Alternativa se incomodar |
+|---|---|---|
+| L1 | SharePoint Online não abre `.html` no navegador | sincronizar a pasta (modo atual); `.aspx` exigiria TI habilitar custom scripts |
+| L2 | Full com 11,4 MB; N1 do Atacado com 7,2 MB | irrelevante para sync; `dashboard.top_bandeiras` 300→200 poupa ~0,8 MB se um dia precisar |
+| L3 | Atualização depende de uma máquina com Python ligada | conviver (é 1 min/dia); Agendador do Windows num `.bat`; ou transferir ao BI/TI |
+| L4 | Painel é foto da última geração | o ciclo diário resolve; título/cabeçalho declaram a execução |

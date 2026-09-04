@@ -12,11 +12,11 @@
   .leg{color:#5b6b7c;font-size:11.5px;margin-top:10px;line-height:1.6}
 </style></head><body>
 <h1>Fluxo de geração do painel — do Excel bruto ao HTML publicado</h1>
-<div class="sub">Dashboard Gerencial de Canais (Sell In) · medido em 26/08/2026 ·
-publicação (coluna 5) atualizada em 31/08/2026: painel v3 + arquivos por head ·
+<div class="sub">Dashboard Gerencial de Canais (Sell In) · estado de 03/09/2026 (execução 20260903-155531):
+painel v4, reatribuição RTM e saneamento, um arquivo por colaborador com publicação automática ·
 explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
 <div class="wrap">
-<svg viewBox="0 0 1180 660" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
+<svg viewBox="0 0 1180 700" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
   <defs>
     <marker id="seta" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
       <path d="M0,0 L9,4.5 L0,9 z" fill="#5b6b7c"/>
@@ -42,37 +42,42 @@ explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
   <text class="col" x="20"  y="24">1 · BASES DE ORIGEM (Excel)</text>
   <text class="col" x="330" y="24">2 · ETL — run_pipeline.py (passos 1–4)</text>
   <text class="col" x="640" y="24">3 · MODELO ESTRELA (Parquet)</text>
-  <text class="col" x="640" y="330">4 · AGREGAÇÃO (passo 6)</text>
+  <text class="col" x="640" y="330">4 · AGREGAÇÃO (passo 5)</text>
   <text class="col" x="920" y="330">5 · PUBLICAÇÃO — run_dashboard.py</text>
 
   <!-- ============ coluna 1: bases ============ -->
   <rect class="box base" x="20" y="40"  width="270" height="86" rx="8"/>
-  <text class="t" x="32" y="60">Sell In · 28 arquivos .xlsx</text>
+  <text class="t" x="32" y="60">Sell In · 29 arquivos .xlsx</text>
   <text class="d" x="32" y="76">bases/Sell In/ e data/raw/sell_in/ · aba Export</text>
-  <text class="d" x="32" y="90">3.081.986 linhas · 24 meses (2024-09 a 2026-08)</text>
+  <text class="d" x="32" y="90">3.127.196 linhas · 25 meses (2024-09 a 2026-09)</text>
   <text class="d" x="32" y="104">rodapé: linha Total (gabarito) + filtros</text>
   <text class="d" x="32" y="118">ATUALIZAÇÃO DIÁRIA — substituir o mês corrente</text>
 
-  <rect class="box base" x="20" y="140" width="270" height="58" rx="8"/>
-  <text class="t" x="32" y="160">Produtos.xlsx</text>
-  <text class="d" x="32" y="176">1.712 SKUs · categoria e marca do cadastro</text>
-  <text class="d" x="32" y="190">estática</text>
+  <rect class="box base" x="20" y="136" width="270" height="44" rx="8"/>
+  <text class="t" x="32" y="154">Produtos.xlsx</text>
+  <text class="d" x="32" y="170">cadastro de SKU: categoria e marca · estática</text>
 
-  <rect class="box base" x="20" y="212" width="270" height="72" rx="8"/>
-  <text class="t" x="32" y="232">Hierarquia_Consolidada.xlsx (+ complemento)</text>
-  <text class="d" x="32" y="248">13.448 + 2.612 clientes · head, gerente,</text>
-  <text class="d" x="32" y="262">supervisor, projeto · rótulo código-papel-nome</text>
-  <text class="d" x="32" y="276">estática · D-34</text>
+  <rect class="box base" x="20" y="190" width="270" height="72" rx="8"/>
+  <text class="t" x="32" y="208">Hierarquia_Consolidada.xlsx (única fonte, D-56)</text>
+  <text class="d" x="32" y="224">13.516 clientes · N1 head, N2 gerente, N3 sup./exec.,</text>
+  <text class="d" x="32" y="238">N4 vend./RCA · projeto · cód. bandeira</text>
+  <text class="d" x="32" y="252">rótulo código-papel-nome · dono: Comercial</text>
 
-  <rect class="box base" x="20" y="298" width="270" height="58" rx="8"/>
-  <text class="t" x="32" y="318">Canais.xlsx</text>
-  <text class="d" x="32" y="334">43.073 clientes · canal + subcanal · 100% do sell-in</text>
-  <text class="d" x="32" y="348">estática</text>
+  <rect class="box base" x="20" y="272" width="270" height="44" rx="8"/>
+  <text class="t" x="32" y="290">Canais.xlsx</text>
+  <text class="d" x="32" y="306">43.072 clientes · canal + subcanal · 100% do sell-in</text>
 
-  <rect class="box base" x="20" y="372" width="270" height="56" rx="8"/>
-  <text class="t" x="32" y="392">config.yaml · geografia.yaml</text>
-  <text class="d" x="32" y="408">ano fiscal set→ago · tolerâncias · correções</text>
-  <text class="d" x="32" y="422">declaradas (Maykon→Vago) · cortes de exibição</text>
+  <rect class="box base" x="20" y="326" width="270" height="72" rx="8"/>
+  <text class="t" x="32" y="344">RTM_DePara_Transicao.xlsx · Faltando.xlsx</text>
+  <text class="d" x="32" y="360">1.762 clientes → 27 distribuidores (166 sem código)</text>
+  <text class="d" x="32" y="374">850 sem vínculo: Hierarquia SIM (70) / NÃO (780)</text>
+  <text class="d" x="32" y="388">D-50 · regra no saneamento, não na base</text>
+
+  <rect class="box base" x="20" y="408" width="270" height="70" rx="8"/>
+  <text class="t" x="32" y="426">config.yaml · geografia.yaml</text>
+  <text class="d" x="32" y="442">ano fiscal set→ago · tolerâncias · correções</text>
+  <text class="d" x="32" y="456">declaradas ([Vago]→[VAGO]) · saneamento (janela,</text>
+  <text class="d" x="32" y="470">rtm_herda_bandeira) · nomes e destino de publicação</text>
 
   <!-- ============ coluna 2: ETL ============ -->
   <rect class="box etl" x="330" y="40" width="280" height="118" rx="8"/>
@@ -81,110 +86,116 @@ explicação completa em <code>13_FLUXO_GERACAO_PAINEL.md</code></div>
   <text class="d" x="342" y="92">· remove rodapé; Total vira gabarito</text>
   <text class="d" x="342" y="106">· códigos sem zeros à esquerda (senão o join = 0)</text>
   <text class="d" x="342" y="120">· sinais preservados; caixa nula fica nula</text>
-  <text class="d" x="342" y="134">· cache: 1 Excel → 1 Parquet em data/staging/</text>
-  <text class="d" x="342" y="148">· correções SÓ as declaradas no config, com log</text>
+  <text class="d" x="342" y="134">· linha 100% zerada descartada e contada (D-36)</text>
+  <text class="d" x="342" y="148">· cache: 1 Excel → 1 Parquet em data/staging/</text>
 
   <rect class="box etl" x="330" y="176" width="280" height="104" rx="8"/>
-  <text class="t" x="342" y="196">Conferências que travam</text>
-  <text class="d" x="342" y="214">· grão: zero duplicados em mês × cliente × SKU</text>
-  <text class="d" x="342" y="228">· soma × linha Total: 28/28 nas 3 métricas</text>
-  <text class="d" x="342" y="242">· FKs 100% · cobertura estrutura ≥95% (99,98%)</text>
-  <text class="d" x="342" y="256">· cobertura canal ≥95% (100,00%)</text>
-  <text class="d" x="342" y="270">falhou → exit 1 e NADA é atualizado</text>
+  <text class="t" x="342" y="196">Saneamento da hierarquia (na DIM_CLIENTE)</text>
+  <text class="d" x="342" y="214">· cliente RTM herda do distribuidor: N1-N4, canal,</text>
+  <text class="d" x="342" y="228">  projeto e bandeira (D-59); origem em BANDEIRA_ORIGINAL</text>
+  <text class="d" x="342" y="242">· Hierarquia=NÃO sem sell-in em 6 meses fechados →</text>
+  <text class="d" x="342" y="256">  INATIVO (SANEAMENTO); com sell-in → lista Q5 (158)</text>
+  <text class="d" x="342" y="270">· a fato nunca é tocada; só o rótulo de quem aparece</text>
 
-  <rect class="box etl" x="330" y="298" width="280" height="86" rx="8"/>
-  <text class="t" x="342" y="318">Relatório de qualidade</text>
-  <text class="d" x="342" y="336">data/quality/relatorio_qualidade.md +</text>
-  <text class="d" x="342" y="350">CSVs de exceção: sem estrutura, sem canal,</text>
-  <text class="d" x="342" y="364">SKUs sem cadastro, valores não reconhecidos,</text>
-  <text class="d" x="342" y="378">linhagem arquivo → mês</text>
+  <rect class="box etl" x="330" y="298" width="280" height="104" rx="8"/>
+  <text class="t" x="342" y="318">Conferências que travam</text>
+  <text class="d" x="342" y="336">· grão: zero duplicados em mês × cliente × SKU</text>
+  <text class="d" x="342" y="350">· soma × linha Total: 29/29 nas 3 métricas</text>
+  <text class="d" x="342" y="364">· FKs 100% · cobertura estrutura ≥95% (97,65%)</text>
+  <text class="d" x="342" y="378">· cobertura canal ≥95% (100,00%)</text>
+  <text class="d" x="342" y="392">falhou → exit 1 e NADA é atualizado (D-61: 75,40%)</text>
+
+  <rect class="box etl" x="330" y="420" width="280" height="72" rx="8"/>
+  <text class="t" x="342" y="440">Relatório de qualidade</text>
+  <text class="d" x="342" y="458">data/quality/relatorio_qualidade.md + CSVs de exceção:</text>
+  <text class="d" x="342" y="472">sem estrutura, sem canal, RTM sem distribuidor,</text>
+  <text class="d" x="342" y="486">inativados, pendentes Q5, SKUs sem cadastro, linhagem</text>
 
   <!-- ============ coluna 3: modelo ============ -->
   <rect class="box modelo" x="640" y="40" width="250" height="64" rx="8"/>
-  <text class="t" x="652" y="60">DIM_CALENDARIO · 24 meses</text>
+  <text class="t" x="652" y="60">DIM_CALENDARIO · 25 meses</text>
   <text class="d" x="652" y="78">civil + fiscal (set→ago) na mesma tabela</text>
   <text class="d" x="652" y="92">ANO_MES_LY = pareamento explícito</text>
 
-  <rect class="box modelo" x="640" y="118" width="250" height="64" rx="8"/>
-  <text class="t" x="652" y="138">DIM_CLIENTE · 16.092</text>
-  <text class="d" x="652" y="156">bandeira, UF + head/ger/superv/projeto</text>
-  <text class="d" x="652" y="170">+ canal/subcanal — tudo atributo, sem snowflake</text>
+  <rect class="box modelo" x="640" y="118" width="250" height="78" rx="8"/>
+  <text class="t" x="652" y="138">DIM_CLIENTE · 16.136</text>
+  <text class="d" x="652" y="156">bandeira, UF + N1-N4/projeto + canal/subcanal</text>
+  <text class="d" x="652" y="170">+ colunas do RTM e do saneamento</text>
+  <text class="d" x="652" y="184">tudo atributo, sem snowflake</text>
 
-  <rect class="box modelo" x="640" y="196" width="250" height="50" rx="8"/>
-  <text class="t" x="652" y="216">DIM_PRODUTO · 494 SKUs</text>
-  <text class="d" x="652" y="234">categoria + marca; 7 órfãos adotados marcados</text>
+  <rect class="box modelo" x="640" y="210" width="250" height="50" rx="8"/>
+  <text class="t" x="652" y="230">DIM_PRODUTO · 400 SKUs</text>
+  <text class="d" x="652" y="248">categoria + marca; 4 órfãos adotados marcados</text>
 
-  <rect class="box modelo" x="640" y="260" width="250" height="56" rx="8"/>
-  <text class="t" x="652" y="280">FATO_SELLIN · 3.081.986</text>
-  <text class="d" x="652" y="296">grão: mês × cliente × SKU · R$, kg, caixas</text>
-  <text class="d" x="652" y="310">particionada por ANO · linhagem por execução</text>
+  <rect class="box modelo" x="640" y="272" width="250" height="50" rx="8"/>
+  <text class="t" x="652" y="292">FATO_SELLIN · 3.127.196</text>
+  <text class="d" x="652" y="310">grão: mês × cliente × SKU · R$, kg, caixas · por ANO</text>
 
   <!-- ============ coluna 4: agregacao ============ -->
-  <rect class="box agg" x="640" y="346" width="250" height="90" rx="8"/>
-  <text class="t" x="652" y="366">CUBO_PRINCIPAL · 91.393 linhas</text>
-  <text class="d" x="652" y="382">mês × bandeira(300+balde) × categoria ×</text>
-  <text class="d" x="652" y="396">PERFIL(head,ger,canal,proj) × UF</text>
-  <text class="t" x="652" y="414">CUBO_SKU · 366.868 linhas</text>
-  <text class="d" x="652" y="430">mês × SKU × (head,canal) × UF</text>
+  <rect class="box agg" x="640" y="346" width="250" height="104" rx="8"/>
+  <text class="t" x="652" y="366">CUBO_PRINCIPAL · 123.900 linhas</text>
+  <text class="d" x="652" y="382">mês × bandeira(300+balde) × categoria × PERFIL</text>
+  <text class="d" x="652" y="396">PERFIL = head, ger., sup./exec., canal, proj., vend.</text>
+  <text class="t" x="652" y="414">CUBO_SKU · 866.028 linhas</text>
+  <text class="d" x="652" y="430">mês × SKU × PERFIL × bandeira · sem eixo UF (D-51)</text>
+  <text class="d" x="652" y="444">+ contagem do balde Σ por nível (D-57)</text>
 
-  <rect class="box agg" x="640" y="452" width="250" height="54" rx="8"/>
-  <text class="t" x="652" y="472">Reconciliação cubo × fato</text>
-  <text class="d" x="652" y="488">3 métricas · não fecha → não publica</text>
-  <text class="d" x="652" y="502">saída: cubos.json + resumo.json</text>
+  <rect class="box agg" x="640" y="466" width="250" height="54" rx="8"/>
+  <text class="t" x="652" y="486">Reconciliação cubo × fato</text>
+  <text class="d" x="652" y="502">3 métricas · não fecha → não publica</text>
+  <text class="d" x="652" y="516">saída atômica: cubos.json + resumo.json</text>
 
   <!-- ============ coluna 5: publicacao ============ -->
   <rect class="box" x="920" y="346" width="240" height="86" rx="8"/>
-  <text class="t" x="932" y="366">template_v3.html (interface, à mão)</text>
+  <text class="t" x="932" y="366">template_v4.html (interface, à mão)</text>
   <text class="d" x="932" y="384">2 substituições de texto:</text>
-  <text class="d" x="932" y="398">· JSON dos cubos → marcador de dados</text>
-  <text class="d" x="932" y="412">· Chart.js 200 KB → marcador de lib</text>
+  <text class="d" x="932" y="398">· cubos gzip+base64 (30,7 → 11,1 MB) → marcador</text>
+  <text class="d" x="932" y="412">· Chart.js 195 KB → marcador de lib</text>
   <text class="d" x="932" y="426">marcador duplicado/ausente → aborta</text>
 
-  <rect class="box pub" x="920" y="446" width="240" height="90" rx="8"/>
-  <text class="tp" x="932" y="466">Dashboard_Gerencial_Canais_v3.html</text>
-  <text class="dp" x="932" y="483">dashboard/build/ · 14,4 MB · 1 arquivo</text>
-  <text class="dp" x="932" y="497">zero rede · abre por duplo clique (file://)</text>
-  <text class="dp" x="932" y="511">5 páginas · exportação CSV/XLSX · drills</text>
-  <text class="dp" x="932" y="525">rodapé gerado: totais, execução, ressalvas</text>
+  <rect class="box pub" x="920" y="446" width="240" height="76" rx="8"/>
+  <text class="tp" x="932" y="466">Dashboard_Gerencial.html (Full)</text>
+  <text class="dp" x="932" y="483">dashboard/build/ · 11,4 MB · 1 arquivo · zero rede</text>
+  <text class="dp" x="932" y="497">3 abas: Visão Geral (matriz N1→N4), Bandeiras,</text>
+  <text class="dp" x="932" y="511">Categorias · export CSV/XLSX · sem rodapé (D-47)</text>
 
-  <rect class="box pub" x="920" y="548" width="240" height="86" rx="8"/>
-  <text class="tp" x="932" y="568">..._v3_HEAD_&lt;head&gt;.html · um por head</text>
-  <text class="dp" x="932" y="585">recorte FÍSICO: só o cubo do próprio squad</text>
-  <text class="dp" x="932" y="599">entra no arquivo; partição confere no log</text>
-  <text class="dp" x="932" y="613">NÃO ATRIBUÍDO fica de fora (não é squad)</text>
-  <text class="dp" x="932" y="627">distribuição: cada head só recebe o seu</text>
+  <rect class="box pub" x="920" y="536" width="240" height="100" rx="8"/>
+  <text class="tp" x="932" y="556">_N1_/_N2_/_N3_&lt;colaborador&gt;.html · 72</text>
+  <text class="dp" x="932" y="573">recorte FÍSICO: só o cubo do próprio escopo (D-52);</text>
+  <text class="dp" x="932" y="587">canal/categoria/SKU encolhem junto (D-54); balde Σ</text>
+  <text class="dp" x="932" y="601">recontado (D-57) · partição ao centavo no log</text>
+  <text class="dp" x="932" y="615">publicação: substitui na pasta do colaborador,</text>
+  <text class="dp" x="932" y="629">Full na raiz, MD5 conferido (Q13, D-58 nomes)</text>
 
   <!-- ============ fios ============ -->
   <path class="fio" d="M290 83  L330 83"/>
-  <path class="fio" d="M290 169 L310 169 L310 95 L330 95"/>
-  <path class="fio" d="M290 248 L310 248 L310 110 L330 110"/>
-  <path class="fio" d="M290 327 L316 327 L316 125 L330 125"/>
-  <path class="fio" d="M290 400 L322 400 L322 140 L330 140"/>
+  <path class="fio" d="M290 158 L310 158 L310 95 L330 95"/>
+  <path class="fio" d="M290 226 L310 226 L310 110 L330 110"/>
+  <path class="fio" d="M290 294 L316 294 L316 125 L330 125"/>
+  <path class="fio" d="M290 362 L322 362 L322 228 L330 228"/>
+  <path class="fio" d="M290 443 L326 443 L326 140 L330 140"/>
   <path class="fio" d="M470 158 L470 176"/>
   <path class="fio" d="M470 280 L470 298"/>
+  <path class="fio" d="M470 402 L470 420"/>
   <path class="fio" d="M610 100 L640 72"/>
-  <path class="fio" d="M610 150 L640 150"/>
-  <path class="fio" d="M610 221 L640 221"/>
-  <path class="fio" d="M610 260 L625 260 L625 288 L640 288"/>
-  <path class="fio" d="M765 316 L765 346"/>
-  <path class="fio" d="M765 436 L765 452"/>
-  <path class="fio" d="M890 479 L905 479 L905 389 L920 389"/>
+  <path class="fio" d="M610 228 L640 157"/>
+  <path class="fio" d="M610 235 L640 235"/>
+  <path class="fio" d="M610 290 L625 290 L625 297 L640 297"/>
+  <path class="fio" d="M765 322 L765 346"/>
+  <path class="fio" d="M765 450 L765 466"/>
+  <path class="fio" d="M890 493 L905 493 L905 389 L920 389"/>
   <path class="fio" d="M1040 432 L1040 446"/>
-  <path class="fio" d="M1040 536 L1040 548"/>
+  <path class="fio" d="M1040 522 L1040 536"/>
 
-  <text class="nota" x="330" y="415">comandos: python run_pipeline.py  →  python run_dashboard.py</text>
-  <text class="nota" x="330" y="431">2 min a frio · ~20 s com cache · exit 0/1 sempre explícito</text>
-  <text class="nota" x="330" y="460">O que NÃO entra: Sell Out, Metas, Previsão, Estoque, Alavancas</text>
-  <text class="nota" x="330" y="476">(estão em bases/ mas nenhum é lido — insumo dos Scorecards de canal)</text>
-  <text class="nota" x="330" y="505">Regra que manda: linha transacional NUNCA chega ao HTML;</text>
-  <text class="nota" x="330" y="521">agregado que não reconcilia com a fato NÃO é publicado.</text>
+  <text class="nota" x="330" y="520">comandos: python run_pipeline.py  →  python run_dashboard.py (gera E publica)</text>
+  <text class="nota" x="330" y="536">ferramentas/: diagnostico_cobertura.py (D-61) · analise_bandeira_rtm.py (D-59) · limpar_paineis_antigos.py (D-60)</text>
+  <text class="nota" x="330" y="552">documentos: 10 (operação) · 12 (decisões D-01 a D-61) · 14 (cadência) · 15 (SharePoint)</text>
 </svg>
 </div>
 <div class="leg">
-  <b>Azul claro</b> = bases de origem · <b>amarelo</b> = ETL e conferências ·
-  <b>verde</b> = modelo estrela · <b>lilás</b> = camada agregada ·
-  <b>azul escuro</b> = painel publicado. Chaves e cardinalidades no
-  <code>13_FLUXO_GERACAO_PAINEL.md §3</code>; cadência de atualização no
-  <code>14_CADENCIA_DE_ATUALIZACAO.md</code>.
+<b>Como ler.</b> Da esquerda para a direita: as 6 bases entram no ETL, que valida, normaliza, aplica o saneamento
+e trava em qualquer divergência; o modelo estrela é gravado em Parquet; os dois cubos são reconciliados contra a
+fato antes de virar JSON; o gerador injeta os cubos no template e produz 73 arquivos, publicados por substituição.
+Nenhuma linha transacional chega ao HTML. Tudo roda local, sem servidor, sem internet e sem IA.
 </div>
 </body></html>

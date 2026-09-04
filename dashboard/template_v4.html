@@ -31,8 +31,9 @@
     1. filtros recolhiveis (fechados por padrao) — os numeros abrem acima da
        dobra; a linha de estado continua sempre visivel;
     2. chips cientes do recorte: opcao sem NENHUMA linha no periodo/filtros
-       atuais fica esmaecida (classe .semdado; a .chip.vazio do v1 era CSS
-       morto E colidiria com o .vazio das tabelas);
+       atuais ficava esmaecida (classe .semdado). SUPERADO na D-51 (nada
+       cinza) e na D-54 (03/09/2026): opcao sem dado nao esmaece, ela SOME;
+       ver `atualizarOpcoes`;
     3. ordenacao por clique no cabecalho de qualquer tabela;
     4. recorte persistente e compartilhavel: estado dos filtros serializado
        por ROTULO no hash da URL (#r=…) e no localStorage;

@@ -2,10 +2,11 @@
 """Camada analítica — os dois cubos que o painel consome.
 
 REGRA QUE MANDA AQUI: **linha transacional nunca chega ao HTML.**
-Entram 3.117.999 linhas de fato; saem 748.119 linhas de agregado
-(97.710 no cubo principal + 650.409 no de SKU, medidos em 02/09/2026 com o
-eixo da D-48 — antes eram 94.085 + 370.823 com quatro filtros ignorados na
-aba de SKU).
+Entram 3.127.196 linhas de fato; saem 989.928 linhas de agregado
+(123.900 no cubo principal + 866.028 no de SKU, medidos em 03/09/2026 com o
+eixo da D-48/D-50 e sem UF desde a D-51 — em 02/09, com UF, eram 97.710 +
+650.409; antes da D-48, 94.085 + 370.823 com quatro filtros ignorados na aba
+de SKU).
 
 Os números vão para o JSON como INTEIROS ESCALADOS — receita em centavos, peso em
 gramas, caixas em centésimos. Dois motivos:

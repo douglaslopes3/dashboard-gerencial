@@ -154,48 +154,58 @@ no período) e o sell-in tem duas que o cadastro não tem, nos 7 SKUs órfãos.
 > O cadastro **tem** coluna `Marca` (o do projeto anterior não tinha). Marca é
 > dado de origem aqui — não é inferido da descrição.
 
-### 2.2 `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` (D-34)
+### 2.2 `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` (D-34, D-50, D-56)
 
-Substituiu o `DePara_Estrutura_Comercial.xlsx` em 28/08/2026 (D-34). Aba
-`Planilha1` · 14.054 linhas · 13.448 códigos distintos · 71 linhas sem código
-(estrutura real, descartadas com aviso — mesmo padrão do C12). A granularidade
-é **cliente × vendedor (N4)**: linhas repetidas por cliente são esperadas e os
-níveis N1–N3 não conflitam (medido: zero conflitos).
+Substituiu o `DePara_Estrutura_Comercial.xlsx` em 28/08/2026 (D-34) e, desde
+a D-56 (03/09/2026), é a **única fonte** da estrutura comercial: o complemento
+foi aposentado (D-49) e o desempate dos 13 clientes com dois códigos N4 foi
+incorporado na própria base pelo Comercial. Aba `Planilha1`; medido em
+03/09/2026 (execução `20260903-155531`): **13.516 clientes** distintos com
+código (a base tinha 14.054 linhas e 13.448 códigos em 02/09; a edição de
+03/09 removeu as duplicidades). A granularidade é **cliente × vendedor (N4)**;
+linhas repetidas por cliente com N1–N4 idênticos são esperadas, e o detector
+de conflito continua ligado (hoje: zero avisos).
 
-Colunas por nível (os cabeçalhos têm **quebra de linha interna** — o leitor
+Colunas por nível (os cabeçalhos têm **quebra de linha interna**; o leitor
 normaliza todo espaçamento): `CÓDIGO CLIENTE`, N1 head (`(N1) CÓDIGO HEAD`,
 `CRIAR NO BI (N1) HEAD`, `(N1) NOME HEAD`), N2 gerente, N3 sup./exec.,
-N4 vend./RCA (não ingerido), `PROJETO`, e ainda `CLIENTE` e `REDE` com código
-(não ingeridos). `CÓDIGO BANDEIRA`/`BANDEIRA` são ingeridos desde 01/09/2026
-(D-42, colunas opcionais): viram `COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` na
-DIM_CLIENTE e são a ponte por código com a base de metas FY 26/27 — a
-`BANDEIRA` de tela segue vindo do sell-in. O complemento NÃO traz as colunas
-(pedido ao Comercial aberto); cobertura medida: 81,3% dos clientes, 93,5% da
-receita.
+N4 vend./RCA (**ingerido desde a D-50**, 203 vendedores), `PROJETO`, e ainda
+`CLIENTE` e `REDE` com código (não ingeridos). `CÓDIGO BANDEIRA`/`BANDEIRA`
+são ingeridos desde 01/09/2026 (D-42, colunas opcionais): viram
+`COD_BANDEIRA`/`BANDEIRA_ESTRUTURA` na DIM_CLIENTE; nasceram como ponte por
+código com a base de metas e, desde a D-49, são só atributo do cadastro. A
+`BANDEIRA` de tela segue vindo do sell-in. Cobertura medida em 03/09: 13.169
+de 16.136 clientes com código (81,6%; 93,6% da receita).
+
+> **Atenção ao editar esta base (D-61, 03/09/2026):** os **27 códigos de
+> distribuidor** do `RTM_DePara_Transicao.xlsx` precisam continuar nela. O
+> cliente RTM herda do distribuidor a hierarquia e o vínculo (`NA_ESTRUTURA`);
+> distribuidor removido arrasta os 1.596 clientes que apontam para ele. Em
+> 03/09 isso derrubou a cobertura de 97,65% para 75,40% e o pipeline abortou
+> no piso, até os distribuidores serem restaurados.
+> `ferramentas/diagnostico_cobertura.py` mede esse caso.
 
 Cada nível vira **um rótulo concatenado** `código - papel - nome` (parte vazia
 omitida): `20 - ATACADO - ADEMIR TAVARES`. O código vem SEM zeros à esquerda
 (a base anterior vinha zero-preenchida) — `digitos()` cobre os dois formatos.
 
-**Complemento** `Hierarquia_Complemento.xlsx` (mesma pasta, mesmo layout):
-2.612 clientes que faturam e não constam da base oficial (554 ativos em
-ago/2026, R$ 136,4 mi/24m), mapeados pelo supervisor da base anterior —
-pendente de validação do Comercial. A oficial **sempre vence**; quando ela os
-incorporar, o complemento esvazia sozinho.
+**Complemento** (`Hierarquia_Complemento.xlsx`, D-34): **aposentado na D-49**
+(02/09/2026). Os 2.612 clientes dele viraram as duas bases da D-50 (§2.6 RTM
+e §2.7 Faltando), que resolvem o vínculo por regra declarada em vez de
+inferência.
 
 ```
-cobertura de HEAD sobre o sell-in (oficial + complemento)
-  receita com head      99,98%
-  clientes sem head     71 de 16.092
-  so a oficial          93,95% de receita — ABAIXO do piso de 95%
+cobertura de HEAD sobre o sell-in (03/09/2026, execucao 20260903-155531)
+  receita com head        97,65%  (piso 95%)
+  clientes sem head       1.053 de 16.136 = 612 inativos (saneamento)
+                          + 158 pendentes Q5 + 166 RTM sem distribuidor
+                          + 117 sem linha em base nenhuma
+  receita fora            R$ 54,69 mi (2,35%)
 ```
 
-Heads: `20 - ATACADO - ADEMIR TAVARES` (R$ 912,5 mi) · `10 - DISTRIBUICAO -
-MICHEL MEIRA` (R$ 543,4 mi) · `30 - KA Nacional - [VAGO]` (R$ 466,5 mi) ·
-`40 - KA REGIONAL - IZABELA SANTOS` (R$ 338,0 mi). Gerentes: 13 ·
-Supervisores: 55 · `PROJETO`: 6 valores (só os da base oficial: o complemento
-tem `PROJETO` **em branco por decisão**, 28/08 — seus 2.612 clientes ficam
-`NÃO ATRIBUÍDO` no recorte de projeto até o Comercial classificar).
+Heads: 4 (`10 - DISTRIBUICAO - MICHEL MEIRA`, `20 - ATACADO - ADEMIR TAVARES`,
+`30 - KA Nacional - [VAGO]`, `40 - KA REGIONAL - IZABELA SANTOS`) ·
+Gerentes: 13 · Sup./Exec.: 55 · Vend./RCA: 203 · `PROJETO`: 6 valores.
 `Atendimento Ponta` **não existe mais** (a coluna saiu da DIM_CLIENTE; nunca
 chegava ao painel).
 
@@ -274,9 +284,13 @@ Distribuição. **166 linhas sem código de distribuidor** (placeholders "NOVO
 RIBEIRÃO PRETO"/"NOVO SJRP") viram exceção listada, nunca descartadas.
 Colunas: `Cód. Cliente [Antigo]` · `Bandeira cliente [Antigo]` ·
 `Dsitribuidor Nome Reduzido` (grafado assim na origem) · `Cód. Cliente
-[Distribuidor]`. Não existe data de corte nem canal origem/destino — a regra
+[Distribuidor]`. Não existe data de corte nem canal origem/destino: a regra
 (Q3: histórico E futuro seguem o distribuidor) vive na transformação
-(`src/transform/saneamento.py`), parametrizada no config.
+(`src/transform/saneamento.py`), parametrizada no config. Desde a **D-59**
+(03/09/2026) o cliente RTM herda também a **bandeira** do distribuidor
+(`saneamento.rtm_herda_bandeira`); a `Bandeira cliente [Antigo]` desta base
+não é usada para isso (a herdada é a do distribuidor no sell-in), e a bandeira
+de origem fica em `DIM_CLIENTE.BANDEIRA_ORIGINAL`.
 
 ### 2.7 `bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx` (D-50, 02/09/2026)
 
