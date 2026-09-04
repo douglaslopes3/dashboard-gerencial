@@ -32,7 +32,7 @@ há transformação silenciosa**.
 relatório de valores não reconhecidos. Toda correção de rótulo é **declarada em
 `config/config.yaml`** e registrada no log e no relatório de qualidade.
 
-## 2. `Hierarquia_Consolidada.xlsx` (+ complemento) → `DIM_CLIENTE` (D-34)
+## 2. `Hierarquia_Consolidada.xlsx` → `DIM_CLIENTE` (D-34; única fonte desde a D-56)
 
 Os cabeçalhos do arquivo têm quebra de linha interna — o leitor normaliza todo
 espaçamento para um espaço antes de validar. Cada nível vira **um rótulo**
@@ -66,12 +66,17 @@ bandeira; a `BANDEIRA` da tela segue vindo do sell-in). O complemento não tem
 as colunas: cliente dele fica `<NA>`, nunca inventado. Medido em 01/09/2026:
 13.101 de 16.122 clientes com código (81,3%; 93,5% da receita de 24 meses).
 
-O **complemento** (`Hierarquia_Complemento.xlsx`, mesmo layout) entra pelo
-mesmo leitor; linha cujo cliente já está na oficial é descartada com log.
+O **complemento** (`Hierarquia_Complemento.xlsx`) foi **aposentado na D-49**
+(02/09/2026); desde a D-56 a `Hierarquia_Consolidada.xlsx` é a única fonte da
+estrutura (o desempate dos 13 clientes com dois códigos N4 foi incorporado na
+origem em 03/09/2026).
 
-Cliente com mais de uma linha divergente: vence a primeira, **com aviso**; o
-desempate declarado vive em `dimensoes.estrutura_comercial.desempate_cliente`.
-Cliente sem linha no de-para: `HEAD = "NÃO ATRIBUÍDO"`, `NA_ESTRUTURA = false`.
+Cliente com mais de uma linha divergente: vence a primeira, **com aviso**
+(hoje: zero); o desempate declarado vive em
+`dimensoes.estrutura_comercial.desempate_cliente`. Cliente sem linha no
+de-para: `HEAD = "NÃO ATRIBUÍDO"`, `NA_ESTRUTURA = false`; o cliente RTM herda
+o vínculo do distribuidor (§2b), por isso um distribuidor removido da base
+arrasta os clientes dele (D-61).
 
 ## 2b. Reestruturação (D-50) — colunas novas da `DIM_CLIENTE`
 
