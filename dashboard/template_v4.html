@@ -688,8 +688,10 @@ const F = {
   qBan:"", qSku:""              // D-66: texto das buscas (persistem no recorte)
 };
 // D-66: comparacao sem acento e sem caixa — "confianca" acha "CONFIANÇA".
-const semAcento = s => String(s||"").normalize("NFD")
-  .replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+function semAcento(s){
+  return String(s||"").normalize("NFD")
+    .replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+}
 /* D-51: estado de expansao das matrizes, por aba. Nao persiste no recorte
    (como o drill tambem nunca persistiu): reabrir comeca recolhido. */
 const EXP = {geral:new Set(), band:new Set(), catg:new Set()};
