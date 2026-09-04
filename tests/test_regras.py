@@ -809,6 +809,18 @@ def test_d66_template_tem_busca_de_bandeira_e_sku_persistida():
         assert termo in corpo, f"template v4 perdeu a busca (D-66): {termo}"
 
 
+def test_d68_rotulos_de_exibicao_vem_do_config_e_nao_do_template():
+    """D-68: o texto de leitor das linhas Σ mora em
+    `dashboard.rotulos_exibicao` e chega ao template por DB.rotulos_exibicao;
+    o template nao carrega o texto (nem a chave de dado) escrito."""
+    from src.utils.config import CFG
+    exib = CFG["dashboard"].get("rotulos_exibicao") or {}
+    assert exib.get("sem_estrutura") and exib.get("inativo")
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    assert "DB.rotulos_exibicao" in corpo and "EXIBE(" in corpo
+    assert exib["sem_estrutura"] not in corpo and exib["inativo"] not in corpo
+
+
 def test_d67_colunas_de_decisao_antes_da_serie():
     """D-67: nas tres matrizes o cabecalho e nome | ATUAL | ANT. | Δ | Δ% |
     Part. % | serie... | TOTAL — e a exportacao segue a mesma ordem."""

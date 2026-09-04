@@ -2051,3 +2051,26 @@ ordem. A nota da matriz foi reescrita na mesma sequência.
 §2. Nenhum número muda.
 
 **Rollback.** git.
+
+
+---
+
+## D-68 · Linhas Σ fora da hierarquia em linguagem de leitor (03/09/2026)
+
+**Contexto.** No Full, a matriz e o chip de Head mostravam `NÃO ATRIBUÍDO` e
+`INATIVO (SANEAMENTO)`: jargão do pipeline para a diretoria.
+
+**Decisão.** Texto de tela declarado em `config → dashboard.rotulos_exibicao`
+(`sem_estrutura: "Sem estrutura comercial"`, `inativo: "Inativos (sem sell-in
+há 6 meses)"`). O gerador manda o mapa chave → texto em `rotulos_exibicao`; o
+template aplica com `EXIBE(k)` na matriz hierárquica e no chip de Head. **A
+chave de dado não muda** (`dimensoes.rotulo_sem_estrutura` / `rotulo_inativo`
+seguem no cubo, no relatório, nos CSVs e no recorte salvo), então nada quebra e
+o texto pode ser trocado sem reprocessar. A nota da matriz explica os dois
+casos sem citar a D-50.
+
+**Onde.** `config.yaml`, `run_dashboard.py`, `template_v4.html`; guarda em
+`tests/test_regras.py` (o template não carrega o texto escrito). Nenhum número
+muda.
+
+**Rollback.** apagar `rotulos_exibicao` do config (volta a chave).

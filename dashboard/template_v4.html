@@ -195,6 +195,11 @@
   D-67 (03/09/2026) — COLUNAS DE DECISAO PRIMEIRO nas tres matrizes:
     nome | ATUAL | ANT. | Δ | Δ% | Part. % || serie (ate 12) | TOTAL.
     A exportacao segue a mesma ordem.
+
+  D-68 (03/09/2026) — ROTULOS DE LEITOR para as linhas sintese Σ ("NÃO
+    ATRIBUÍDO" -> "Sem estrutura comercial", "INATIVO (SANEAMENTO)" ->
+    "Inativos (sem sell-in há 6 meses)"), via DB.rotulos_exibicao (config
+    `dashboard.rotulos_exibicao`). A chave de dado nao muda; `EXIBE(k)`.
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -602,7 +607,7 @@ const DB_CARGA = /*DADOS_INICIO*/null/*DADOS_FIM*/;
    A descompactacao e assincrona (DecompressionStream, nativo do navegador,
    sem rede) — por isso o motor so e "ligado" depois dela, em prepararDB(). */
 let DB, ESC, CAL, D, CUBO, CUBO_SKU, NM, RESTRITO, NIVEL0, IDX_CUBO,
-    IDX_SKU, METRICAS, CHAVE_LS;
+    IDX_SKU, METRICAS, CHAVE_LS, EXIBE;
 
 async function carregarDB(carga){
   if(carga && carga.z === "gzip+base64"){
@@ -644,6 +649,8 @@ function prepararDB(){
   // D-51: os rotulos "fora da hierarquia" (sem estrutura + inativos do
   // saneamento) chegam do gerador — o template nao carrega valor de negocio.
   (DB.rotulos_fora||[]).forEach(r=>{ if(r) ROT_AUSENCIA.add(r); });
+  // D-68: rotulo de LEITOR para as linhas sintese; a chave de dado nao muda.
+  EXIBE = k => (DB.rotulos_exibicao && DB.rotulos_exibicao[k]) || k;
   // D-63: a chave subiu de v4 para v5 de proposito — o recorte salvo no
   // navegador vence o padrao de abertura, e todo mundo tinha "set/26" salvo.
   // Subir a chave faz cada arquivo abrir UMA vez no periodo novo; dali em
@@ -1062,7 +1069,7 @@ function montarFiltros(){
   chips("fCanal", "frowCanal", [...D.canal].sort(ausenciaPorUltimo()),
         c=>OPC.can.has(c), c=>F.can.has(c), c=>c, c=>c);
   chips("fHead", "frowHead", [...D.head].sort(ausenciaPorUltimo()),
-        h=>OPC.head.has(h), h=>F.head.has(h), h=>h, h=>h);
+        h=>OPC.head.has(h), h=>F.head.has(h), h=>h, h=>EXIBE(h));   // D-68
   // L3-D/D-52: no arquivo restrito o Head some por PERFIL, e essa regra vence
   // a contagem de opcoes (o Head e o seletor de escopo do Template Full).
   if(RESTRITO) el("frowHead").hidden = true;
@@ -1682,14 +1689,15 @@ function renderHier(p){
     niveis:NIVEIS,
     pathFn:l=>{const pf=D.perfil[l[3]];
       return POSN.map(i=>pf[i]);},
-    rotNo:(niv,k)=>k,
+    rotNo:(niv,k)=>EXIBE(k),                 // D-68: linhas Σ em linguagem de leitor
     usaSku:false, p, den:met(total(p.atual)), expSet:EXP.geral,
     topN:0, baldeK:null, foraSet:fora, ignorar:null});
   el("nHier").innerHTML=(temHier?notaMatriz()+"<br>":"")
     +`Navegação <b>exclusivamente pela expansão</b>: ▸ abre o nível de baixo
     (Head → Gerente → Sup./Exec. → Vend./RCA); ▾ recolhe. As linhas Σ no fim
-    são síntese <b>fora da hierarquia</b> — clientes sem estrutura e inativados
-    pelo saneamento (D-50) — sem expansão; o histórico delas permanece no
+    são síntese <b>fora da hierarquia</b>: clientes que faturam mas não estão
+    na estrutura comercial, e clientes inativados (sem sell-in nos últimos 6
+    meses fechados). Não expandem; o histórico delas permanece no
     <b>Total geral</b>, que fecha com os cards acima. Participação % sobre o
     total do recorte. A hierarquia vem do de-para de estrutura, não é inferida.`;
 }

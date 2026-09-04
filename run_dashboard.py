@@ -241,6 +241,14 @@ def main() -> int:
         CFG["dimensoes"]["rotulo_sem_estrutura"],
         CFG["dimensoes"].get("rotulo_inativo"),
     ]
+    # D-68: texto de LEITOR para as linhas sintese (chave de dado -> rotulo de
+    # tela). O template mostra a chave quando nao houver mapeamento.
+    exib = _DASH.get("rotulos_exibicao") or {}
+    pacote["rotulos_exibicao"] = {
+        k: v for k, v in (
+            (CFG["dimensoes"]["rotulo_sem_estrutura"], exib.get("sem_estrutura")),
+            (CFG["dimensoes"].get("rotulo_inativo"), exib.get("inativo")),
+        ) if k and v}
 
     template = caminho(_DASH["template"])
     if not template.exists():

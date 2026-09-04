@@ -307,6 +307,15 @@ dashboard:
   rotulo_demais_bandeiras: "DEMAIS BANDEIRAS"
   exibir_todas_bandeiras_em: ["N2", "N3"]
 
+  # D-68 (03/09/2026): como as linhas sintese "fora da hierarquia" aparecem
+  # NA TELA (matriz hierarquica e chip de Head do Full). As chaves de dado
+  # continuam sendo `dimensoes.rotulo_sem_estrutura` / `rotulo_inativo`
+  # (relatorio, CSVs, cubo); aqui e so o texto que o leitor ve. Vazio = mostra
+  # a chave.
+  rotulos_exibicao:
+    sem_estrutura: "Sem estrutura comercial"
+    inativo: "Inativos (sem sell-in há 6 meses)"
+
   # Quantos itens no bloco de destaque de ganhos/quedas.
   top_ranking: 10
   # Opções do seletor "Top" na aba Bandeiras. (O seletor de SKU saiu na D-51
