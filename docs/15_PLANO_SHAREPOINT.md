@@ -38,7 +38,7 @@ Documentos\Painéis Comerciais\Gerencial\
 | 72 pastas criadas e populadas, Full na raiz | **feito** pela geração (02/09; regenerado em 03/09 com os nomes da D-58) |
 | Painéis v3 de 01/09 na raiz do destino | **apagados** (02/09 à noite) |
 | Painéis `_Canais_v4` antigos nas 72 pastas | **apagados** à mão em 03/09 (D-60) |
-| Compartilhar cada pasta com o colaborador | **pendente**: previsto para 04/09/2026, após a apresentação. Até lá a segregação por pasta não está em vigor (a segregação por conteúdo já está) |
+| Compartilhar cada pasta com o colaborador | **feito em 04/09/2026 à noite** pelo Douglas: 72 pastas de colaborador + `Dashboard - Full\` (D-73). A segregação por pasta está em vigor, somada à por conteúdo (D-52) |
 | Full restrito à diretoria | desde a **D-73** (04/09/2026 à noite) fica em `Dashboard - Full\`, pasta que o Douglas compartilha com quem só pode ver a visão corporativa (a raiz daria visibilidade a todas as pastas). A geração grava lá; a raiz não recebe mais o Full |
 
 ## 3. O que ficou das decisões D-a a D-e

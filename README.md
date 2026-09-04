@@ -175,8 +175,8 @@ o SharePoint: **[docs/15](docs/15_PLANO_SHAREPOINT.md)** — decidido e
 executado em 02/09/2026 (D-52/Q13): pasta por usuário em `Documentos\Painéis
 Comerciais\Gerencial\`, publicação por substituição na própria geração.
 Nomes sem sufixo de versão desde a D-58; painéis antigos recolhidos (D-60).
-Pendente do Douglas: compartilhar as 72 pastas (previsto para 04/09/2026, após
-a apresentação).
+As 72 pastas e a `Dashboard - Full\` (D-73) foram compartilhadas pelo Douglas
+em 04/09/2026 à noite.
 
 ---
 
@@ -385,7 +385,7 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 
 | Quem | O quê | Quando |
 |---|---|---|
-| **Douglas** | compartilhar as 72 pastas de `Painéis Comerciais\Gerencial\` com os colaboradores (P7) | 04/09, após a apresentação |
+| **Douglas** | ~~compartilhar as 72 pastas~~ **feito em 04/09/2026 à noite** (P7); a pasta `Dashboard - Full\` também está compartilhada (D-73). Falta o aviso de uma linha aos usuários sobre a abertura por cliente (D-72) | feito |
 | **Douglas → Comercial** | enviar `docs/pedidos/pedido_Q5_hierarquia_158.{xlsx,md}` (P8) e cobrar os 117 sem estrutura (P1) | esta semana |
 | **Douglas → BI** | confirmar o recorte de extração oficial do Sell In (P9) | esta semana |
 | **Próxima rodada do painel** (decisão do Douglas antes de abrir) | cubo de **cliente** só nos arquivos N2/N3 (medido: N3 mediana 4.447 linhas, RS/SC 139.653; inviável no Atacado); quebra por **canal** como dimensão (hoje só filtro); Vendedor × Bandeira para o executivo | quando ele pedir |
@@ -403,7 +403,7 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 | P4 | Caixas na devolução: pedir `Qtde` negativa ao BI (opção A), estimar pelo fator kg/caixa (B, cobre 98,6%) ou manter bruta (C, atual) | **Douglas decide** + BI | 0,28% das caixas | GAP-04 e a tabela de opções na conversa de 26/08 |
 | P5 | 4 SKUs fora do `Produtos.xlsx` (eram 7) | **Cadastro de Produtos** | R$ 1,04 mi (0,04%) | `data/quality/skus_sem_cadastro.csv` |
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
-| P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática). Os 73 arquivos publicados em 04/09 ~00:25 já são os da rodada D-63 a D-71 | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
+| P7 | ~~Compartilhar as 72 pastas~~ **FEITO em 04/09/2026 à noite pelo Douglas**: as 72 pastas de colaborador e a pasta `Dashboard - Full\` estão compartilhadas; a segregação por pasta está em vigor (a por conteúdo já estava, D-52). Os arquivos publicados são os da D-72 | — | 72 pastas + Full | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
 | P10 | **Cliente na aba Bandeiras: FEITO e PUBLICADO na D-72 (04/09 à noite, com o ok do Douglas)**; conferido contra os arquivos anteriores por `ferramentas/comparar_paineis.py`. Falta só o aviso de uma linha aos usuários ("a bandeira agora abre por cliente"). Ficam para a próxima rodada: canal como dimensão, Vendedor × Bandeira | **Douglas** avisa os usuários; decide o resto | ver docs/12 D-72 | docs/12 (proposta + D-72) |
 | P11 | ~~Cópia avulsa do Full em `Dashboard - Full\`~~ **Resolvida na D-73** (04/09 à noite): a pasta virou o destino oficial do Full (`publicacao.pasta_full`), porque o Douglas a compartilhou com pessoas que não podem ver as pastas dos colaboradores. A raiz não recebe mais o Full | — | — | docs/12 D-73 |
 
