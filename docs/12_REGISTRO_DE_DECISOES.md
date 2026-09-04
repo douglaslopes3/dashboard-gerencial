@@ -1996,3 +1996,31 @@ seguem ao centavo (teste). Muda o que é nominal e o que é Σ em cada arquivo.
 exibição". Busca por bandeira e por SKU: D-66.
 
 **Rollback.** git (commits da D-64 e D-65 juntos: um sem o outro não cabe).
+
+
+---
+
+## D-66 · Busca por bandeira e por SKU (03/09/2026)
+
+**Contexto.** As buscas saíram na D-51 junto com os filtros de bandeira e SKU.
+Com todas as bandeiras no arquivo (D-65) e 157 a 9.490 linhas possíveis no
+Atacado, "achar uma bandeira específica" voltou a ser pedido do Douglas.
+
+**Decisão.** Campo de busca no topo da aba **Bandeiras** (por nome de
+bandeira) e da aba **Categorias** (por código ou descrição de SKU). Regras:
+
+- sem acento e sem caixa ("confianca" acha "CONFIANÇA");
+- **ignora o corte de exibição**: o que se procura aparece nominalmente,
+  esteja ou não no Top N (a busca é o corte enquanto estiver ativa);
+- na aba Categorias mantém só as categorias que têm SKU casando e as **abre
+  sozinha**; a linha da categoria conserva o valor inteiro dela;
+- a nota e o rodapé dizem "busca: N de M; o total soma todas";
+- o texto fica no recorte (`qBan`/`qSku` no hash e no `localStorage`), então
+  "Copiar recorte" leva a busca junto;
+- rerender só da própria aba, com 150 ms de espera entre teclas.
+
+**Onde.** `template_v4.html` (`#bBan`, `#bSku`, `semAcento`, `cfg.busca` em
+`matrizNiveis`, `ligarBusca`); guarda em `tests/test_regras.py`. Nenhum número
+muda.
+
+**Rollback.** git.

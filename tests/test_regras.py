@@ -799,6 +799,16 @@ def test_d65_recorte_leva_so_as_bandeiras_do_escopo_reindexadas():
                for h in heads) == 210000
 
 
+def test_d66_template_tem_busca_de_bandeira_e_sku_persistida():
+    """D-66: campos #bBan e #bSku, busca sem acento (semAcento), estado
+    qBan/qSku gravado no recorte e ignorando o corte de exibicao."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    for termo in ('id="bBan"', 'id="bSku"', "function semAcento",
+                  "qBan:F.qBan", "F.qSku=r.qSku", "busca:{nivel:0",
+                  "busca:{nivel:1"):
+        assert termo in corpo, f"template v4 perdeu a busca (D-66): {termo}"
+
+
 def test_d65_template_monta_o_corte_na_tela():
     """O template nao procura mais o balde pelo rotulo (`D.ban.indexOf`), monta
     a linha Σ do corte de exibicao ele mesmo (`__resto__`) e respeita

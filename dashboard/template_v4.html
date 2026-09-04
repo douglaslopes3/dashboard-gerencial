@@ -180,6 +180,17 @@
     FY corrente, abre no FY anterior inteiro. Antes abria no FY corrente com
     todos os meses, que em setembro e um mes parcial. Ver `periodoInicial`.
     A chave do recorte salvo subiu para v5 para o padrao novo valer uma vez.
+
+  D-64/D-65 (03/09/2026) — BANDEIRAS: TODAS NO ARQUIVO, CORTE SO DE EXIBICAO.
+    O gerador parou de agregar "DEMAIS BANDEIRAS"; cada arquivo leva todas as
+    bandeiras do escopo. Full e N1 exibem as N maiores do proprio arquivo e
+    somam o resto numa linha Σ montada aqui (`__resto__` em matrizNiveis);
+    N2 e N3 exibem todas (`corte_bandeira.exibir_todas`). O eixo bandeira
+    saiu do cubo de SKU (nenhuma tela o lia).
+
+  D-66 (03/09/2026) — BUSCA por bandeira (aba Bandeiras) e por SKU (aba
+    Categorias): sem acento, sem caixa, ignora o corte de exibicao, abre a
+    categoria do SKU achado, persiste no recorte (`qBan`/`qSku`).
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -271,6 +282,12 @@ h1 span{color:var(--azul)}
   background:#fff;color:var(--bd);border:1px solid var(--bd)}
 .chip.on .z0{background:rgba(255,255,255,.92);color:#00539f;border-color:#fff}
 .mon-wrap{max-height:78px;overflow:auto}
+/* D-66 (03/09/2026): campo de busca das abas Bandeiras (bandeira) e
+   Categorias (SKU). Acha qualquer item do escopo, dentro ou fora do corte de
+   exibicao; sem acento e sem caixa. */
+.busca{border:1px solid #bfd3e6;border-radius:5px;padding:4px 9px;font-size:12px;
+  min-width:280px;background:#fff;color:var(--txt)}
+.busca:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 2px rgba(0,83,159,.15)}
 .mini{border:1px solid #bfd3e6;background:#f7fafd;border-radius:5px;
   padding:3px 9px;font-size:11px;cursor:pointer;color:var(--txt2)}
 .mini:hover{border-color:var(--azul);color:var(--azul);background:#fff}
@@ -511,6 +528,12 @@ canvas{max-height:280px}
 </div>
 
 <div class="panel" id="band">
+  <!-- D-66: busca por bandeira. Acha qualquer bandeira do escopo, inclusive
+       as que o corte de exibicao (Top) somou na linha Σ. -->
+  <div class="frow" id="frowBuscaBan">
+    <div class="flab">Buscar</div>
+    <input class="busca" id="bBan" placeholder="bandeira… (qualquer uma do escopo, mesmo fora do Top)" autocomplete="off">
+  </div>
   <div class="frow" id="frowTop" style="margin-bottom:10px">
     <div class="flab">Top</div><div class="chips" id="topBan"></div>
   </div>
@@ -531,6 +554,12 @@ canvas{max-height:280px}
      (Step 2.4), com a dimensao trocada: analise por CATEGORIA e matriz
      expansivel Categoria > SKU. Sem seletor "Top": sao 12 categorias. -->
 <div class="panel" id="catg">
+  <!-- D-66: busca por SKU (codigo ou descricao). A categoria do SKU achado
+       abre sozinha enquanto a busca estiver ativa. -->
+  <div class="frow" id="frowBuscaSku" style="margin-bottom:10px">
+    <div class="flab">Buscar</div>
+    <input class="busca" id="bSku" placeholder="SKU… (código ou descrição)" autocomplete="off">
+  </div>
   <div class="grid" style="grid-template-columns:1fr 1fr">
     <div class="card"><h3 style="color:var(--gd)">▲ Maiores ganhos <small id="sGanhoC"></small></h3>
       <div id="ganhoCat"></div></div>
@@ -655,8 +684,12 @@ const F = {
   metrica:"val", base:"fis", gran:"mes",
   fy:null, ano:null, meses:new Set(),
   cat:new Set(), head:new Set(), can:new Set(),
-  topBan:50, aba:"geral"
+  topBan:50, aba:"geral",
+  qBan:"", qSku:""              // D-66: texto das buscas (persistem no recorte)
 };
+// D-66: comparacao sem acento e sem caixa — "confianca" acha "CONFIANÇA".
+const semAcento = s => String(s||"").normalize("NFD")
+  .replace(/[̀-ͯ]/g,"").toLowerCase().trim();
 /* D-51: estado de expansao das matrizes, por aba. Nao persiste no recorte
    (como o drill tambem nunca persistiu): reabrir comeca recolhido. */
 const EXP = {geral:new Set(), band:new Set(), catg:new Set()};
@@ -1478,12 +1511,28 @@ function matrizNiveis(cfg){
   const sintese=n0.filter(n=>fora.has(n.k)||n.k===cfg.baldeK);
   let normais=n0.filter(n=>!fora.has(n.k)&&n.k!==cfg.baldeK);
   const universo=normais.length;
+  /* D-66 (03/09/2026): BUSCA. `cfg.busca = {nivel, q}`: no nivel 0 filtra os
+     itens de cima (bandeiras) e IGNORA o corte de exibicao — o que se procura
+     tem de aparecer, esteja ou nao no Top N; no nivel 1 (SKU dentro da
+     categoria) mantem so as categorias com algum filho que casa e abre essas
+     categorias sozinha. O Total geral continua o de tudo, e a nota diz. */
+  const q = cfg.busca && semAcento(cfg.busca.q);
+  const busca = q ? {nivel:cfg.busca.nivel, q} : null;
+  const casa = (nivel,k)=> semAcento(cfg.rotNo(nivel,k)).includes(busca.q);
+  const filhosDe = (n,nivel)=>{
+    const f=[...n.filhos.values()].sort((x,y)=>tot(y)-tot(x));
+    return (busca && busca.nivel===nivel+1) ? f.filter(x=>casa(nivel+1,x.k)) : f;
+  };
+  if(busca && busca.nivel===0) normais=normais.filter(n=>casa(0,n.k));
+  if(busca && busca.nivel===1) normais=normais.filter(n=>filhosDe(n,0).length>0);
+  const achadas = busca ? normais.length : null;
   /* D-65 (03/09/2026): o corte (topN) e de EXIBICAO. O que ele tira NAO some:
      vira UMA linha sintese Σ somada aqui mesmo, na tela — o dado de todas as
      bandeiras esta no arquivo (o gerador parou de agregar na origem). O
-     Total geral continua somando n0 inteiro, exibido ou nao. */
+     Total geral continua somando n0 inteiro, exibido ou nao. Com busca ativa
+     nao ha corte: a busca e o corte. */
   let resto=null;
-  if(cfg.topN>0 && universo>cfg.topN){
+  if(!busca && cfg.topN>0 && universo>cfg.topN){
     const cortadas=normais.slice(cfg.topN);
     normais=normais.slice(0,cfg.topN);
     resto={k:"__resto__", filhos:new Map(), serie:cols.map(()=>0),
@@ -1494,7 +1543,10 @@ function matrizNiveis(cfg){
       if(x.temL){ resto.l+=x.l; resto.temL=true; }
     });
   }
-  if(!normais.length && !sintese.length){ vazio(cfg.idTab); return null; }
+  if(!normais.length && !sintese.length){
+    vazio(cfg.idTab, busca ? `Nada encontrado para “${_semHtml(cfg.busca.q)}” neste recorte.` : undefined);
+    return null;
+  }
   const ND='<span class="nd">n/d</span>';
   // D-55: a celula declara a propria escala e a propria moeda. "–" continua
   // sendo ausencia de faturamento, nao zero formatado.
@@ -1507,8 +1559,10 @@ function matrizNiveis(cfg){
              {v:"Δ"},{v:"Δ%"},{v:"Part. %"}]);
   const linhas=[], raw=[], classes=[];
   function linhaDo(n, nivel, caminho, ehSintese){
-    const abre=!ehSintese && nivel<nNiv-1 && n.filhos.size>0;
-    const aberto=abre && cfg.expSet.has(caminho);
+    const filhos = ehSintese ? [] : filhosDe(n, nivel);
+    const abre=!ehSintese && nivel<nNiv-1 && filhos.length>0;
+    // D-66: com busca no nivel de baixo, o pai do item achado abre sozinho.
+    const aberto=abre && (cfg.expSet.has(caminho) || (busca && busca.nivel===nivel+1));
     const rot = n.k==="__resto__"
       ? (cfg.rotResto ? cfg.rotResto(n.n) : "Σ")     // D-65: linha do corte
       : cfg.rotNo(nivel, n.k);
@@ -1533,8 +1587,7 @@ function matrizNiveis(cfg){
                nr(pctNum(varPct(semLy?null:n.aP,semLy?null:n.l))),
                part===null?null:nr(part*100)]));
     if(aberto)
-      [...n.filhos.values()].sort((x,y)=>tot(y)-tot(x))
-        .forEach(f=>linhaDo(f, nivel+1, caminho+SEP+f.k, false));
+      filhos.forEach(f=>linhaDo(f, nivel+1, caminho+SEP+f.k, false));
   }
   normais.forEach(n=>linhaDo(n,0,String(n.k),false));
   if(resto) linhaDo(resto,0,"__resto__",true);        // D-65
@@ -1545,7 +1598,9 @@ function matrizNiveis(cfg){
   n0.forEach(n=>{ n.serie.forEach((v,i)=>g.serie[i]+=v);
     g.a+=n.a; g.aP+=n.aP; if(n.temL){g.l+=n.l; g.temL=true;} });
   const gSemLy=!temLy||!g.temL;
-  const rodape=[{v:`<b>Total geral</b>${cfg.topN>0&&universo>cfg.topN?` <small>(${normais.length} de ${universo} exibidas + síntese)</small>`:""}`}]
+  const rodape=[{v:`<b>Total geral</b>${
+      busca ? ` <small>(busca: ${normais.length} de ${universo}; o total soma todas)</small>`
+      : (cfg.topN>0&&universo>cfg.topN?` <small>(${normais.length} de ${universo} exibidas + síntese)</small>`:"")}`}]
     .concat(g.serie.map(v=>({v:num(v),c:"serie"})))
     .concat([{v:"<b>"+num(g.serie.reduce((s,v)=>s+v,0))+"</b>",c:"serie corte"},
              {v:fmtMetrica(g.a)},
@@ -1575,7 +1630,8 @@ function matrizNiveis(cfg){
   // dela). D-65: devolve o que a nota precisa dizer sobre o corte de
   // exibicao — quais chaves do nivel 0 estao nominais, o universo e quantas
   // foram somadas na linha Σ. Objeto = verdadeiro para os chamadores antigos.
-  return {exibidas:normais.map(n=>n.k), universo, cortadas:resto?resto.n:0};
+  return {exibidas:normais.map(n=>n.k), universo, cortadas:resto?resto.n:0,
+          achadas};
 }
 
 // "Mês" + "s" = "mêss". Plural declarado, em vez de deduzido.
@@ -1654,7 +1710,7 @@ function renderBandeiras(p){
     rotNo:(niv,k)=> niv===0 ? D.ban[+k] : D.cat[+k],
     usaSku:false, p, den, expSet:EXP.band,
     topN: todas ? 0 : F.topBan, baldeK:null, foraSet:null,
-    ignorar:null, rotResto});
+    ignorar:null, rotResto, busca:{nivel:0, q:F.qBan}});
   const escopo = RESTRITO ? "deste arquivo" : "da base";
   let texto="";
   if(r){
@@ -1662,7 +1718,11 @@ function renderBandeiras(p){
     for(const k of r.exibidas){ const v=a.get(+k); if(v) nominal+=met(v); }
     const cobRec=razao(nominal,den);
     const pct=cobRec===null?"n/d":fmtNum(cobRec*100,1)+"%";
-    if(todas)
+    if(r.achadas!==null)
+      texto=`Busca “${_semHtml(F.qBan)}”: <b>${r.achadas}</b> de
+        <b>${r.universo.toLocaleString("pt-BR")}</b> bandeiras ${escopo} neste
+        recorte, sem corte de exibição. O Total geral segue somando todas.`;
+    else if(todas)
       texto=`Todas as <b>${r.universo.toLocaleString("pt-BR")}</b> bandeiras
         ${escopo} com faturamento neste recorte aparecem nominalmente: não há
         corte nem linha Σ.`;
@@ -1707,12 +1767,18 @@ function renderCategorias(p){
       ? (+k>=0 ? D.cat[+k] : "n/d")
       : D.sku[+k][0]+" · "+D.sku[+k][1],
     usaSku:true, p, den, expSet:EXP.catg,
-    topN:0, baldeK:null, foraSet:null, ignorar:null});
+    topN:0, baldeK:null, foraSet:null, ignorar:null,
+    busca:{nivel:1, q:F.qSku}});
+  const buscaSku = temCat && temCat.achadas!==null
+    ? `Busca “${_semHtml(F.qSku)}”: só os SKUs que casam, dentro das
+       <b>${temCat.achadas}</b> categoria(s) em que aparecem (abertas
+       automaticamente); a linha da categoria mantém o valor inteiro dela. `
+    : "";
   el("nCat").innerHTML=(temCat?notaMatriz()+"<br>":"")
-    +`Clique em ▸ para abrir <b>todos os SKUs</b> da categoria (sem corte de
-    cobertura — os ${D.sku.length} SKUs da base estão aqui). Esta aba lê a
-    camada de SKU, que fecha com a Visão Geral sob qualquer filtro (D-48).
-    Participação % sobre o total do recorte.`;
+    +`${buscaSku}Clique em ▸ para abrir <b>todos os SKUs</b> da categoria (sem
+    corte de cobertura — os ${D.sku.length} SKUs ${RESTRITO?"deste arquivo":"da base"}
+    estão aqui). Esta aba lê a camada de SKU, que fecha com a Visão Geral sob
+    qualquer filtro (D-48). Participação % sobre o total do recorte.`;
 }
 
 /* ==================================================== exportacao (CSV/XLSX)/* ==================================================== exportacao (CSV/XLSX)
@@ -1912,6 +1978,7 @@ function recorteAtual(){
     cat:[...F.cat].map(i=>D.cat[i]),
     can:[...F.can], head:[...F.head],
     topBan:F.topBan, aba:F.aba,
+    qBan:F.qBan, qSku:F.qSku,                 // D-66
     fAberto:!el("fPainel").classList.contains("fechado")
   };
 }
@@ -1937,6 +2004,8 @@ function aplicarRecorte(r){
   setDe(F.can, r.can, x=>D.canal.includes(x)?x:null);
   setDe(F.head,r.head,x=>D.head.includes(x)?x:null);
   if(DB.tops.ban.includes(r.topBan)) F.topBan=r.topBan;
+  if(typeof r.qBan==="string") F.qBan=r.qBan.slice(0,80);   // D-66
+  if(typeof r.qSku==="string") F.qSku=r.qSku.slice(0,80);
   // D-51: recorte salvo em aba que nao existe mais cai na Visao Geral.
   if(["geral","band","catg"].includes(r.aba)) F.aba=r.aba;
   if(r.fAberto) el("fPainel").classList.remove("fechado");
@@ -2020,6 +2089,17 @@ function ligar(){
     el("fPainel").classList.toggle("fechado");
     atualizarToggle(); gravarRecorte();
   };
+  // D-66: as buscas rerenderizam so a propria aba, com um respiro de 150 ms
+  // para nao remontar a matriz a cada tecla.
+  const ligarBusca=(id, campo, aba)=>{
+    let t=null;
+    el(id).addEventListener("input", e=>{
+      clearTimeout(t);
+      t=setTimeout(()=>{ F[campo]=e.target.value; gravarRecorte(); rerender(aba); }, 150);
+    });
+  };
+  ligarBusca("bBan","qBan","band");
+  ligarBusca("bSku","qSku","catg");
   el("copiarLink").onclick=copiarRecorte;
   // v2: ordenacao por clique no cabecalho, em qualquer tabela com dados.
   document.addEventListener("click", e=>{
@@ -2096,6 +2176,7 @@ function iniciar(){
   // v2: reabre no recorte do link (#r=…) ou, sem link, no ultimo recorte
   // salvo neste navegador. Sem nenhum dos dois, fica o padrao acima.
   aplicarRecorte(lerRecorteInicial());
+  el("bBan").value=F.qBan; el("bSku").value=F.qSku;   // D-66: busca lembrada
   // L3-G (Q3-b): o rodape textual saiu de todos os arquivos — o contexto da
   // carga continua em resumo.json e em data/quality/relatorio_qualidade.md.
   montarFiltros(); ligar();
