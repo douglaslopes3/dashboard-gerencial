@@ -106,17 +106,19 @@ drill-down nem "voltar".
 
 * **▲ Maiores ganhos** e **▼ Maiores quedas** (top 10, por Δ absoluto; a linha
   Σ não entra nos destaques, é agregação, não bandeira).
-* **Matriz expansível Bandeira → Categoria**, com o seletor **Top** (10 / 50 /
-  100 / 200 / 300; só os cortes abaixo do universo do recorte, mais o primeiro
-  que o cobre inteiro, D-54). As **300 maiores da base** aparecem nominalmente;
-  as outras entram na **linha Σ "DEMAIS BANDEIRAS (N bandeiras)"**, cuja
-  contagem N é a **do arquivo** (D-57: no arquivo do head de Distribuição, 6;
-  no Full, 10.048). O **corte** das 300 é global, calculado sobre a base
-  inteira antes dos filtros e do recorte por nível, e a nota da aba diz isso:
-  as nominais são as mesmas em todos os arquivos, senão uma bandeira nominal
-  num arquivo apareceria no balde de outro.
-* A nota também diz quanto as nominais cobrem **neste recorte** (recalculado
-  sob os filtros) e que o Total geral soma todas, exibidas ou não.
+* **Matriz expansível Bandeira → Categoria.** O arquivo carrega **todas** as
+  bandeiras do escopo (D-65); o corte é só de exibição:
+  * **Full e N1**: seletor **Top** (10 / 50 / 100 / 200 / 300; só os cortes
+    abaixo do universo do recorte, mais o primeiro que o cobre inteiro, D-54).
+    As N maiores **do próprio arquivo** aparecem nominalmente; as outras são
+    somadas na **linha Σ "DEMAIS BANDEIRAS (N bandeiras)"** montada na tela,
+    com a contagem do arquivo. A busca (D-66) acha qualquer bandeira, dentro
+    ou fora do corte.
+  * **N2 e N3**: todas as bandeiras do escopo, sem Top e sem Σ (config
+    `dashboard.exibir_todas_bandeiras_em`).
+  * Ganhos e quedas consideram todas as bandeiras do escopo.
+* A nota diz de qual universo cada número fala, quanto as nominais cobrem
+  **neste recorte** e que o Total geral soma todas, exibidas ou não.
 
 ### Aba 3 — Categorias
 

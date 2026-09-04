@@ -295,12 +295,17 @@ dashboard:
   marcador_inicio: "/*DADOS_INICIO*/"
   marcador_fim: "/*DADOS_FIM*/"
 
-  # Corte do cubo de bandeira. As demais NÃO somem: viram um balde agregado, e
-  # o total do painel continua reconciliando com a fato.
-  # Medido: 300 = 73,4% da receita e 1.758 KB de JSON.
-  #         500 = 78,9% e 3.634 KB.  200 = 68,0% e 1.965 KB.
+  # D-65 (03/09/2026): o cubo carrega TODAS as bandeiras (medido: 495.037
+  # linhas no principal, contra 123.900 com o corte antigo; coube porque a
+  # D-64 tirou o eixo morto do cubo de SKU). `top_bandeiras` virou corte de
+  # EXIBICAO: no Full e nos arquivos N1 a tabela mostra as N maiores DO
+  # PROPRIO ARQUIVO e soma o resto numa linha Σ montada na tela; a busca
+  # acha qualquer bandeira, dentro ou fora do corte. Nos niveis listados em
+  # `exibir_todas_bandeiras_em` nao ha corte nem Σ (medido: N3 max. 2.930
+  # bandeiras, N2 max. 3.415 — cabe com rolagem).
   top_bandeiras: 300
   rotulo_demais_bandeiras: "DEMAIS BANDEIRAS"
+  exibir_todas_bandeiras_em: ["N2", "N3"]
 
   # Quantos itens no bloco de destaque de ganhos/quedas.
   top_ranking: 10

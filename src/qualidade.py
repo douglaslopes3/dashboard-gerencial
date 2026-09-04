@@ -340,10 +340,12 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     linha()
     linha(f"- `CUBO_PRINCIPAL`: **{len(pacote_cubo['cubo']):,}** linhas")
     linha(f"- `CUBO_SKU`: **{len(pacote_cubo['cubo_sku']):,}** linhas")
-    linha(f"- Bandeiras no ranking: **{corte['top']:,}** "
-          f"(**{corte['cobertura']:.1%}** da receita); as outras "
-          f"**{corte['demais']:,}** entram agregadas em `{corte['rotulo_demais']}`, "
-          "então o total continua fechando")
+    # D-65: o cubo carrega TODAS as bandeiras; o corte e so de exibicao.
+    linha(f"- Bandeiras no cubo: **{corte['universo']:,}** (todas). Corte de "
+          f"exibição no Full e nos arquivos N1: as **{corte['top']:,}** maiores "
+          f"de cada arquivo nominalmente (no Full cobrem "
+          f"**{corte['cobertura_top_full']:.1%}** da receita), o resto na linha "
+          f"Σ `{corte['rotulo_base']}` montada na tela; N2 e N3 exibem todas")
     linha("- Reconciliação cubo × fato nas 3 métricas: **ok** (o pipeline aborta "
           "se não fechar)")
     linha()

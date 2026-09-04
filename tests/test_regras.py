@@ -729,81 +729,83 @@ def test_d54_reindexacao_de_categoria_e_sku_aponta_para_o_rotulo_certo():
     assert sum(l[3] for l in rec["cubo_sku"]) == 110000
 
 
-def test_d54_recorte_preserva_calendario_e_o_corte_global():
+def test_d54_recorte_preserva_o_calendario():
     """`cal` fica intacto DE PROPOSITO: remapear mes reindexaria os dois cubos
-    e os ponteiros de LY (mes sem faturamento e resolvido na interface).
-
-    O CORTE de bandeira tambem continua global — `top` e `cobertura` sao os
-    mesmos em todo arquivo, senao uma bandeira nominal no painel de um head
-    apareceria no balde do painel corporativo. O que a D-57 passou a reescrever
-    e so a CONTAGEM do balde (teste proprio abaixo)."""
+    e os ponteiros de LY (mes sem faturamento e resolvido na interface)."""
     from src.load import cubos
     from run_dashboard import filtrar_por_nivel
     pac = cubos.construir(*_mini_modelo())
     rec = filtrar_por_nivel(pac, 0, "20 - H2", "N1")
     assert rec["cal"] == pac["cal"]
-    assert rec["corte_bandeira"]["top"] == pac["corte_bandeira"]["top"]
-    assert rec["corte_bandeira"]["cobertura"] == pac["corte_bandeira"]["cobertura"]
-    # o mini modelo tem 2 bandeiras e corte de 300: nao ha balde nenhum
-    assert pac["corte_bandeira"]["demais"] == 0
-    assert rec["dims"]["ban"] == pac["dims"]["ban"]
 
 
-def _com_balde(monkey_topn=1):
-    """Roda `cubos.construir` com um corte artificialmente pequeno, para que o
-    balde EXISTA — com o corte real (300) o mini modelo nao produz balde."""
+# ============================================ D-65 (03/09/2026): bandeiras
+def _modelo_tres_bandeiras():
+    """H1 (clientes 1-4) fatura em REDE A e REDE B; H2 (5-6) so em REDE C —
+    assim o recorte tem o que encolher."""
+    fato, dim_cli, dim_prod, dim_cal = _mini_modelo()
+    dim_cli = dim_cli.copy()
+    dim_cli["BANDEIRA"] = ["REDE A", "REDE B", "REDE A", "REDE B",
+                           "REDE C", "REDE C"]
+    return fato, dim_cli, dim_prod, dim_cal
+
+
+def test_d65_cubo_carrega_todas_as_bandeiras_sem_balde():
+    """D-65: o gerador nao agrega mais 'DEMAIS BANDEIRAS' na origem — toda
+    bandeira com sell-in e uma linha do cubo, e o corte e so de exibicao
+    (`top`, lido pelo template). Nada chega ao template com o rotulo do
+    balde, nem a contagem por nivel da D-57 (superada)."""
     from src.load import cubos
-    original = cubos._DASH
-    cubos._DASH = {**original, "top_bandeiras": monkey_topn}
-    try:
-        return cubos.construir(*_mini_modelo())
-    finally:
-        cubos._DASH = original
-
-
-def test_d57_contagem_do_balde_e_do_arquivo_nao_da_base():
-    """D-57: o rotulo da linha Σ carrega uma CONTAGEM, e ela tem de falar do
-    arquivo em que aparece.
-
-    Ate a D-56 a string era montada uma vez sobre a base inteira e viajava
-    intacta: o painel de um head anunciava "DEMAIS BANDEIRAS (11.008
-    bandeiras)" quando a linha Σ dele agregava um punhado. No mini modelo, com
-    corte de 1: a base tem 2 bandeiras (REDE A e REDE B), o balde global tem 1,
-    e cada head enxerga so as suas."""
-    from run_dashboard import filtrar_por_nivel
-    pac = _com_balde()
+    from src.utils.config import CFG
+    pac = cubos.construir(*_modelo_tres_bandeiras())
+    assert set(pac["dims"]["ban"]) == {"REDE A", "REDE B", "REDE C"}
+    assert not any("DEMAIS" in b for b in pac["dims"]["ban"])
     c = pac["corte_bandeira"]
-    assert c["demais"] >= 1 and c["rotulo_demais"] in pac["dims"]["ban"]
-    assert "rotulo_base" in c, "o rotulo sem contagem precisa viajar no pacote"
-
-    for nivel, pos, rot in (("N1", 0, "10 - H1"), ("N1", 0, "20 - H2"),
-                            ("N3", 2, "1100 - S1")):
-        rec = filtrar_por_nivel(pac, pos, rot, nivel)
-        cr = rec["corte_bandeira"]
-        esperado = {b for l in rec["cubo"]
-                    for b in [rec["dims"]["ban"][l[1]]]} - set()
-        # a contagem tem de bater com o que o gerador mediu para este nivel
-        assert cr["demais"] == pac["demais_por_nivel"][nivel][rot], rot
-        if cr["demais"]:
-            # o rotulo e a CHAVE que o template usa para achar o balde
-            assert cr["rotulo_demais"] in rec["dims"]["ban"], rot
-            assert str(cr["demais"]) in cr["rotulo_demais"], rot
-        # o corte em si nao muda: e global, e a tela declara isso
-        assert cr["top"] == c["top"] and cr["cobertura"] == c["cobertura"]
-    # o pacote GLOBAL nao pode ter sido mutado pelos recortes
-    assert pac["corte_bandeira"]["demais"] == c["demais"]
+    assert c["top"] == int(CFG["dashboard"]["top_bandeiras"])
+    assert c["universo"] == 3 and c["exibir_todas"] is False
+    assert "rotulo_base" in c and "rotulo_demais" not in c
+    assert "demais_por_nivel" not in pac
+    assert sum(l[4] for l in pac["cubo"]) == 210000
 
 
-def test_d57_balde_recontado_nao_mexe_em_nenhum_numero():
-    """A D-57 troca um rotulo, nao um valor: receita, particionamento e a
-    reconciliacao com a fato seguem identicos."""
+def test_d65_recorte_leva_so_as_bandeiras_do_escopo_reindexadas():
+    """O arquivo de um colaborador carrega SO as bandeiras do escopo dele
+    (nem o nome das outras viaja), com os indices do cubo remapeados, e o
+    dinheiro nao muda. N1 recebe o corte de exibicao; N2/N3 exibem todas
+    (config `exibir_todas_bandeiras_em`)."""
+    from src.load import cubos
     from run_dashboard import filtrar_por_nivel
-    pac = _com_balde()
-    total = sum(l[4] for l in pac["cubo"])
+    pac = cubos.construir(*_modelo_tres_bandeiras())
+    h2 = filtrar_por_nivel(pac, 0, "20 - H2", "N1")
+    assert h2["dims"]["ban"] == ["REDE C"]
+    assert all(l[1] < len(h2["dims"]["ban"]) for l in h2["cubo"])
+    assert sum(l[4] for l in h2["cubo"]) == 110000            # R$ 1.100,00
+    assert h2["corte_bandeira"]["universo"] == 1
+    assert h2["corte_bandeira"]["exibir_todas"] is False      # N1: corte
+    h1 = filtrar_por_nivel(pac, 0, "10 - H1", "N1")
+    assert set(h1["dims"]["ban"]) == {"REDE A", "REDE B"}
+    s3 = filtrar_por_nivel(pac, 2, "2100 - S3", "N3")
+    assert s3["dims"]["ban"] == ["REDE C"]
+    assert s3["corte_bandeira"]["exibir_todas"] is True       # N3: todas
+    g2 = filtrar_por_nivel(pac, 1, "2000 - G2", "N2") if any(
+        p[1] == "2000 - G2" for p in pac["dims"]["perfil"]) else None
+    if g2:
+        assert g2["corte_bandeira"]["exibir_todas"] is True
+    # o pacote global nao e mutado pelos recortes
+    assert len(pac["dims"]["ban"]) == 3
+    # particionamento por nivel continua fechando
     heads = {p[0] for p in pac["dims"]["perfil"]}
-    soma = sum(sum(l[4] for l in filtrar_por_nivel(pac, 0, h, "N1")["cubo"])
-               for h in heads)
-    assert soma == total == 210000
+    assert sum(sum(l[4] for l in filtrar_por_nivel(pac, 0, h, "N1")["cubo"])
+               for h in heads) == 210000
+
+
+def test_d65_template_monta_o_corte_na_tela():
+    """O template nao procura mais o balde pelo rotulo (`D.ban.indexOf`), monta
+    a linha Σ do corte de exibicao ele mesmo (`__resto__`) e respeita
+    `exibir_todas`."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    assert "__resto__" in corpo and "exibir_todas" in corpo
+    assert "rotulo_demais" not in corpo and "D.ban.indexOf" not in corpo
 
 
 def test_d63_periodo_inicial_no_ultimo_mes_fechado():

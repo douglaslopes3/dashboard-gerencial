@@ -1036,9 +1036,10 @@ function montarFiltros(){
    o primeiro que o cobre inteiro (o "todas"). Sem marcador "0": aqui a
    ausencia nao e falta de faturamento, e corte redundante. */
 function montarTop(){
-  const c = DB.corte_bandeira;
-  const iBalde = (c && c.demais) ? D.ban.indexOf(c.rotulo_demais) : -1;
-  const universo = OPC.ban.size - (iBalde>=0 && OPC.ban.has(iBalde) ? 1 : 0);
+  const c = DB.corte_bandeira || {};
+  // D-65: nivel que exibe TODAS as bandeiras nao tem corte — a linha some.
+  if(c.exibir_todas){ el("frowTop").hidden = true; return; }
+  const universo = OPC.ban.size;
   const cobre = DB.tops.ban.find(n=>n>=universo);
   chips("topBan", "frowTop", DB.tops.ban,
         n=>n<universo||n===cobre, n=>F.topBan===n, n=>n, n=>n, false);
@@ -1477,7 +1478,22 @@ function matrizNiveis(cfg){
   const sintese=n0.filter(n=>fora.has(n.k)||n.k===cfg.baldeK);
   let normais=n0.filter(n=>!fora.has(n.k)&&n.k!==cfg.baldeK);
   const universo=normais.length;
-  if(cfg.topN>0) normais=normais.slice(0,cfg.topN);
+  /* D-65 (03/09/2026): o corte (topN) e de EXIBICAO. O que ele tira NAO some:
+     vira UMA linha sintese Σ somada aqui mesmo, na tela — o dado de todas as
+     bandeiras esta no arquivo (o gerador parou de agregar na origem). O
+     Total geral continua somando n0 inteiro, exibido ou nao. */
+  let resto=null;
+  if(cfg.topN>0 && universo>cfg.topN){
+    const cortadas=normais.slice(cfg.topN);
+    normais=normais.slice(0,cfg.topN);
+    resto={k:"__resto__", filhos:new Map(), serie:cols.map(()=>0),
+           a:0, aP:0, l:0, temL:false, n:cortadas.length};
+    cortadas.forEach(x=>{
+      x.serie.forEach((v,i)=>{ resto.serie[i]+=v; });
+      resto.a+=x.a; resto.aP+=x.aP;
+      if(x.temL){ resto.l+=x.l; resto.temL=true; }
+    });
+  }
   if(!normais.length && !sintese.length){ vazio(cfg.idTab); return null; }
   const ND='<span class="nd">n/d</span>';
   // D-55: a celula declara a propria escala e a propria moeda. "–" continua
@@ -1493,7 +1509,9 @@ function matrizNiveis(cfg){
   function linhaDo(n, nivel, caminho, ehSintese){
     const abre=!ehSintese && nivel<nNiv-1 && n.filhos.size>0;
     const aberto=abre && cfg.expSet.has(caminho);
-    const rot=cfg.rotNo(nivel, n.k);
+    const rot = n.k==="__resto__"
+      ? (cfg.rotResto ? cfg.rotResto(n.n) : "Σ")     // D-65: linha do corte
+      : cfg.rotNo(nivel, n.k);
     const marca=abre?(aberto?"▾ ":"▸ "):"";
     const nome=`<span class="${nivel?`recuo${nivel}`:""}${abre?" exp":""}"${
       abre?` data-x="${encodeURIComponent(caminho)}" title="${aberto?"recolher":"abrir "+cfg.niveis[nivel+1]}"`:""}>${marca}${rot}</span>`;
@@ -1519,6 +1537,7 @@ function matrizNiveis(cfg){
         .forEach(f=>linhaDo(f, nivel+1, caminho+SEP+f.k, false));
   }
   normais.forEach(n=>linhaDo(n,0,String(n.k),false));
+  if(resto) linhaDo(resto,0,"__resto__",true);        // D-65
   sintese.forEach(n=>linhaDo(n,0,String(n.k),true));
   // ---- rodape: TOTAL GERAL = todos os nos do nivel 0 (exibidos ou nao) —
   //      e o numero que fecha com os cards da Visao Geral.
@@ -1552,9 +1571,11 @@ function matrizNiveis(cfg){
     cfg.expSet.has(c) ? cfg.expSet.delete(c) : cfg.expSet.add(c);
     rerender(cfg.aba);
   };
-  // D-55: devolve so "a matriz tem linhas" — a escala nao viaja mais daqui
-  // para a nota, porque cada celula ja declara a dela.
-  return true;
+  // D-55: a escala nao viaja mais daqui para a nota (cada celula declara a
+  // dela). D-65: devolve o que a nota precisa dizer sobre o corte de
+  // exibicao — quais chaves do nivel 0 estao nominais, o universo e quantas
+  // foram somadas na linha Σ. Objeto = verdadeiro para os chamadores antigos.
+  return {exibidas:normais.map(n=>n.k), universo, cortadas:resto?resto.n:0};
 }
 
 // "Mês" + "s" = "mêss". Plural declarado, em vez de deduzido.
@@ -1605,54 +1626,61 @@ function renderHier(p){
     total do recorte. A hierarquia vem do de-para de estrutura, não é inferida.`;
 }
 
+/* D-65 (03/09/2026): o arquivo carrega TODAS as bandeiras do escopo (o
+   gerador parou de agregar "DEMAIS BANDEIRAS" na origem). O corte e de
+   EXIBICAO: Full e N1 mostram as N maiores DO PROPRIO ARQUIVO (seletor Top) e
+   somam o resto numa linha Σ montada na tela (matrizNiveis); N2 e N3 exibem
+   todas (`corte_bandeira.exibir_todas`, decidido no gerador pelo config).
+   Ganhos e quedas passam a considerar TODAS as bandeiras do escopo — ate a
+   D-64 eram calculados so sobre as que estavam no top 300 corporativo, e o
+   executivo RS/SC decidia com 13 de 2.930 (medido). Supera a D-57. */
 function renderBandeiras(p){
   const fBan=(l)=>l[1];
   const a=somar(p.atual,fBan), l=somar(p.ly,fBan);
   const aP=parcialLy(p)?somar(p.pareado,fBan):a;   // D-32
   const rot=i=>D.ban[i];
   const temLy=p.ly.length>0;
-  const c=DB.corte_bandeira;
-  /* v3 (F1-D): o balde e uma linha de AGREGACAO de milhares de bandeiras —
-     fora dos destaques, dentro da matriz (linha sintese). */
-  const iBalde = (c && c.demais) ? D.ban.indexOf(c.rotulo_demais) : -1;
-  const [g,q]=ranking(a,aP,l,rot,DB.top_ranking,temLy,
-                      iBalde>=0?iBalde:null);
+  const c=DB.corte_bandeira||{}, todas=!!c.exibir_todas;
+  const [g,q]=ranking(a,aP,l,rot,DB.top_ranking,temLy);
   el("ganhoBan").innerHTML=g; el("quedaBan").innerHTML=q;
   el("sGanhoB").textContent="· por Δ absoluto de "+METRICAS[F.metrica].rot;
   el("sBan").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
   const den=met(total(p.atual));
+  const rotResto=n=>`${c.rotulo_base||"DEMAIS BANDEIRAS"} (${n.toLocaleString("pt-BR")} bandeiras)`;
   // D-51 (Step 2.3): a tabela final e a MATRIZ expansivel Bandeira > Categoria.
-  const temBan=matrizNiveis({idTab:"tabBan", aba:"band",
+  const r=matrizNiveis({idTab:"tabBan", aba:"band",
     niveis:["Bandeira","Categoria"],
     pathFn:l=>[l[1], l[2]],
     rotNo:(niv,k)=> niv===0 ? D.ban[+k] : D.cat[+k],
     usaSku:false, p, den, expSet:EXP.band,
-    topN:F.topBan, baldeK:String(iBalde>=0?iBalde:-2), foraSet:null,
-    ignorar:null});
-  let nominal=0;
-  for(const [k,v] of a){ if(k!==iBalde) nominal+=met(v); }
-  const cobRec=razao(nominal,den);
-  /* D-57 (03/09/2026): a nota misturava dois universos na mesma frase — "as
-     outras 11.008" (base inteira) e, duas linhas abaixo, "neste recorte". No
-     arquivo de um head o 11.008 era falso: a linha Σ dele agrega so as
-     bandeiras com faturamento no proprio escopo. `c.demais` agora chega
-     recontado pelo gerador (`filtrar_por_nivel`), e o texto diz de qual
-     universo cada numero fala. O CORTE segue global e declarado como tal:
-     as N maiores sao as mesmas em todos os arquivos, senao uma bandeira
-     nominal aqui apareceria no balde do painel corporativo. */
-  const nDemais = c.demais
-    ? `${RESTRITO ? "Neste arquivo a" : "A"} linha Σ “${c.rotulo_demais}”
-       reúne <b>${c.demais.toLocaleString("pt-BR")}</b> bandeira(s)${
-         RESTRITO ? " deste escopo" : ""} que ficaram fora do ranking —
-       elas <b>não somem</b>, e o <b>Total geral</b> soma todas, exibidas ou não.`
-    : `Todas as bandeiras ${RESTRITO ? "deste arquivo" : "da base"} estão no
-       ranking: não há linha Σ neste recorte.`;
-  el("nBan").innerHTML=(temBan?notaMatriz()+"<br>":"")
-    +`Clique em ▸ para abrir as <b>categorias</b> da bandeira. O ranking das
-    <b>${c.top}</b> maiores é calculado sobre <b>a base inteira</b>, antes dos
-    filtros e do recorte por nível. ${nDemais}
-    <b>Neste recorte</b>, as nominais somam
-    <b>${cobRec===null?"n/d":fmtNum(cobRec*100,1)+"%"}</b> de ${METRICAS[F.metrica].rot}.
+    topN: todas ? 0 : F.topBan, baldeK:null, foraSet:null,
+    ignorar:null, rotResto});
+  const escopo = RESTRITO ? "deste arquivo" : "da base";
+  let texto="";
+  if(r){
+    let nominal=0;
+    for(const k of r.exibidas){ const v=a.get(+k); if(v) nominal+=met(v); }
+    const cobRec=razao(nominal,den);
+    const pct=cobRec===null?"n/d":fmtNum(cobRec*100,1)+"%";
+    if(todas)
+      texto=`Todas as <b>${r.universo.toLocaleString("pt-BR")}</b> bandeiras
+        ${escopo} com faturamento neste recorte aparecem nominalmente: não há
+        corte nem linha Σ.`;
+    else if(r.cortadas)
+      texto=`A tabela exibe as <b>${r.exibidas.length}</b> maiores bandeiras
+        ${escopo} neste recorte (seletor <b>Top</b>); as outras
+        <b>${r.cortadas.toLocaleString("pt-BR")}</b> ficam somadas na linha Σ
+        “${c.rotulo_base||"DEMAIS BANDEIRAS"}”. Elas <b>não somem</b>: o
+        <b>Total geral</b> soma todas, e a busca acha qualquer uma delas.
+        <b>Neste recorte</b>, as nominais somam <b>${pct}</b> de
+        ${METRICAS[F.metrica].rot}.`;
+    else
+      texto=`Todas as <b>${r.universo.toLocaleString("pt-BR")}</b> bandeiras
+        ${escopo} com faturamento neste recorte estão na tabela: o corte de
+        ${F.topBan} não deixou nenhuma de fora.`;
+  }
+  el("nBan").innerHTML=(r?notaMatriz()+"<br>":"")
+    +`Clique em ▸ para abrir as <b>categorias</b> da bandeira. ${texto}
     Participação % sobre o total do recorte.`;
 }
 

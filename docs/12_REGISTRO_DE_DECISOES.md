@@ -1949,3 +1949,50 @@ acompanham; 5 testes atualizaram a posição da receita. Reconciliação cubo ×
 fato continua ao centavo. O template v3 já não lia este formato (D-51).
 
 **Rollback.** git.
+
+
+---
+
+## D-65 · Bandeiras: todas no arquivo, corte só de exibição; N2/N3 exibem tudo (03/09/2026)
+
+**Contexto (crítica do painel, 03/09/2026).** O corte das 300 maiores era
+aplicado na geração, sobre a base inteira, antes de qualquer recorte. Medido
+nos arquivos gerados: o executivo RS/SC via 13 bandeiras nominais e **2.917
+dentro da linha Σ** (89% do faturamento dele numa linha que não abre); 14 dos
+55 executivos e 4 dos 13 gerentes tinham mais escondido do que exibido; e
+"Maiores ganhos/quedas" eram calculados só sobre as bandeiras que por acaso
+estavam no top 300 corporativo. O Douglas pediu: cada nível vê as **suas**
+bandeiras, todas se possível, com busca.
+
+**Medido antes de decidir (fato de 03/09):** cubo principal sem corte
+495.037 linhas (contra 123.900); com a D-64 os dois cubos somam 1.175.567
+linhas ≈ 39 MB crus (hoje 30,7 MB), Full estimado em ~14 MB no arquivo.
+Por arquivo: Atacado ~31 MB crus, Sul/CO ~10, RS/SC ~8. O dado cabe; o que
+não cabe é **exibir** 9.490 linhas no Atacado.
+
+**Decisão.**
+
+- `cubos.py` para de agregar: **toda bandeira com sell-in é linha do cubo**;
+  a ordem dos índices é o ranking global por receita.
+- `filtrar_por_nivel` leva só as bandeiras do escopo, reindexadas (nem o nome
+  das outras viaja mais; fecha o vazamento de metadado apontado na crítica).
+- O corte vira **de exibição**, no template: Full e N1 mostram as N maiores
+  **do próprio arquivo** (seletor Top, `dashboard.top_bandeiras`) e somam o
+  resto numa linha Σ montada na tela (`__resto__` em `matrizNiveis`), com a
+  contagem do arquivo. Níveis em `dashboard.exibir_todas_bandeiras_em`
+  (N2, N3) exibem todas, sem seletor Top nem Σ.
+- Ganhos e quedas consideram todas as bandeiras do escopo.
+- A nota da aba diz de qual universo cada número fala; "as nominais somam X%"
+  passa a ser sobre as exibidas.
+
+**Consequência aceita pelo Douglas.** A mesma bandeira pode ser nominal no
+arquivo do executivo e estar no Σ do arquivo do head (o corte é por arquivo).
+Isto **supera a D-57** (Σ recontado por nível) e a justificativa de
+comparabilidade entre arquivos que ela carregava.
+
+**Nenhum número muda** nos totais: reconciliação e particionamento por nível
+seguem ao centavo (teste). Muda o que é nominal e o que é Σ em cada arquivo.
+`relatorio_qualidade.md §8` passou a declarar "todas no cubo; corte de
+exibição". Busca por bandeira e por SKU: D-66.
+
+**Rollback.** git (commits da D-64 e D-65 juntos: um sem o outro não cabe).
