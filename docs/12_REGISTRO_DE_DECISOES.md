@@ -2077,3 +2077,62 @@ casos sem citar a D-50.
 muda.
 
 **Rollback.** apagar `rotulos_exibicao` do config (volta a chave).
+
+
+---
+
+## D-69 · Filtro hierárquico: Gerente, Sup./Exec. e Vend./RCA nas três abas (04/09/2026)
+
+**Contexto.** Pedido do Douglas: "se o head quiser ver algum subordinado
+específico nas abas Bandeiras e Categorias, como ele faz?". Não fazia: desde a
+D-51 os únicos filtros de dimensão eram Canal, Categoria e Head, e a matriz
+hierárquica só navegava a Visão Geral (item 4 da crítica de 03/09).
+
+**Decisão.** Os três níveis abaixo do head voltam ao painel de filtros, como
+filtros globais que valem nas três abas. Uma função só (`passaPerfil`) decide o
+perfil para os dois cubos, então "ver o executivo X" recorta KPIs, gráfico,
+matriz hierárquica, Bandeiras e Categorias ao mesmo tempo. Regras herdadas da
+D-54: só opções com dado no recorte; linha some com menos de duas opções (no
+arquivo de um N3 as linhas de Gerente e Sup./Exec. somem sozinhas, a de
+Vend./RCA fica com os vendedores dele); a cascata é pelo dado (escolher um
+gerente deixa na lista só os Sup./Exec. dele). Um único item selecionado
+aparece pelo nome na linha de estado; a seleção vai para o recorte salvo e
+para o nome do arquivo exportado; "Limpar filtros" limpa os seis filtros.
+
+**Verificado (Full, 04/09):** gerente Sul/CO selecionado → KPI R$ 129,6 mi
+(igual ao arquivo N2 dele), matriz só com o ramo dele, Bandeiras com o mesmo
+universo de 3.415 do arquivo N2, cascata Sup./Exec. 57 → 4 e Vend./RCA
+197 → 25. Arquivo N3 RS/SC: Gerente e Sup./Exec. ocultos, 21 vendedores.
+
+**Em aberto: botão (chip) ou lista suspensa.** Implementado com chips, o mesmo
+componente dos outros filtros; o Douglas pediu avaliação. Medido no Full:
+13 gerentes (+2 Σ), 55 Sup./Exec., 203 Vend./RCA, em linhas com rolagem
+interna. Comparação e escolha na conversa de 04/09; a troca é só na camada de
+desenho (`chips` → `<select>`), o estado e o filtro não mudam.
+
+**Onde.** `template_v4.html` (`passaPerfil`, `TEM_PERFIL`, `DIMS_FILTRO`,
+linhas `frowGer/frowSup/frowVend`, `atualizarOpcoes`, `montarFiltros`,
+`atualizarEstado`, recorte, `nomeArquivo`); guarda em `tests/test_regras.py`;
+docs/08 §1. Nenhum número muda.
+
+**Rollback.** git.
+
+
+---
+
+## D-70 · Notas de rodapé dos cards saem da tela (04/09/2026)
+
+**Pedido do Douglas.** "Os textos do rodapé podem sumir, não precisa exibi-los."
+
+**Decisão.** Os quatro blocos `.note` (sob o gráfico de Evolução e sob as três
+matrizes) e a função `notaMatriz` saíram do template. O que era dado vivo
+continua na própria tabela: a contagem do Σ no rótulo da linha, "Total geral
+(N de M exibidas + síntese)" ou "(busca: N de M)" no rodapé, e `*` no
+cabeçalho para período parcial. As regras que as notas explicavam (LY pareado
+mês a mês, ordenação pelo TOTAL, "–" = ausência, corte de exibição) ficam
+documentadas em docs/08 e docs/10.
+
+**Onde.** `template_v4.html`; guarda em `tests/test_regras.py`. Nenhum
+número muda.
+
+**Rollback.** git.

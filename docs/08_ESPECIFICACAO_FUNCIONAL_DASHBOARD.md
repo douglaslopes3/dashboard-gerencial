@@ -21,11 +21,15 @@ no template.
 | **Canal** | `DIM_CLIENTE.CANAL` | N | de `bases/Canais/Canais.xlsx`, 100% de cobertura (D-19) |
 | **Categoria** | `DIM_PRODUTO.CATEGORIA` | N | |
 | **Head** | `DIM_CLIENTE.HEAD` | N | seletor de escopo do **Template Full**; não existe nos arquivos por colaborador (D-52) |
+| **Gerente** | perfil do cubo (N2) | N | D-69: vale nas três abas; cascata pelo dado; some no arquivo em que só há uma opção |
+| **Sup./Exec.** | perfil do cubo (N3) | N | idem |
+| **Vend./RCA** | perfil do cubo (N4) | N | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível |
 
-Saíram na D-51 (Q9): Gerente, Sup./Exec., Projeto, UF e as buscas de Bandeira
-e SKU. Gerente e Sup./Exec. são níveis da matriz hierárquica; bandeira e SKU
-são dimensões das abas Bandeiras e Categorias; o eixo UF saiu dos cubos (Q10);
-projeto continua na DIM_CLIENTE e no perfil do cubo, sem filtro na tela.
+Saíram na D-51 (Q9) e não voltaram: Projeto e UF (o eixo UF saiu dos cubos,
+Q10; projeto continua no perfil do cubo, sem filtro na tela). Bandeira e SKU
+são dimensões das abas Bandeiras e Categorias, com **busca** própria (D-66).
+Gerente, Sup./Exec. e Vend./RCA voltaram na **D-69** como filtros globais: é
+como o head vê um subordinado específico em qualquer aba.
 
 ### 1.1 Ano fiscal e ano calendário — comportamento declarado
 
@@ -192,17 +196,21 @@ resolve daltonismo e impressão em preto e branco.
 
 ## 5. O que a interface declara ao leitor
 
-Não há rodapé textual desde a D-47 (Q3-b). O que o painel declara, e onde:
+Não há rodapé textual desde a D-47 (Q3-b) e, desde a **D-70**, não há notas
+explicativas sob os cards. O que o painel declara, e onde:
 
 * **título e cabeçalho:** período coberto, execução e, nos arquivos por
   colaborador, o recorte (nível e nome);
-* **card de Caixas:** Caixas é bruta (não líquida de devolução; desvio 0,28%,
-  GAP-04);
-* **aba Bandeiras:** o corte das 300 maiores, a contagem da linha Σ do
-  arquivo e a cobertura das nominais neste recorte (D-57);
-* **matriz hierárquica:** as linhas Σ fora da hierarquia e que o Total geral
-  fecha com os cards;
-* **linha de estado:** filtros ativos e quantos meses do LY estão pareados.
+* **linha de estado:** métrica, base, período, quantos meses do LY estão
+  pareados e os filtros ativos (um só item hierárquico aparece pelo nome);
+* **dentro das tabelas:** rótulo da linha Σ com a contagem ("DEMAIS BANDEIRAS
+  (N bandeiras)", "Sem estrutura comercial", "Inativos..."), rodapé "Total
+  geral (N de M exibidas + síntese)" ou "(busca: N de M)", `*` no cabeçalho
+  para período parcial, `n/d` onde não há base, `–` onde não há faturamento.
+
+As regras que as notas antigas explicavam (LY pareado mês a mês e
+tudo-ou-nada no agregado, ordenação pelo TOTAL, corte de exibição por
+arquivo, Caixas bruta) vivem neste documento e no docs/10.
 
 A ressalva "a camada de SKU não cruza com gerente, bandeira e projeto" **deixou
 de existir na D-48**: os dois cubos passaram a ter o mesmo eixo comercial e a

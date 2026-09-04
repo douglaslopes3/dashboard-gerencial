@@ -186,8 +186,12 @@ mesma ordem.
 **Seletores globais.** Métrica (Valor R$ / Volume t / Caixas), base de
 comparação (YTD Fiscal / YTD Calendário; a comparação com o ano anterior está
 **embutida**: os meses selecionados contra os mesmos meses do ano anterior),
-Ano, Meses (chips, com `Todos`/`Nenhum`), Canal, Categoria e Head (este só no
-Full). Na barra de Período, o seletor **Ver por** (Mês / Trimestre / Semestre /
+Ano, Meses (chips, com `Todos`/`Nenhum`), Canal, Categoria, Head (este só no
+Full) e, desde a D-69, **Gerente, Sup./Exec. e Vend./RCA**: é assim que um
+head vê um subordinado específico em qualquer aba, e um gerente vê um
+executivo. As listas só trazem quem tem dado no recorte; escolher um gerente
+encolhe a lista de Sup./Exec.; no arquivo de um Sup./Exec. só a linha de
+Vend./RCA aparece. Na barra de Período, o seletor **Ver por** (Mês / Trimestre / Semestre /
 Ano) define a granularidade das colunas e das barras; grupo com menos meses
 que a granularidade pede sai rotulado **(parcial)** ou com `*`. O painel de
 filtros existe em todas as abas: abaixo do gráfico na Visão Geral, no topo
@@ -211,6 +215,10 @@ atual), com **número como número** (sem "R$", decimal com ponto).
 **A linha azul de estado** sempre diz o que está ativo: métrica, base,
 período, quantos meses do ano anterior estão cobertos e os filtros ligados.
 
+**Sem notas de rodapé** (D-70): os cards não têm texto explicativo; o que
+importa está na tabela (rótulo da linha Σ, "Total geral (N de M exibidas)",
+`*` de período parcial) e na linha de estado.
+
 **O que o painel declara na própria tela.**
 
 1. **Caixas é métrica bruta.** Valor e Volume são líquidos de devolução; Caixas
@@ -233,7 +241,7 @@ só por cor**: levam sempre seta (▲/▼) e sinal (+/−).
 ## Rodar os testes
 
 ```bash
-python tests/test_regras.py      # 60 testes de regra critica
+python tests/test_regras.py      # 62 testes de regra critica
 python tests/cenarios.py         # 6 cenarios de ponta a ponta (roda o pipeline)
 ```
 

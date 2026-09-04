@@ -821,6 +821,29 @@ def test_d68_rotulos_de_exibicao_vem_do_config_e_nao_do_template():
     assert exib["sem_estrutura"] not in corpo and exib["inativo"] not in corpo
 
 
+def test_d69_filtro_hierarquico_vale_nos_dois_cubos():
+    """D-69: gerente, sup./exec. e vendedor filtram pelo perfil nos DOIS
+    cubos (`passaPerfil`), entram no recorte salvo e no "Limpar"; as linhas
+    obedecem a D-54 (chips com dado)."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    for termo in ("function passaPerfil", 'id="fGer"', 'id="fSup"', 'id="fVend"',
+                  "F.ger.has(p[P_GER])", "F.sup.has(p[P_SUP])",
+                  "F.vend.has(p[P_VEND])", "ger:[...F.ger]",
+                  'DIMS_FILTRO = ["cat","can","head","ger","sup","vend"]'):
+        assert termo in corpo, f"template v4 perdeu o filtro hierarquico: {termo}"
+    # a lista de chips nao pode ser nominal (D-54): sai do perfil do cubo
+    assert "lista(P_GER)" in corpo and "lista(P_VEND)" in corpo
+
+
+def test_d70_sem_notas_de_rodape():
+    """D-70: os cards nao tem mais .note; nenhuma funcao escreve em nEvo,
+    nHier, nBan ou nCat."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    assert 'class="note"' not in corpo and "function notaMatriz" not in corpo
+    for alvo in ("nEvo", "nHier", "nBan", "nCat"):
+        assert f'el("{alvo}")' not in corpo, alvo
+
+
 def test_d67_colunas_de_decisao_antes_da_serie():
     """D-67: nas tres matrizes o cabecalho e nome | ATUAL | ANT. | Δ | Δ% |
     Part. % | serie... | TOTAL — e a exportacao segue a mesma ordem."""

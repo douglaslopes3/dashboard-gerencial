@@ -200,6 +200,13 @@
     estrutura / inativos), via DB.rotulos_exibicao, que vem do config
     `dashboard.rotulos_exibicao`. O texto NAO mora aqui (guarda de teste);
     a chave de dado nao muda; `EXIBE(k)` aplica.
+
+  D-69 (04/09/2026) — FILTRO HIERARQUICO: Gerente, Sup./Exec. e Vend./RCA
+    voltam ao painel de filtros, valendo nas tres abas (`passaPerfil`). Regras
+    da D-54 (so opcao com dado; linha some com menos de duas); cascata pelo
+    dado; um so selecionado aparece pelo nome na linha de estado.
+
+  D-70 (04/09/2026) — as NOTAS DE RODAPE dos cards (.note) sairam.
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -250,7 +257,10 @@ h1 span{color:var(--azul)}
   align-items:center;gap:8px;flex-wrap:wrap}
 .card h3 small{font-weight:400;color:var(--txt2);font-size:11px}
 .grid{display:grid;gap:12px;margin-bottom:12px}
-.note{color:var(--txt2);font-size:11px;margin-top:8px;line-height:1.4}
+/* D-70 (04/09/2026): as notas de rodape dos cards (.note) SAIRAM — o Douglas
+   nao quer os textos explicativos na tela. O que era informacao viva (Σ do
+   corte, contagem da busca) ficou na propria tabela: rotulo da linha Σ e o
+   rodape "Total geral (...)". */
 
 /* ---------------------------------------------------------------- filtros
    (28/08: "menos branco" — painel com fundo azulado, rotulo em azul, chip
@@ -291,6 +301,10 @@ h1 span{color:var(--azul)}
   background:#fff;color:var(--bd);border:1px solid var(--bd)}
 .chip.on .z0{background:rgba(255,255,255,.92);color:#00539f;border-color:#fff}
 .mon-wrap{max-height:78px;overflow:auto}
+/* D-69: as linhas hierarquicas podem ter dezenas de chips no Full (55
+   sup./exec., 203 vendedores) — rolam dentro da linha em vez de empurrar a
+   tela; a cascata pelo dado (escolher head/gerente) as encolhe. */
+.hier-wrap{max-height:104px;overflow:auto}
 /* D-66 (03/09/2026): campo de busca das abas Bandeiras (bandeira) e
    Categorias (SKU). Acha qualquer item do escopo, dentro ou fora do corte de
    exibicao; sem acento e sem caixa. */
@@ -470,8 +484,7 @@ canvas{max-height:280px}
 <div class="panel active" id="geral">
   <div class="kpis" id="kpis"></div>
   <div class="grid" style="grid-template-columns:1fr" id="gridEvo">
-    <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas>
-      <div class="note" id="nEvo"></div></div>
+    <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas></div>
   </div>
   <!-- v3 lote 2 (P2-A2/A3): controles logo abaixo da visao que eles comandam.
        O painel e UNICO e viaja para a aba ativa via posicionarFiltros(). -->
@@ -511,11 +524,18 @@ canvas{max-height:280px}
   <!-- L3-D: no arquivo por head esta LINHA fica oculta (iniciar()); o
        componente e a logica continuam vivos para os demais perfis. -->
   <div class="frow" id="frowHead"><div class="flab">Head</div><div class="chips" id="fHead"></div></div>
-  <!-- D-51 (Q9 e regra dos filtros hierarquicos): Gerente, Sup./Exec.,
-       Projeto, UF e as linhas de Bandeira/SKU sairam. A navegacao entre
-       niveis e a MATRIZ; bandeira e SKU seguem como dimensoes nas abas.
-       O Head fica: e o seletor de escopo do Template Full (oculto no
-       arquivo por head). -->
+  <!-- D-69 (04/09/2026): FILTRO HIERARQUICO. Gerente, Sup./Exec. e Vend./RCA
+       voltam como filtros globais (a D-51 os tinha tirado): e assim que o
+       head ve um subordinado especifico nas abas Bandeiras e Categorias, e o
+       gerente ve um executivo. Seguem a D-54: so opcoes com dado no recorte
+       atual, linha some com menos de duas opcoes (no arquivo do N3 a linha
+       de Sup./Exec. some sozinha; a de Vend./RCA fica). Cascata pelo dado:
+       escolher um gerente encolhe a lista de Sup./Exec. Projeto, UF e as
+       buscas de Bandeira/SKU seguem fora (bandeira e SKU sao dimensoes das
+       abas, com busca propria desde a D-66). -->
+  <div class="frow" id="frowGer"><div class="flab">Gerente</div><div class="chips hier-wrap" id="fGer"></div></div>
+  <div class="frow" id="frowSup"><div class="flab">Sup./Exec.</div><div class="chips hier-wrap" id="fSup"></div></div>
+  <div class="frow" id="frowVend"><div class="flab">Vend./RCA</div><div class="chips hier-wrap" id="fVend"></div></div>
   <!-- D-54: sem nenhum filtro de dimensao ativo nao ha o que limpar — a linha
        inteira sai da tela (nunca acinzentada, regra global da D-51). -->
   <div class="frow" id="frowLimpar">
@@ -535,8 +555,7 @@ canvas{max-height:280px}
        Head > Gerente > Sup./Exec. > Vend./RCA. -->
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Matriz hierárquica <small id="cadHier"></small><small id="sHier"></small></h3>
-      <div class="scroll"><table id="tabHier"></table></div>
-      <div class="note" id="nHier"></div></div>
+      <div class="scroll"><table id="tabHier"></table></div></div>
   </div>
 </div>
 
@@ -559,8 +578,7 @@ canvas{max-height:280px}
         <div class="flab">Buscar</div>
         <input class="busca" id="bBan" placeholder="bandeira… (qualquer uma do escopo, mesmo fora do Top)" autocomplete="off">
       </div>
-      <div class="scroll"><table id="tabBan"></table></div>
-      <div class="note" id="nBan"></div></div>
+      <div class="scroll"><table id="tabBan"></table></div></div>
   </div>
 </div>
 
@@ -582,8 +600,7 @@ canvas{max-height:280px}
         <div class="flab">Buscar</div>
         <input class="busca" id="bSku" placeholder="SKU… (código ou descrição)" autocomplete="off">
       </div>
-      <div class="scroll"><table id="tabCat"></table></div>
-      <div class="note" id="nCat"></div></div>
+      <div class="scroll"><table id="tabCat"></table></div></div>
   </div>
 </div>
 
@@ -700,6 +717,7 @@ const F = {
   metrica:"val", base:"fis", gran:"mes",
   fy:null, ano:null, meses:new Set(),
   cat:new Set(), head:new Set(), can:new Set(),
+  ger:new Set(), sup:new Set(), vend:new Set(),   // D-69: filtro hierarquico
   topBan:50, aba:"geral",
   qBan:"", qSku:""              // D-66: texto das buscas (persistem no recorte)
 };
@@ -908,19 +926,26 @@ function ytdCalendario(ref){
    participacao % e montado, sem duplicar codigo de agregacao.               */
 /* D-51: sobraram tres filtros de dimensao — categoria, canal e head (o
    Head so no Template Full). Os dois cubos aplicam os tres. */
+/* D-69 (04/09/2026): os tres niveis abaixo do head viraram filtro tambem.
+   Uma funcao so decide o perfil para os DOIS cubos — o que vale para o
+   principal vale para o de SKU, e e assim que "ver um executivo especifico"
+   funciona nas tres abas. */
+function passaPerfil(p, ignorar){
+  if(ignorar!=="head"  && F.head.size && !F.head.has(p[P_HEAD])) return false;
+  if(ignorar!=="ger"   && F.ger.size  && !F.ger.has(p[P_GER]))   return false;
+  if(ignorar!=="sup"   && F.sup.size  && !F.sup.has(p[P_SUP]))   return false;
+  if(ignorar!=="vend"  && F.vend.size && !F.vend.has(p[P_VEND])) return false;
+  if(ignorar!=="canal" && F.can.size  && !F.can.has(p[P_CAN]))   return false;
+  return true;
+}
+const TEM_PERFIL = ()=> F.head.size||F.ger.size||F.sup.size||F.vend.size||F.can.size;
 function passaPrincipal(l, ignorar){
   if(ignorar!=="cat" && F.cat.size && !F.cat.has(l[2])) return false;
-  if(F.head.size || F.can.size){
-    const p = D.perfil[l[3]];
-    if(ignorar!=="head"  && F.head.size && !F.head.has(p[P_HEAD])) return false;
-    if(ignorar!=="canal" && F.can.size  && !F.can.has(p[P_CAN]))   return false;
-  }
+  if(TEM_PERFIL() && !passaPerfil(D.perfil[l[3]], ignorar)) return false;
   return true;
 }
 function passaSku(l, ignorar){
-  const p = PERF(l, true);
-  if(ignorar!=="head"  && F.head.size && !F.head.has(p[P_HEAD])) return false;
-  if(ignorar!=="canal" && F.can.size  && !F.can.has(p[P_CAN]))   return false;
+  if(TEM_PERFIL() && !passaPerfil(PERF(l, true), ignorar)) return false;
   if(ignorar!=="cat" && F.cat.size && !F.cat.has(D.sku[l[1]][2])) return false;
   return true;
 }
@@ -1020,6 +1045,7 @@ let OPC = null;
 function atualizarOpcoes(){
   const sel = new Set(periodo().atual);
   const can=new Set(), cat=new Set(), head=new Set(), ban=new Set(), mes=new Set();
+  const ger=new Set(), sup=new Set(), vend=new Set();   // D-69
   for(let mi=0; mi<NM; mi++){
     const linhas = IDX_CUBO[mi], ehSel = sel.has(mi);
     for(let k=0;k<linhas.length;k++){
@@ -1035,13 +1061,16 @@ function atualizarOpcoes(){
       const p = D.perfil[l[3]];
       if(passaPrincipal(l, "canal")) can.add(p[P_CAN]);
       if(passaPrincipal(l, "head"))  head.add(p[P_HEAD]);
+      if(passaPrincipal(l, "ger"))   ger.add(p[P_GER]);     // D-69
+      if(passaPrincipal(l, "sup"))   sup.add(p[P_SUP]);
+      if(passaPrincipal(l, "vend"))  vend.add(p[P_VEND]);
       if(passaPrincipal(l, "cat"))   cat.add(l[2]);
       if(passaPrincipal(l, null))    ban.add(l[1]);
     }
   }
   const ano=new Set(), fy=new Set();
   mes.forEach(i=>{ ano.add(CAL[i][C_ANO]); fy.add(CAL[i][C_FYROT]); });
-  OPC = {can, cat, head, ban, mes, ano, fy};
+  OPC = {can, cat, head, ger, sup, vend, ban, mes, ano, fy};
   return OPC;
 }
 /* Desenha os chips de UMA dimensao aplicando a regra acima e devolve quantos
@@ -1078,9 +1107,22 @@ function montarFiltros(){
   // L3-D/D-52: no arquivo restrito o Head some por PERFIL, e essa regra vence
   // a contagem de opcoes (o Head e o seletor de escopo do Template Full).
   if(RESTRITO) el("frowHead").hidden = true;
+  // D-69: niveis abaixo do head. As linhas obedecem a D-54 (so opcoes com
+  // dado; some com menos de duas): no arquivo de um N3 a linha de Sup./Exec.
+  // tem uma opcao e some sozinha; a de Vend./RCA fica. Cascata pelo dado:
+  // com um gerente escolhido, OPC.sup so tem os executivos dele.
+  const rotulos=[...D.perfil];
+  const lista=pos=>[...new Set(rotulos.map(p=>p[pos]))].sort(ausenciaPorUltimo());
+  chips("fGer",  "frowGer",  lista(P_GER),  g=>OPC.ger.has(g),  g=>F.ger.has(g),  g=>g, g=>EXIBE(g));
+  chips("fSup",  "frowSup",  lista(P_SUP),  s=>OPC.sup.has(s),  s=>F.sup.has(s),  s=>s, s=>EXIBE(s));
+  chips("fVend", "frowVend", lista(P_VEND), v=>OPC.vend.has(v), v=>F.vend.has(v), v=>v, v=>EXIBE(v));
   montarTop();
-  el("frowLimpar").hidden = !(F.cat.size || F.can.size || F.head.size);
+  el("frowLimpar").hidden = !TEM_FILTRO_DIM();
 }
+// D-69: um lugar so diz quais sao os filtros de dimensao (estado, limpar, nome
+// do export).
+const DIMS_FILTRO = ["cat","can","head","ger","sup","vend"];
+const TEM_FILTRO_DIM = ()=> DIMS_FILTRO.some(k=>F[k].size);
 /* Chips "Top" da aba Bandeiras: corte maior que o universo de bandeiras do
    recorte e botao que nao muda nada na tela — "Top 300" e "Top 200" sobre 30
    bandeiras entregam a mesma tabela. Ficam os cortes ABAIXO do universo, mais
@@ -1207,6 +1249,12 @@ function atualizarEstado(p){
   if(F.can.size)  d.push(`${F.can.size} canal(is)`);
   if(F.cat.size)  d.push(`${F.cat.size} categoria(s)`);
   if(F.head.size) d.push(`${F.head.size} head(s)`);
+  // D-69: um so item selecionado e dito pelo NOME — e o caso de uso ("estou
+  // vendo o executivo X"); mais de um, pela contagem.
+  const nomeOuN=(s,rot)=> s.size===1 ? EXIBE([...s][0]) : `${s.size} ${rot}`;
+  if(F.ger.size)  d.push(nomeOuN(F.ger,"gerentes"));
+  if(F.sup.size)  d.push(nomeOuN(F.sup,"sup./exec."));
+  if(F.vend.size) d.push(nomeOuN(F.vend,"vendedores"));
   // L3-C (Q2): sem filtro ativo, nada e exibido — o rotulo "sem filtro de
   // dimensao" saiu dos dois lugares; com filtros ativos os textos continuam.
   if(d.length) partes.push("filtros: "+d.join(" · "));
@@ -1294,10 +1342,8 @@ function renderEvolucao(p){
   // L3-A (01/09/2026): a serie "Media do periodo" saiu do grafico — o numero
   // continua no KPI "Faturamento medio/mes", que era a mesma conta.
   el("tEvo").textContent=`Evolução · ${m.rot} · ${GRANS[F.gran]}`;
-  el("nEvo").innerHTML=`Barra clara (à esquerda) = mesmo período do ano anterior. Barra escura (à direita) = período selecionado.
-    Linha laranja = Δ% contra o mesmo período do ano anterior (eixo da direita, em %).
-    ${rotulos.some(r=>r.includes("(parcial)"))?"<b>(parcial)</b> marca grupo com menos meses que a granularidade pede: bordas da série ou seleção parcial. ":""}
-    ${anterior.filter(v=>v===null).length?"<b>Períodos sem base no ano anterior ficam sem a barra clara e sem o Δ%</b>, não são exibidos como zero.":""}`;
+  // D-70: a nota explicativa sob o grafico saiu; a legenda do Chart.js e os
+  // tooltips continuam dizendo o que cada serie e.
   const ctx=el("cEvo").getContext("2d");
   if(chart) chart.destroy();
   // Rotulo de dados desenhado a mao (afterDatasetsDraw): o bundle embutido e
@@ -1658,23 +1704,12 @@ function matrizNiveis(cfg){
           achadas};
 }
 
-// "Mês" + "s" = "mêss". Plural declarado, em vez de deduzido.
-const GRANS_PL = {mes:"meses", tri:"trimestres", sem:"semestres", ano:"anos"};
-function notaMatriz(){
-  const cols=colunasSerie();
-  const n=cols.length, todas=gruposSerie().length;
-  const g=GRANS_PL[F.gran]||GRANS[F.gran].toLowerCase();
-  const temParcial=cols.some(c=>c.meses.length<(TAM_GRUPO[F.gran]||1));
-  return `<b>ATUAL</b> e <b>ANT.</b> são o período selecionado e os mesmos
-    meses do ano anterior; <b>Δ</b> e <b>Δ%</b> comparam esses dois, não a
-    série. À direita, a série: os <b>${n} últimos ${g}</b>${todas>n?` (de ${todas}
-    disponíveis)`:""}, em <b>${METRICAS[F.metrica].rot}</b>, na granularidade do
-    seletor <b>Ver por</b> da barra de Período;
-    ${temParcial?"<b>*</b> marca período parcial: a série não cobre todos os meses dele; ":""}
-    <b>TOTAL</b> é a soma das colunas da série exibidas.
-    Ordenado pelo <b>TOTAL</b>, para as linhas não trocarem quando você muda o
-    período. <b>–</b> é ausência de faturamento.`;
-}
+/* D-70 (04/09/2026): `notaMatriz` e as notas de rodape dos cards sairam
+   (pedido do Douglas). O que era dado vivo ficou na tabela: o rotulo da
+   linha Σ traz a contagem, o rodape "Total geral (...)" diz quantas linhas
+   estao exibidas ou quantas a busca achou, e "*" no cabecalho segue marcando
+   periodo parcial. As regras (LY pareado, ordenacao pelo TOTAL, "–" =
+   ausencia) estao documentadas em docs/08. */
 
 /* ================== matriz hierarquica da Visao Geral (D-51, Q8/Q11)
    Head > Gerente > Sup./Exec. > Vend./RCA, direto do PERFIL do cubo — a
@@ -1690,21 +1725,13 @@ function renderHier(p){
   const POSN=[P_HEAD,P_GER,P_SUP,P_VEND].slice(NIVEL0);
   el("cadHier").textContent="· "+NIVEIS.join(" → ");
   const fora=new Set((DB.rotulos_fora||[]).filter(Boolean));
-  const temHier=matrizNiveis({idTab:"tabHier", aba:"geral",
+  matrizNiveis({idTab:"tabHier", aba:"geral",
     niveis:NIVEIS,
     pathFn:l=>{const pf=D.perfil[l[3]];
       return POSN.map(i=>pf[i]);},
     rotNo:(niv,k)=>EXIBE(k),                 // D-68: linhas Σ em linguagem de leitor
     usaSku:false, p, den:met(total(p.atual)), expSet:EXP.geral,
     topN:0, baldeK:null, foraSet:fora, ignorar:null});
-  el("nHier").innerHTML=(temHier?notaMatriz()+"<br>":"")
-    +`Navegação <b>exclusivamente pela expansão</b>: ▸ abre o nível de baixo
-    (Head → Gerente → Sup./Exec. → Vend./RCA); ▾ recolhe. As linhas Σ no fim
-    são síntese <b>fora da hierarquia</b>: clientes que faturam mas não estão
-    na estrutura comercial, e clientes inativados (sem sell-in nos últimos 6
-    meses fechados). Não expandem; o histórico delas permanece no
-    <b>Total geral</b>, que fecha com os cards acima. Participação % sobre o
-    total do recorte. A hierarquia vem do de-para de estrutura, não é inferida.`;
 }
 
 /* D-65 (03/09/2026): o arquivo carrega TODAS as bandeiras do escopo (o
@@ -1729,44 +1756,15 @@ function renderBandeiras(p){
   const den=met(total(p.atual));
   const rotResto=n=>`${c.rotulo_base||"DEMAIS BANDEIRAS"} (${n.toLocaleString("pt-BR")} bandeiras)`;
   // D-51 (Step 2.3): a tabela final e a MATRIZ expansivel Bandeira > Categoria.
-  const r=matrizNiveis({idTab:"tabBan", aba:"band",
+  // D-70: sem nota de rodape. A contagem do Σ esta no rotulo da linha e o
+  // "exibidas/busca" no rodape "Total geral (...)" da propria tabela.
+  matrizNiveis({idTab:"tabBan", aba:"band",
     niveis:["Bandeira","Categoria"],
     pathFn:l=>[l[1], l[2]],
     rotNo:(niv,k)=> niv===0 ? D.ban[+k] : D.cat[+k],
     usaSku:false, p, den, expSet:EXP.band,
     topN: todas ? 0 : F.topBan, baldeK:null, foraSet:null,
     ignorar:null, rotResto, busca:{nivel:0, q:F.qBan}});
-  const escopo = RESTRITO ? "deste arquivo" : "da base";
-  let texto="";
-  if(r){
-    let nominal=0;
-    for(const k of r.exibidas){ const v=a.get(+k); if(v) nominal+=met(v); }
-    const cobRec=razao(nominal,den);
-    const pct=cobRec===null?"n/d":fmtNum(cobRec*100,1)+"%";
-    if(r.achadas!==null)
-      texto=`Busca “${_semHtml(F.qBan)}”: <b>${r.achadas}</b> de
-        <b>${r.universo.toLocaleString("pt-BR")}</b> bandeiras ${escopo} neste
-        recorte, sem corte de exibição. O Total geral segue somando todas.`;
-    else if(todas)
-      texto=`Todas as <b>${r.universo.toLocaleString("pt-BR")}</b> bandeiras
-        ${escopo} com faturamento neste recorte aparecem nominalmente: não há
-        corte nem linha Σ.`;
-    else if(r.cortadas)
-      texto=`A tabela exibe as <b>${r.exibidas.length}</b> maiores bandeiras
-        ${escopo} neste recorte (seletor <b>Top</b>); as outras
-        <b>${r.cortadas.toLocaleString("pt-BR")}</b> ficam somadas na linha Σ
-        “${c.rotulo_base||"DEMAIS BANDEIRAS"}”. Elas <b>não somem</b>: o
-        <b>Total geral</b> soma todas, e a busca acha qualquer uma delas.
-        <b>Neste recorte</b>, as nominais somam <b>${pct}</b> de
-        ${METRICAS[F.metrica].rot}.`;
-    else
-      texto=`Todas as <b>${r.universo.toLocaleString("pt-BR")}</b> bandeiras
-        ${escopo} com faturamento neste recorte estão na tabela: o corte de
-        ${F.topBan} não deixou nenhuma de fora.`;
-  }
-  el("nBan").innerHTML=(r?notaMatriz()+"<br>":"")
-    +`Clique em ▸ para abrir as <b>categorias</b> da bandeira. ${texto}
-    Participação % sobre o total do recorte.`;
 }
 
 /* ============================== Categorias (D-51, Step 2.4 — aba nova)
@@ -1785,7 +1783,7 @@ function renderCategorias(p){
   el("sGanhoC").textContent="· por Δ absoluto de "+METRICAS[F.metrica].rot;
   el("sCat").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
   const den=met(total(p.atual));
-  const temCat=matrizNiveis({idTab:"tabCat", aba:"catg",
+  matrizNiveis({idTab:"tabCat", aba:"catg",
     niveis:["Categoria","SKU"],
     pathFn:l=>[D.sku[l[1]][2], l[1]],
     rotNo:(niv,k)=> niv===0
@@ -1793,17 +1791,7 @@ function renderCategorias(p){
       : D.sku[+k][0]+" · "+D.sku[+k][1],
     usaSku:true, p, den, expSet:EXP.catg,
     topN:0, baldeK:null, foraSet:null, ignorar:null,
-    busca:{nivel:1, q:F.qSku}});
-  const buscaSku = temCat && temCat.achadas!==null
-    ? `Busca “${_semHtml(F.qSku)}”: só os SKUs que casam, dentro das
-       <b>${temCat.achadas}</b> categoria(s) em que aparecem (abertas
-       automaticamente); a linha da categoria mantém o valor inteiro dela. `
-    : "";
-  el("nCat").innerHTML=(temCat?notaMatriz()+"<br>":"")
-    +`${buscaSku}Clique em ▸ para abrir <b>todos os SKUs</b> da categoria (sem
-    corte de cobertura — os ${D.sku.length} SKUs ${RESTRITO?"deste arquivo":"da base"}
-    estão aqui). Esta aba lê a camada de SKU, que fecha com a Visão Geral sob
-    qualquer filtro (D-48). Participação % sobre o total do recorte.`;
+    busca:{nivel:1, q:F.qSku}});         // D-70: sem nota de rodape
 }
 
 /* ==================================================== exportacao (CSV/XLSX)/* ==================================================== exportacao (CSV/XLSX)
@@ -1826,6 +1814,8 @@ function nomeArquivo(id){
   if(F.cat.size&&F.cat.size<=2) partes.push([...F.cat].map(i=>slug(D.cat[i])).join("+"));
   if(F.can.size&&F.can.size<=2) partes.push([...F.can].map(slug).join("+"));
   if(F.head.size&&F.head.size<=2) partes.push([...F.head].map(slug).join("+"));
+  for(const k of ["ger","sup","vend"])                      // D-69
+    if(F[k].size&&F[k].size<=2) partes.push([...F[k]].map(slug).join("+"));
   partes.push(F.base==="fis"?"ytd-fiscal":"ytd-calendario");
   const sel=selecionados();
   if(sel.length) partes.push(CAL[sel[sel.length-1]][C_AM]);
@@ -2002,6 +1992,7 @@ function recorteAtual(){
     meses:[...F.meses].map(i=>CAL[i][C_AM]),
     cat:[...F.cat].map(i=>D.cat[i]),
     can:[...F.can], head:[...F.head],
+    ger:[...F.ger], sup:[...F.sup], vend:[...F.vend],     // D-69
     topBan:F.topBan, aba:F.aba,
     qBan:F.qBan, qSku:F.qSku,                 // D-66
     fAberto:!el("fPainel").classList.contains("fechado")
@@ -2028,6 +2019,11 @@ function aplicarRecorte(r){
   setDe(F.cat, r.cat, x=>idx(D.cat,x));
   setDe(F.can, r.can, x=>D.canal.includes(x)?x:null);
   setDe(F.head,r.head,x=>D.head.includes(x)?x:null);
+  // D-69: rotulo que nao existe mais no perfil e descartado em silencio.
+  const noPerfil=pos=>x=>D.perfil.some(p=>p[pos]===x)?x:null;
+  setDe(F.ger, r.ger, noPerfil(P_GER));
+  setDe(F.sup, r.sup, noPerfil(P_SUP));
+  setDe(F.vend,r.vend,noPerfil(P_VEND));
   if(DB.tops.ban.includes(r.topBan)) F.topBan=r.topBan;
   if(typeof r.qBan==="string") F.qBan=r.qBan.slice(0,80);   // D-66
   if(typeof r.qSku==="string") F.qSku=r.qSku.slice(0,80);
@@ -2099,6 +2095,9 @@ function ligar(){
   ligarChips("fCat", k=>{ alterna(F.cat,+k); montarFiltros(); });
   ligarChips("fCanal", k=>{ alterna(F.can,k); montarFiltros(); });
   ligarChips("fHead", k=>{ alterna(F.head,k); montarFiltros(); });
+  ligarChips("fGer",  k=>{ alterna(F.ger,k);  montarFiltros(); });   // D-69
+  ligarChips("fSup",  k=>{ alterna(F.sup,k);  montarFiltros(); });
+  ligarChips("fVend", k=>{ alterna(F.vend,k); montarFiltros(); });
   ligarChips("topBan", k=>{ F.topBan=+k; montarFiltros(); });
   /* v3 (F1-A): delegacao no container, que montarPeriodo() nunca substitui.
      L3-B: sobrou so o "Ver por" (muda a granularidade da exibicao). */
@@ -2136,7 +2135,7 @@ function ligar(){
     ordenarTabela(tab, th.cellIndex);
   });
   el("limpar").onclick=()=>{
-    ["cat","head","can"].forEach(k=>F[k].clear());
+    DIMS_FILTRO.forEach(k=>F[k].clear());
     preSelecionarMeses();
     montarFiltros(); render();
   };

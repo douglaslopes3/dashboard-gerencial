@@ -74,7 +74,7 @@ cobertura de canal           100,00% da receita
 fora da hierarquia           R$ 54,69 mi (2,35%), 1.053 clientes: 612 inativos
                              + 158 pendentes Q5 + 166 RTM sem distribuidor +
                              117 sem linha em base nenhuma
-testes                       60/60 unitarios · 6/6 cenarios ponta a ponta
+testes                       62/62 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~30 s com cache · exit 0
 painel (v4, D-51)            14,24 MB (Full) · zero requisicao de rede · 3 ABAS:
                              Visao Geral · Bandeiras · Categorias
@@ -93,6 +93,13 @@ BUSCA (D-66, 03/09)          bandeira (aba Bandeiras) e SKU (aba Categorias),
                              sem acento, ignora o corte, fica no recorte
 ROTULOS Σ (D-68, 03/09)      "Sem estrutura comercial" e "Inativos (sem sell-in
                              ha 6 meses)" na tela; chave de dado inalterada
+FILTRO HIERARQUICO (D-69)    Gerente, Sup./Exec. e Vend./RCA no painel de
+                             filtros, valendo nas 3 abas (o head ve um
+                             subordinado especifico em Bandeiras/Categorias);
+                             so opcoes com dado, cascata, some onde ha 1 opcao.
+                             Chip ou lista suspensa: em avaliacao (04/09)
+SEM RODAPE NOS CARDS (D-70)  as notas explicativas sob grafico e matrizes
+                             sairam; contagens ficam na propria tabela
                              MATRIZ HIERARQUICA EXPANSIVEL na Visao Geral
                              (Head > Gerente > Sup./Exec. > Vend./RCA; linhas
                              sintese Σ para fora-da-hierarquia) · Bandeiras
@@ -222,11 +229,11 @@ granularidade pede sai marcado **(parcial)**, nunca como período cheio.
 **Exportação CSV/XLSX em todas as tabelas** (dado cru, respeitando os
 filtros; nas matrizes expansíveis, as linhas visíveis na expansão atual).
 
-**Filtros globais** (D-51): ano fiscal, ano calendário, meses, **canal**,
-**categoria** e **Head** — este último é o seletor de escopo do Template
-Full e fica oculto nos arquivos por nível. Gerente, Sup./Exec., projeto, UF
-e as buscas de bandeira/SKU saíram: a navegação hierárquica é a matriz, e
-bandeira/SKU seguem como dimensões nas abas. Nenhum filtro ou elemento fica
+**Filtros globais**: ano fiscal, ano calendário, meses, **canal**,
+**categoria**, **Head** (seletor de escopo do Template Full, oculto nos
+arquivos por nível) e, desde a D-69, **Gerente, Sup./Exec. e Vend./RCA**,
+que valem nas três abas. Projeto e UF saíram na D-51; bandeira e SKU são
+dimensões das abas, com busca própria (D-66). Nenhum filtro ou elemento fica
 desabilitado ou acinzentado em estado algum — e, desde a **D-54**, um botão só
 aparece quando há pelo menos uma linha de dado atrás dele: opção sem dado some
 (a que o usuário já selecionou fica com o contador "0"), e a linha do filtro
@@ -337,7 +344,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-55 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-68, com o porquê |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-70, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
