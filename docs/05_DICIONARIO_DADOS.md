@@ -88,14 +88,21 @@ na `DIM_CLIENTE` — a fato nunca é tocada:
 | `COD_DISTRIBUIDOR` | a quem o sell-in foi reatribuído (`<NA>` = sem distribuidor identificado, exceção) |
 | `DISTRIBUIDOR` | nome reduzido do distribuidor (da base RTM) |
 | `CANAL_ORIGINAL` | canal ANTES da reatribuição (rastreabilidade; só nos reatribuídos) |
+| `BANDEIRA_ORIGINAL` | bandeira do ponto final ANTES da reatribuição (D-59; gravada nos dois modos do parâmetro, só nos reatribuídos) |
 | `INATIVO` | regra 5.2 aplicada (HIERARQUIA=NÃO e sem sell-in na janela) |
 | `MOTIVO_INATIVO` / `DATA_INATIVACAO` | rastreabilidade da inativação |
 | `SANEAMENTO_PENDENTE` | HIERARQUIA=NÃO **com** sell-in na janela — caso não coberto (Q5), aguarda decisão |
 
 Cliente reatribuído herda `HEAD/GERENTE/SUPERVISOR/VENDEDOR/PROJETO/CANAL/
-SUBCANAL` do distribuidor e **preserva** `BANDEIRA`, `UF` e o próprio
-`COD_CLIENTE` (Q4-a). Inativado recebe o `rotulo_inativo` do config nos
-níveis N1–N4. Parâmetros: `saneamento.janela_meses` e `ancora_janela`.
+SUBCANAL` do distribuidor e, desde a **D-59** (03/09/2026), também a
+`BANDEIRA` (a do distribuidor na própria DIM, vinda do sell-in dele, nunca o
+nome do cadastro); a bandeira de origem fica em `BANDEIRA_ORIGINAL`.
+Distribuidor sem bandeira própria não transmite `SEM BANDEIRA` (o cliente
+mantém a sua). **Preserva** `UF` e o próprio `COD_CLIENTE`. O parâmetro
+`saneamento.rtm_herda_bandeira: false` devolve a regra da Q4-a (bandeira do
+ponto final) sem tocar em código. Inativado recebe o `rotulo_inativo` do
+config nos níveis N1–N4. Parâmetros: `saneamento.janela_meses`,
+`ancora_janela` e `rtm_herda_bandeira`.
 
 ## 3. `Produtos.xlsx` → `DIM_PRODUTO`
 

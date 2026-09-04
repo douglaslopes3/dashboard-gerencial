@@ -38,6 +38,15 @@ METAS REMOVIDAS (D-49)       o tema Metas saiu inteiro do produto em 02/09/2026
                              ponto de reintegracao em docs/12 (D-49);
                              bases/Metas/ fica intocada
 
+BANDEIRA RTM (D-59, 03/09)   o cliente RTM herda tambem a BANDEIRA do
+                             distribuidor (`saneamento.rtm_herda_bandeira`):
+                             o painel do head de Distribuicao passou de 1.111
+                             bandeiras de ponto final para 66 (60 nominais +
+                             6 no balde Σ), os distribuidores que sao os
+                             clientes dele; efeito zero nos outros 3 heads;
+                             universo 11.314 -> 10.348. R$ 82,76 mi (3,56%)
+                             trocam de rotulo, nenhum centavo sai do total; a
+                             origem fica em DIM_CLIENTE.BANDEIRA_ORIGINAL
 RTM (D-50, Step 4)           1.596 clientes migrados para distribuidor: o
                              sell-in deles (historico e futuro) carrega a
                              hierarquia e o canal do DISTRIBUIDOR (R$ 82,62 mi
@@ -292,7 +301,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-35 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-58, com o porquê |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-59, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |

@@ -268,11 +268,19 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
                               & dim_cliente["COD_DISTRIBUIDOR"].isna()]
         rec_ok = _receita_de(rtm_ok["COD_CLIENTE"])
         rec_sem = _receita_de(rtm_sem["COD_CLIENTE"])
+        # D-59 (03/09/2026): o texto declara a regra de bandeira que RODOU,
+        # lida das medidas do saneamento — nunca um texto fixo.
+        if "rtm_bandeira_herdada" in san:
+            regra_ban = (f"bandeira do distribuidor herdada por "
+                         f"{san['rtm_bandeira_herdada']:,} deles, a de origem "
+                         "fica em BANDEIRA_ORIGINAL (D-59); UF preservada")
+        else:
+            regra_ban = "bandeira/UF preservadas (Q4-a; `rtm_herda_bandeira` desligado)"
         linha(f"- **RTM reatribuídos:** {len(rtm_ok):,} clientes · receita "
               f"histórica **R$ {_fmt(rec_ok)}** ({rec_ok / max(rec_total, 1):.2%}) "
               f"**entra** na hierarquia e no canal de "
               f"{san.get('rtm_distribuidores', 0)} distribuidores (o mesmo "
-              "valor **sai** do balde sem estrutura; bandeira/UF preservadas — Q4-a)")
+              f"valor **sai** do balde sem estrutura; {regra_ban})")
         if len(rtm_ok):
             por_dist = (fato[fato["COD_CLIENTE"].isin(set(rtm_ok["COD_CLIENTE"]))]
                         .merge(rtm_ok[["COD_CLIENTE", "DISTRIBUIDOR"]],

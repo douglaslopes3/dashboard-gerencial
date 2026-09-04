@@ -118,7 +118,15 @@ seria falso amanhã. Ver §7 do prompt e o `docs/07_CATALOGO_METRICAS.md`.
 | `HEAD`, `GERENTE`, `SUPERVISOR` | `Hierarquia_Consolidada.xlsx` + complemento (D-34) — rótulo `código - papel - nome` | 71 clientes |
 | `PROJETO` | idem | 71 clientes |
 | `CANAL`, `SUBCANAL` | `bases/Canais/Canais.xlsx` (26/08/2026) | 0 clientes — 100% de cobertura |
+| `VENDEDOR` | `Hierarquia_Consolidada.xlsx`, N4 (D-50) | idem estrutura |
+| `COD_BANDEIRA`, `BANDEIRA_ESTRUTURA` | cadastro de bandeiras do Comercial na hierarquia (D-42; atributo, sem função de join desde a D-49) | 2.967 clientes sem código |
+| `ORIGEM_RTM`, `COD_DISTRIBUIDOR`, `DISTRIBUIDOR`, `CANAL_ORIGINAL`, `BANDEIRA_ORIGINAL` | `RTM_DePara_Transicao.xlsx` via `saneamento.py` (D-50; `BANDEIRA_ORIGINAL` na D-59) | só nos 1.762 clientes RTM |
+| `INATIVO`, `MOTIVO_INATIVO`, `DATA_INATIVACAO`, `SANEAMENTO_PENDENTE` | `Hierarquia_Clientes_Faltando.xlsx` via `saneamento.py` (D-50) | flags; 612 inativos, 158 pendentes |
 | `NA_ESTRUTURA`, `TEM_CANAL` | derivados | booleanos |
+
+Desde a **D-59** (03/09/2026) o cliente reatribuído pelo RTM carrega também a
+`BANDEIRA` do distribuidor (parâmetro `saneamento.rtm_herda_bandeira`); a do
+ponto final fica em `BANDEIRA_ORIGINAL`. Colunas e regras em `docs/05 §2b`.
 
 **Justificativa da consolidação (o §2 da Fase 2 do prompt pede):**
 

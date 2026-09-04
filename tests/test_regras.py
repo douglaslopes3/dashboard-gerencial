@@ -500,7 +500,10 @@ def _dim_saneamento():
     return dim, rtm, faltando, fato
 
 
-def test_d50_rtm_herda_hierarquia_e_canal_do_distribuidor_preservando_bandeira():
+def test_d50_rtm_herda_hierarquia_e_canal_do_distribuidor():
+    """D-50/Q4-a: hierarquia, projeto e canal vem do distribuidor; a UF e o
+    proprio codigo do cliente NAO mudam. (A bandeira saiu deste teste na D-59
+    — virou parametro, com teste proprio dos dois modos.)"""
     from src.transform import saneamento
     dim, rtm, falt, fato = _dim_saneamento()
     d, med, _ = saneamento.aplicar(dim, rtm, falt, fato, mes_execucao="2026-09")
@@ -508,12 +511,87 @@ def test_d50_rtm_herda_hierarquia_e_canal_do_distribuidor_preservando_bandeira()
     assert c["HEAD"] == "10 - H1" and c["VENDEDOR"] == "111 - V1"
     assert c["CANAL"] == "DISTRIBUIDOR" and c["CANAL_ORIGINAL"] == "VAREJO"
     assert bool(c["NA_ESTRUTURA"]) is True
-    # Q4-a: bandeira, UF e o proprio codigo do cliente NAO mudam.
-    assert c["BANDEIRA"] == "MERCADO Y" and c["UF"] == "MG"
+    assert c["UF"] == "MG"                     # UF segue do cliente
     assert bool(c["ORIGEM_RTM"]) and c["COD_DISTRIBUIDOR"] == "800"
     # o distribuidor em si nao e tocado
     assert d.set_index("COD_CLIENTE").loc["800", "CANAL"] == "DISTRIBUIDOR"
     assert med["rtm_reatribuidos"] == 1
+
+
+def _com_flag_bandeira(valor: bool):
+    """Roda o saneamento com `rtm_herda_bandeira` forcado, para exercitar os
+    DOIS caminhos independentemente do que o config traz hoje."""
+    from src.transform import saneamento
+    dim, rtm, falt, fato = _dim_saneamento()
+    original = saneamento._SAN
+    saneamento._SAN = {**original, "rtm_herda_bandeira": valor}
+    try:
+        return saneamento.aplicar(dim, rtm, falt, fato,
+                                  mes_execucao="2026-09")
+    finally:
+        saneamento._SAN = original
+
+
+def test_d59_cliente_rtm_herda_a_bandeira_do_distribuidor():
+    """D-59 (03/09/2026): com o parametro ligado, o cliente RTM passa a
+    carregar a bandeira do DISTRIBUIDOR — e os dois caem na MESMA linha da aba
+    Bandeiras, que e o objetivo. A bandeira vem do distribuidor na DIM (a do
+    sell-in dele), nunca do nome do cadastro: usar o cadastro aqui partiria
+    cada distribuidor em duas bandeiras."""
+    d, med, avisos = _com_flag_bandeira(True)
+    i = d.set_index("COD_CLIENTE")
+    assert i.loc["900", "BANDEIRA"] == "DISTRIB X"      # herdada
+    assert i.loc["800", "BANDEIRA"] == "DISTRIB X"      # a MESMA do distribuidor
+    # nada se perde: a bandeira de origem fica registrada
+    assert i.loc["900", "BANDEIRA_ORIGINAL"] == "MERCADO Y"
+    assert med["rtm_bandeira_herdada"] == 1
+    assert any("BANDEIRA do distribuidor" in a for a in avisos), \
+        "a regra tem de sair no log — nada acontece em silencio"
+    # UF continua do cliente; a D-59 nao a toca
+    assert i.loc["900", "UF"] == "MG"
+
+
+def test_d59_desligado_volta_ao_comportamento_da_q4a():
+    """O parametro e o caminho de rollback: `false` no config devolve a regra
+    antiga sem tocar em uma linha de codigo."""
+    d, med, _ = _com_flag_bandeira(False)
+    i = d.set_index("COD_CLIENTE")
+    assert i.loc["900", "BANDEIRA"] == "MERCADO Y"      # preservada (Q4-a)
+    assert i.loc["900", "BANDEIRA_ORIGINAL"] == "MERCADO Y"
+    assert "rtm_bandeira_herdada" not in med
+
+
+def test_d59_distribuidor_sem_bandeira_nao_piora_o_cliente():
+    """Guarda: herdar 'SEM BANDEIRA' trocaria um rotulo real por um balde de
+    ausencia — o oposto do objetivo. Nesse caso o cliente mantem a propria."""
+    from src.transform import saneamento
+    from src.utils.config import CFG
+    sem = CFG["dimensoes"]["rotulo_sem_bandeira"]
+    dim, rtm, falt, fato = _dim_saneamento()
+    dim = dim.copy()
+    dim.loc[dim["COD_CLIENTE"] == "800", "BANDEIRA"] = sem
+    original = saneamento._SAN
+    saneamento._SAN = {**original, "rtm_herda_bandeira": True}
+    try:
+        d, med, _ = saneamento.aplicar(dim, rtm, falt, fato,
+                                       mes_execucao="2026-09")
+    finally:
+        saneamento._SAN = original
+    assert d.set_index("COD_CLIENTE").loc["900", "BANDEIRA"] == "MERCADO Y"
+    assert med["rtm_bandeira_herdada"] == 0
+
+
+def test_d59_nao_mexe_em_receita_nenhuma():
+    """A D-59 troca um rotulo na DIM_CLIENTE. A fato nao e tocada, entao o
+    total nao muda — o que muda e sob qual bandeira ele aparece."""
+    ligado, _, _ = _com_flag_bandeira(True)
+    desligado, _, _ = _com_flag_bandeira(False)
+    assert len(ligado) == len(desligado)
+    assert set(ligado["COD_CLIENTE"]) == set(desligado["COD_CLIENTE"])
+    # so a coluna BANDEIRA difere, e so nas linhas de cliente RTM
+    dif = ligado.set_index("COD_CLIENTE")["BANDEIRA"].ne(
+        desligado.set_index("COD_CLIENTE")["BANDEIRA"])
+    assert set(dif[dif].index) == {"900"}
 
 
 def test_d50_rtm_sem_distribuidor_fica_fora_da_hierarquia_com_flag():

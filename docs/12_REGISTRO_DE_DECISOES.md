@@ -1693,3 +1693,73 @@ compartilhadas (pendência aberta desde a D-52), este é o momento de menor cust
 para renomear; depois de distribuídos, os links quebrariam.
 
 **Rollback.** Devolver as duas strings no config; nada mais muda.
+
+
+---
+
+## D-59 · O cliente RTM passa a herdar também a BANDEIRA do distribuidor (03/09/2026)
+
+**Contexto.** Observação do Douglas: o painel do head de Distribuição mostrava
+bandeiras de mercadinho, não os distribuidores, que são os clientes dele. A
+Q4-a (D-50) preservava a bandeira do ponto final para "a aba Bandeiras não
+perder histórico".
+
+**Medido antes de decidir** (`ferramentas/analise_bandeira_rtm.py`, 03/09/2026,
+sobre a fato inteira) e **remedido depois de implementar** (curated da execução
+`20260903-155531`):
+
+| | Simulação (antes) | Implementado (depois) |
+|---|---:|---:|
+| Clientes próprios do head de Distribuição | 89 | 89 |
+| Clientes RTM que caem nele | 1.596 | 1.596 |
+| Bandeiras que o head de Distribuição vê | 1.111 → **66** | **66** (60 nominais + 6 na linha Σ do arquivo dele) |
+| Bandeiras nos outros 3 heads (Atacado / KA Nacional / KA Regional) | 9.490 / 17 / 92 | 9.490 / 17 / 92 (**efeito zero**) |
+| Universo de bandeiras da base | 11.308 → 10.342 | 11.314 → **10.348** (carga de set/26 maior) |
+| Receita que troca de rótulo | R$ 82.626.906 (3,56%) | R$ 82.759.658,47 (**3,56%**) |
+| Bandeiras afetadas | 1.040 | 1.040 |
+
+**O que derrubou a premissa da Q4-a.** O histórico que ela protegia quase não
+existe: das 20 maiores bandeiras afetadas, **17 ficam com R$ 0,00** depois da
+mudança: elas vivem SÓ através de clientes RTM, então não se partem ao meio,
+mudam de rótulo inteiras. A única divisão material é MASTER (perde R$ 766 mil,
+mantém R$ 2,08 mi).
+
+**Achado colateral, registrado para o Comercial.** A receita RTM **não é
+histórica**: R$ 18,93 mi nas 6 competências fechadas mais recentes contra uma
+média histórica de R$ 3,30 mi/mês, praticamente o mesmo ritmo. Os 1.596
+clientes continuam comprando direto da Dori no mesmo volume; a transição para o
+distribuidor não reduziu a compra direta deles até ago/2026. Isso não muda a
+regra (o sell-in deles soma no distribuidor de qualquer jeito, decisão do
+Douglas), mas significa que as bandeiras consolidadas são informação **viva**,
+não resíduo do passado.
+
+**Decisão (do Douglas).** Herdar. Implementado como **parâmetro declarado**,
+não como regra fixa: `saneamento.rtm_herda_bandeira: true`. `false` devolve a
+Q4-a sem tocar em código, e o log declara qual regra rodou (mesma mecânica das
+`correcoes_head` e do `desempate_cliente`). O relatório de qualidade (§7b) lê a
+medida do saneamento e escreve qual regra de bandeira rodou; nunca um texto
+fixo.
+
+**Detalhe de implementação que importa.** A bandeira herdada é a do
+**distribuidor na DIM_CLIENTE** (a do sell-in dele), **não** o nome do cadastro
+("DIST. X" da `Hierarquia_Consolidada`). É o único jeito de o distribuidor e os
+clientes dele caírem na MESMA linha da aba Bandeiras: usar o rótulo do cadastro
+partiria cada distribuidor em duas bandeiras, a dele próprio (sell-in) e a dos
+clientes (cadastro). A simulação usou o cadastro e a implementação usa a DIM;
+a contagem bateu nos dois caminhos (66), medido acima.
+
+**Duas garantias.** (1) `DIM_CLIENTE.BANDEIRA_ORIGINAL` guarda sempre a bandeira
+do ponto final, nos dois modos: nada se perde, só muda o rótulo de exibição,
+e quem precisar do ponto final continua achando. (2) Guarda contra piora:
+distribuidor sem bandeira própria não transmite `SEM BANDEIRA` ao cliente;
+trocar um rótulo real por um balde de ausência seria o oposto do objetivo.
+
+**Nenhum número muda.** A fato não é tocada; a D-59 age só na DIM_CLIENTE. O
+total, a reconciliação e o particionamento por nível seguem idênticos; muda sob
+qual bandeira a receita aparece.
+
+**Textos alinhados na mesma entrega** (a Q4-a continuava escrita em quatro
+lugares): docstring de `saneamento.py`, comentário `fontes.rtm_transicao` do
+config, `docs/05 §2b`, `docs/06 §2.3` e o §7b do relatório de qualidade.
+
+**Rollback.** `rtm_herda_bandeira: false` no config + reprocessamento. Sem git.

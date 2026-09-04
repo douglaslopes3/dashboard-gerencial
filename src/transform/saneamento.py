@@ -5,11 +5,14 @@ Duas regras, aplicadas NA DIM_CLIENTE (a fato nunca é tocada — o histórico
 segue nas linhas do próprio cliente, e é o join com a dimensão que decide a
 quem ele aparece atribuído):
 
-RTM (Step 4, decisões Q2-b/Q3/Q4-a)
+RTM (Step 4, decisões Q2-b/Q3/Q4-a; bandeira revista na D-59)
     Cliente da base RTM-Transicao passou a ser atendido por distribuidor. O
     sell-in dele — histórico E futuro — carrega a hierarquia (N1..N4), o
-    projeto e o canal do DISTRIBUIDOR; bandeira, UF e o próprio código do
-    cliente são PRESERVADOS na linha (a aba Bandeiras não perde histórico).
+    projeto, o canal e, desde a D-59 (03/09/2026, parâmetro
+    `saneamento.rtm_herda_bandeira`), também a BANDEIRA do DISTRIBUIDOR.
+    UF e o próprio código do cliente são PRESERVADOS na linha; a bandeira
+    de origem fica sempre em BANDEIRA_ORIGINAL (a Q4-a a preservava na
+    própria coluna BANDEIRA; `rtm_herda_bandeira: false` devolve isso).
     Cliente RTM sem código de distribuidor (placeholders "NOVO ...") fica
     FORA da hierarquia, com flag e lista de exceção — canal original mantido,
     nada inventado.
@@ -37,15 +40,34 @@ from ..utils.log import INICIO, log
 
 _SAN = CFG.get("saneamento") or {}
 _ROT_INATIVO = CFG["dimensoes"].get("rotulo_inativo", "INATIVO (SANEAMENTO)")
+_SEM_BANDEIRA = CFG["dimensoes"].get("rotulo_sem_bandeira", "SEM BANDEIRA")
 _NIVEIS = ["HEAD", "GERENTE", "SUPERVISOR", "VENDEDOR"]
 _HERDA_DO_DISTRIBUIDOR = _NIVEIS + ["PROJETO", "CANAL", "SUBCANAL",
                                     "NA_ESTRUTURA", "TEM_CANAL"]
+
+
+def _herda_bandeira() -> bool:
+    """D-59 (03/09/2026): o cliente RTM herda tambem a BANDEIRA do
+    distribuidor? Parametro declarado, nunca regra fixa no codigo.
+
+    A Q4-a (D-50) preservava a bandeira do ponto final para "a aba Bandeiras
+    nao perder historico". Medido em 03/09/2026, o historico que ela protegia
+    quase nao existe: das 1.040 bandeiras afetadas, a esmagadora maioria vive
+    SO atraves de clientes RTM — elas nao se partem ao meio, mudam de rotulo
+    inteiras (so MASTER fica materialmente dividida). Em troca, o painel do
+    head de Distribuicao mostrava 1.111 bandeiras de mercadinho no lugar dos
+    ~70 distribuidores que sao os clientes dele.
+
+    Lido a cada chamada (nao no import) para que o parametro possa ser trocado
+    no config e para os testes conseguirem exercitar os dois caminhos."""
+    return bool(_SAN.get("rtm_herda_bandeira", False))
 
 _COLS_NOVAS = {
     "ORIGEM_RTM": False,            # cliente veio da base RTM-Transicao
     "COD_DISTRIBUIDOR": pd.NA,      # a quem o sell-in foi reatribuido
     "DISTRIBUIDOR": pd.NA,          # nome reduzido (da base RTM)
     "CANAL_ORIGINAL": pd.NA,        # canal ANTES da reatribuicao (rastreio)
+    "BANDEIRA_ORIGINAL": pd.NA,     # bandeira ANTES da reatribuicao (D-59)
     "INATIVO": False,               # regra 5.2 aplicada
     "MOTIVO_INATIVO": pd.NA,
     "DATA_INATIVACAO": pd.NA,
@@ -135,9 +157,40 @@ def aplicar(dim_cli: pd.DataFrame, rtm: pd.DataFrame, faltando: pd.DataFrame,
         mapa = com_dist.set_index("COD_CLIENTE")
         alvo = d["COD_CLIENTE"].isin(mapa.index)
         d.loc[alvo, "CANAL_ORIGINAL"] = d.loc[alvo, "CANAL"]
+        # D-59: a bandeira de origem fica registrada SEMPRE — a regra pode
+        # trocar o rotulo, mas nada se perde: quem precisar do ponto final
+        # continua achando na DIM_CLIENTE.
+        d.loc[alvo, "BANDEIRA_ORIGINAL"] = d.loc[alvo, "BANDEIRA"]
         cod_dist = d.loc[alvo, "COD_CLIENTE"].map(mapa["COD_DISTRIBUIDOR"])
         for col in _HERDA_DO_DISTRIBUIDOR:
             d.loc[alvo, col] = cod_dist.map(dist[col]).values
+
+        # D-59 (03/09/2026, decisao do Douglas): a BANDEIRA tambem passa a ser
+        # a do distribuidor — mas fora do laco acima, porque ela tem uma
+        # guarda propria.
+        #
+        # A herança vem da BANDEIRA do distribuidor na DIM_CLIENTE (a do
+        # sell-in dele), NAO do nome do cadastro ("DIST. X"). E o unico jeito
+        # de o distribuidor e os clientes dele cairem na MESMA linha da aba
+        # Bandeiras: usar o rotulo do cadastro aqui partiria cada distribuidor
+        # em duas bandeiras — a dele proprio, vinda do sell-in, e a dos
+        # clientes, vinda do cadastro.
+        if _herda_bandeira():
+            nova = cod_dist.map(dist["BANDEIRA"])
+            # Guarda: distribuidor sem bandeira propria nao PIORA o cliente.
+            # Herdar "SEM BANDEIRA" trocaria um rotulo real por um balde de
+            # ausencia — o oposto do objetivo.
+            vale = nova.notna() & (nova != _SEM_BANDEIRA)
+            d.loc[alvo[alvo].index[vale.values], "BANDEIRA"] = nova[vale].values
+            n_ok, n_nao = int(vale.sum()), int((~vale).sum())
+            medidas["rtm_bandeira_herdada"] = n_ok
+            msg = (f"D-59: {n_ok:,} cliente(s) RTM passaram a carregar a "
+                   f"BANDEIRA do distribuidor (`saneamento.rtm_herda_bandeira`)")
+            if n_nao:
+                msg += (f"; {n_nao:,} mantiveram a propria porque o "
+                        f"distribuidor nao tem bandeira")
+            log(msg, "ok")
+            avisos.append(msg)
         d.loc[alvo, "ORIGEM_RTM"] = True
         d.loc[alvo, "COD_DISTRIBUIDOR"] = cod_dist.values
         d.loc[alvo, "DISTRIBUIDOR"] = d.loc[alvo, "COD_CLIENTE"].map(

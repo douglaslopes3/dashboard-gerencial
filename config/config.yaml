@@ -133,8 +133,10 @@ fontes:
 
   # D-50 (Fase 2, Step 4): clientes que sairam do atendimento direto para
   # distribuidor. O sell-in deles (historico E futuro, decisao Q3) passa a
-  # carregar a hierarquia e o canal do DISTRIBUIDOR que os atende; bandeira,
-  # UF e o proprio cliente sao preservados na linha (decisao Q4-a).
+  # carregar a hierarquia e o canal do DISTRIBUIDOR que os atende; UF e o
+  # proprio cliente sao preservados na linha. A BANDEIRA tambem passou a ser
+  # a do distribuidor na D-59 (03/09/2026; parametro
+  # `saneamento.rtm_herda_bandeira`, abaixo) — a Q4-a original a preservava.
   # "Dsitribuidor" esta grafado assim NA ORIGEM — nao corrigir aqui.
   rtm_transicao:
     arquivo: "bases/RTM-Transicao/RTM_DePara_Transicao.xlsx"
@@ -166,6 +168,26 @@ saneamento:
   # competencia do fato ESTRITAMENTE anterior ao mes-calendario da execucao.
   # Mes parcial nao "ressuscita" cliente, e a regua nao muda a cada carga.
   ancora_janela: "ultima_competencia_fechada"
+
+  # D-59 (03/09/2026) — o cliente RTM herda tambem a BANDEIRA do distribuidor.
+  #
+  # A Q4-a (D-50) preservava a bandeira do ponto final "para a aba Bandeiras
+  # nao perder historico". Medido em 03/09/2026, o historico protegido quase
+  # nao existia: das 1.040 bandeiras afetadas, praticamente todas vivem SO
+  # atraves de clientes RTM — mudam de rotulo inteiras, nao se partem (a
+  # excecao material e MASTER). Em troca, o painel do head de Distribuicao
+  # mostrava 1.111 bandeiras de mercadinho no lugar dos 27 distribuidores,
+  # que sao os clientes reais dele (medido depois de ligar: 66 bandeiras no
+  # painel dele, 60 nominais + 6 no balde). Custo medido: R$ 82,8 mi (3,56%
+  # da receita) trocam de rotulo; nenhum centavo sai do total.
+  #
+  # A herança vem da bandeira do PROPRIO distribuidor (a do sell-in dele),
+  # nao do nome do cadastro — e assim que o distribuidor e seus clientes
+  # caem na MESMA linha da aba Bandeiras.
+  #
+  # `false` volta ao comportamento da Q4-a sem tocar em codigo. A bandeira de
+  # origem fica sempre em DIM_CLIENTE.BANDEIRA_ORIGINAL, nos dois modos.
+  rtm_herda_bandeira: true
 
 # -----------------------------------------------------------------------------
 # CALENDÁRIO
