@@ -866,3 +866,92 @@ navegador (N3 Murilo Cunha)      matriz comeca em Sup./Exec. -> Vend./RCA ·
 payload (N2 Marcelo Hunter)      85 perfis · um unico gerente no arquivo ·
                                  R$ 270.982.163,63
 ```
+
+---
+
+## Rodada de 03/09/2026 (D-54 a D-62)
+
+```
+unitarios                        55/55  (python tests/test_regras.py)
+cenarios ponta a ponta           6/6    (python tests/cenarios.py; pipeline final
+                                 com as bases reais: exit 0)
+pipeline (20260903-155531)       exit 0 · cobertura estrutura 97,65% · canal 100,00%
+                                 · 29/29 arquivos reconciliados · cubos 123.900 /
+                                 866.028 · perfis 517 · ~19 s com cache
+geracao (20260903-155624)        73 arquivos em 9,7 s · particionamento N1 = N2 =
+                                 N3: 2.270.444.756,04 + fora 54.687.559,17 =
+                                 2.325.132.315,21 (ao centavo) · 72 publicados +
+                                 Full na raiz, MD5 conferido
+```
+
+## T-45 · Visibilidade dinamica dos botoes e recorte das dimensoes por nivel (D-54)
+
+```
+unitarios (4)                    recorte encolhe canal/categoria/SKU do arquivo
+                                 (mini modelo com dois heads em canais distintos:
+                                 H1 -> so VAREJO, H2 -> so ATACADO e so BALA);
+                                 reindexacao de categoria e SKU aponta para o
+                                 rotulo certo nos DOIS cubos, dinheiro identico
+                                 (R$ 1.100,00); calendario e corte global
+                                 intactos; templates v3 e v4 sem nome de
+                                 head/canal e com a funcao de visibilidade
+guarda "nada cinza"              .chip.semdado, marcarChipsVazios, [disabled] e
+                                 opacity:.38 ausentes do CODIGO dos dois templates
+                                 (comentarios fora da leitura)
+```
+
+## T-46 · Formatacao unica de valor (D-55)
+
+```
+unitario                         rotCurto e escalaFixa ausentes dos templates;
+                                 tabela unica ESCALAS presente; prefixo dirigido
+                                 pela unidade da metrica (un==="R$")
+```
+
+## T-47 · Contagem da linha Σ por arquivo (D-57)
+
+```
+unitarios (2)                    com corte artificial de 1 no mini modelo: a
+                                 contagem do balde de cada recorte (N1 H1, N1 H2,
+                                 N3 S1) bate com demais_por_nivel do gerador; o
+                                 rotulo recontado esta em dims.ban; top e
+                                 cobertura iguais ao global; o pacote global nao
+                                 e mutado; soma dos N1 = total (R$ 2.100,00)
+geracao real                     demais_por_nivel N1: Distribuicao 6 · Atacado
+                                 9.333 · KA Nacional 4 · KA Regional 25 (o Full
+                                 segue com 10.048); assert do rotulo na lista de
+                                 bandeiras passou nos 72 arquivos
+```
+
+## T-48 · Nomes sem sufixo e recolhimento dos antigos (D-58, D-60)
+
+```
+build                            Dashboard_Gerencial.html (11,38 MB) + 72
+                                 Dashboard_Gerencial_N1_/N2_/N3_*.html
+publicacao                       73 html no destino · 0 com "_Canais_v4" ·
+                                 0 pasta de quarentena · raiz so com o Full
+ferramenta                       python ferramentas/limpar_paineis_antigos.py
+                                 --listar: "a geracao atual produz 73 arquivo(s)
+                                 · nenhum arquivo antigo" (antes da limpeza
+                                 manual listava 73 antigos, 41 MB)
+```
+
+## T-49 · Cliente RTM herda a bandeira do distribuidor (D-59)
+
+```
+unitarios (4)                    ligado: cliente 900 e distribuidor 800 na MESMA
+                                 bandeira, BANDEIRA_ORIGINAL guardada, aviso no
+                                 log; desligado: Q4-a de volta; distribuidor com
+                                 SEM BANDEIRA nao piora o cliente; so a coluna
+                                 BANDEIRA e so a linha RTM diferem entre os modos
+pipeline real                    "D-59: 1.596 cliente(s) RTM passaram a carregar
+                                 a BANDEIRA do distribuidor" · totais e
+                                 particionamento identicos aos da execucao com
+                                 a regra antiga
+medido no curated                bandeiras por head antes -> depois: Distribuicao
+                                 1.111 -> 66 (60 nominais + 6 na linha Σ) ·
+                                 Atacado 9.490 -> 9.490 · KA Nacional 17 -> 17 ·
+                                 KA Regional 92 -> 92 · universo 11.314 -> 10.348
+                                 · receita que trocou de rotulo R$ 82.759.658,47
+                                 (3,56%)
+```

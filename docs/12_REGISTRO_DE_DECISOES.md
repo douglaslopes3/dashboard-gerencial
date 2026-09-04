@@ -1851,3 +1851,51 @@ pipeline; se abortar no piso, rodar o diagnóstico antes de mexer em
 não corrigi-lo).
 
 **Rollback.** Não se aplica: nada foi alterado no pipeline.
+
+
+---
+
+## D-62 · Q5 (158 clientes ativos sem hierarquia): pedido ao Comercial, nenhuma regra inferida (03/09/2026)
+
+**Contexto.** A D-50 deixou um caso "não coberto": cliente com
+`Hierarquia = NÃO` na `Hierarquia_Clientes_Faltando.xlsx` **com** sell-in na
+janela de 6 meses fechados. A regra 5.2 só inativa quem não fatura; quem
+fatura ficou listado para decisão. Em 03/09 não houve decisão de negócio; a
+memória do projeto dizia que haveria, e não houve.
+
+**Medido (execução `20260903-155531`):**
+
+| | |
+|---|---:|
+| Clientes | 158 |
+| Receita em 24 meses | R$ 36.497.295,26 |
+| Receita na janela mar–ago/26 | R$ 5.463.631,09 |
+| Último sell-in em jul ou ago/26 | 100 de 158 |
+| Já faturaram em set/26 | 6 |
+| Canal DISTRIBUIDOR | 17 clientes, R$ 2,25 mi na janela (41%) |
+| Destino de cliente RTM (cascata) | 0 |
+| Com código de bandeira do cadastro | 0 |
+
+São clientes **vivos** (dois terços compraram nos últimos dois meses fechados),
+nenhum é distribuidor-destino do RTM, e os cinco maiores da janela são EPOCA,
+CASA E VIDEO, KRUPER, AVANT e FALEKA.
+
+**Opções apresentadas ao Douglas:**
+
+| Opção | O que faz | Custo |
+|---|---|---|
+| **A. Pedido ao Comercial (escolhida)** | os 158 continuam `NÃO ATRIBUÍDO` até a `Hierarquia_Consolidada` incorporá-los (ou marcá-los como inativos) | R$ 5,46 mi/6 meses fora da matriz, que já é o estado atual |
+| B. Inativar todos (estender a 5.2) | vão para o balde INATIVO | esconderia R$ 2,25 mi de distribuidores ativos; contraria "nada simulado" |
+| C. Inferir hierarquia por UF/canal | entrariam na matriz | inventa vínculo; proibido pelas regras do projeto |
+
+**Decisão.** Opção A. Gerados `docs/pedidos/pedido_Q5_hierarquia_158.xlsx`
+(aba `clientes` ordenada pela receita da janela, colunas N1–N4 e INATIVAR em
+branco; abas `LEIA-ME` e `por canal`) e o texto de e-mail
+`pedido_Q5_hierarquia_158.md`. O `saneamento_Q5_hierarquia_NAO_com_sellin.csv`
+de 02/09 (mesma lista, sem as colunas de resposta) foi para
+`_arquivo/pedidos-encerrados/`. A lista viva continua saindo em
+`data/quality/saneamento_pendentes_decisao.csv` a cada execução; quando o
+Comercial incorporar os clientes à `Hierarquia_Consolidada`, ela esvazia
+sozinha. Nenhuma linha de código ou config muda.
+
+**Rollback.** Não se aplica.
