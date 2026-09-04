@@ -1603,3 +1603,59 @@ saem do config em decisão própria.
 carrega `"SEM UF"`, que é rótulo morto desde a D-51/Q10 (o eixo UF saiu dos
 cubos). Documentado aqui; a limpeza não foi feita junto com a D-54/D-55 para
 não misturar assuntos.
+
+
+---
+
+## D-57 · A contagem da linha Σ de bandeiras passa a ser a DO ARQUIVO (03/09/2026)
+
+**Contexto.** Observação do Douglas no painel do head Michel Meira: a linha Σ
+anunciava `DEMAIS BANDEIRAS (11.008 bandeiras)` — o número do universo Dori —
+dentro de um arquivo que só contém o squad dele.
+
+**Diagnóstico.** Achado da mesma família da D-54, e uma decisão errada minha
+naquela: ao recortar as dimensões por nível eu preservei `ban` e
+`corte_bandeira` inteiros, justificando que "o corte das N maiores é calculado
+sobre a base inteira, antes dos filtros". Isso é verdade para **o corte** e
+continua valendo — mas eu estendi a mesma justificativa para **a contagem do
+balde**, e ela não se sustenta: a linha Σ do arquivo de um head não agrega
+11.008 bandeiras, agrega só as que têm faturamento no escopo dele.
+
+A nota da aba chegava a misturar os dois universos na mesma frase: "as outras
+**11.008**" (base inteira) e, duas linhas abaixo, "**neste recorte** as nominais
+somam X%" (recorte do leitor). O `X%` já era recalculado desde a F1-D; o 11.008
+ficou para trás.
+
+**Decisão (aprovada pelo Douglas, opção A de duas apresentadas).**
+
+- A **contagem** do balde e o **rótulo** passam a ser os do arquivo. No painel
+  do Michel sai `DEMAIS BANDEIRAS (N bandeiras)` com o N do escopo dele.
+- O **corte continua global**: as N maiores são as mesmas em todos os arquivos.
+  A opção B — recalcular o top N dentro de cada head — foi **recusada**: os
+  arquivos deixariam de ser comparáveis entre si e com o Full, e uma bandeira
+  nominal no painel de um head poderia aparecer no balde do painel corporativo.
+  A tela declara essa escolha ("o ranking das N maiores é calculado sobre a base
+  inteira, antes dos filtros e do recorte por nível").
+- A nota passa a dizer **de qual universo cada número fala**, e trata o caso em
+  que nenhuma bandeira ficou fora do ranking (não escreve "0 bandeiras").
+
+**Onde mora.** A contagem **tem** de nascer em `cubos.py`: depois do `groupby` a
+identidade das bandeiras do balde se perde (viram todas o mesmo rótulo), e nem
+`filtrar_por_nivel` nem o template conseguem recuperá-la. O pacote passou a
+carregar `demais_por_nivel` (~72 inteiros: 4 heads + 13 gerentes + 55
+sup./exec.) e `corte_bandeira.rotulo_base`; `run_dashboard.py → _balde_do_nivel`
+remonta o rótulo no recorte, reescrevendo `dims.ban` e `corte_bandeira` **na
+mesma passada** — o rótulo é a chave que o template usa para localizar o balde
+(`D.ban.indexOf(c.rotulo_demais)`), e um assert na geração garante que ele
+continua na lista.
+
+**Nenhum número muda** — receita, particionamento por nível e reconciliação com
+a fato seguem idênticos; a D-57 troca um rótulo, não um valor. Uma bandeira que
+fatura em dois squads conta nos dois arquivos, e o total global continua sendo o
+distinto (não a soma dos níveis) — comportamento correto e coberto por teste.
+
+**Não aplicado ao `template_v3.html`:** o v3 não tem geração por nível (a D-52 é
+posterior a ele), então o balde lá é sempre o global — que é o número certo para
+o arquivo único que ele produz.
+
+**Rollback.** git (commit da D-56).

@@ -1618,15 +1618,28 @@ function renderBandeiras(p){
   let nominal=0;
   for(const [k,v] of a){ if(k!==iBalde) nominal+=met(v); }
   const cobRec=razao(nominal,den);
+  /* D-57 (03/09/2026): a nota misturava dois universos na mesma frase — "as
+     outras 11.008" (base inteira) e, duas linhas abaixo, "neste recorte". No
+     arquivo de um head o 11.008 era falso: a linha Σ dele agrega so as
+     bandeiras com faturamento no proprio escopo. `c.demais` agora chega
+     recontado pelo gerador (`filtrar_por_nivel`), e o texto diz de qual
+     universo cada numero fala. O CORTE segue global e declarado como tal:
+     as N maiores sao as mesmas em todos os arquivos, senao uma bandeira
+     nominal aqui apareceria no balde do painel corporativo. */
+  const nDemais = c.demais
+    ? `${RESTRITO ? "Neste arquivo a" : "A"} linha Σ “${c.rotulo_demais}”
+       reúne <b>${c.demais.toLocaleString("pt-BR")}</b> bandeira(s)${
+         RESTRITO ? " deste escopo" : ""} que ficaram fora do ranking —
+       elas <b>não somem</b>, e o <b>Total geral</b> soma todas, exibidas ou não.`
+    : `Todas as bandeiras ${RESTRITO ? "deste arquivo" : "da base"} estão no
+       ranking: não há linha Σ neste recorte.`;
   el("nBan").innerHTML=(temBan?notaMatriz()+"<br>":"")
-    +`Clique em ▸ para abrir as <b>categorias</b> da bandeira. As <b>${c.top}</b>
-    maiores bandeiras da base aparecem nominalmente; as outras
-    <b>${c.demais.toLocaleString("pt-BR")}</b> <b>não somem</b>: entram agregadas na
-    linha “${c.rotulo_demais}” (Σ), e o <b>Total geral</b> soma todas — exibidas ou
-    não — fechando com a base. <b>Neste recorte</b>, as nominais somam
+    +`Clique em ▸ para abrir as <b>categorias</b> da bandeira. O ranking das
+    <b>${c.top}</b> maiores é calculado sobre <b>a base inteira</b>, antes dos
+    filtros e do recorte por nível. ${nDemais}
+    <b>Neste recorte</b>, as nominais somam
     <b>${cobRec===null?"n/d":fmtNum(cobRec*100,1)+"%"}</b> de ${METRICAS[F.metrica].rot}.
-    Participação % sobre o total do recorte. O corte das ${c.top} maiores é
-    calculado sobre a base inteira, <b>antes</b> dos filtros.`;
+    Participação % sobre o total do recorte.`;
 }
 
 /* ============================== Categorias (D-51, Step 2.4 — aba nova)

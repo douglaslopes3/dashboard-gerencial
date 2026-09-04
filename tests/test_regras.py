@@ -652,18 +652,81 @@ def test_d54_reindexacao_de_categoria_e_sku_aponta_para_o_rotulo_certo():
     assert sum(l[4] for l in rec["cubo_sku"]) == 110000
 
 
-def test_d54_recorte_preserva_calendario_e_corte_de_bandeira():
-    """Duas listas ficam intactas DE PROPOSITO: `cal`, porque remapear mes
-    reindexaria os dois cubos e os ponteiros de LY (mes sem faturamento e
-    resolvido na interface), e o corte de bandeira, que a tela declara como
-    calculado sobre a base inteira, ANTES dos filtros."""
+def test_d54_recorte_preserva_calendario_e_o_corte_global():
+    """`cal` fica intacto DE PROPOSITO: remapear mes reindexaria os dois cubos
+    e os ponteiros de LY (mes sem faturamento e resolvido na interface).
+
+    O CORTE de bandeira tambem continua global — `top` e `cobertura` sao os
+    mesmos em todo arquivo, senao uma bandeira nominal no painel de um head
+    apareceria no balde do painel corporativo. O que a D-57 passou a reescrever
+    e so a CONTAGEM do balde (teste proprio abaixo)."""
     from src.load import cubos
     from run_dashboard import filtrar_por_nivel
     pac = cubos.construir(*_mini_modelo())
-    rec = filtrar_por_nivel(pac, 0, "20 - H2")
+    rec = filtrar_por_nivel(pac, 0, "20 - H2", "N1")
     assert rec["cal"] == pac["cal"]
+    assert rec["corte_bandeira"]["top"] == pac["corte_bandeira"]["top"]
+    assert rec["corte_bandeira"]["cobertura"] == pac["corte_bandeira"]["cobertura"]
+    # o mini modelo tem 2 bandeiras e corte de 300: nao ha balde nenhum
+    assert pac["corte_bandeira"]["demais"] == 0
     assert rec["dims"]["ban"] == pac["dims"]["ban"]
-    assert rec["corte_bandeira"] == pac["corte_bandeira"]
+
+
+def _com_balde(monkey_topn=1):
+    """Roda `cubos.construir` com um corte artificialmente pequeno, para que o
+    balde EXISTA — com o corte real (300) o mini modelo nao produz balde."""
+    from src.load import cubos
+    original = cubos._DASH
+    cubos._DASH = {**original, "top_bandeiras": monkey_topn}
+    try:
+        return cubos.construir(*_mini_modelo())
+    finally:
+        cubos._DASH = original
+
+
+def test_d57_contagem_do_balde_e_do_arquivo_nao_da_base():
+    """D-57: o rotulo da linha Σ carrega uma CONTAGEM, e ela tem de falar do
+    arquivo em que aparece.
+
+    Ate a D-56 a string era montada uma vez sobre a base inteira e viajava
+    intacta: o painel de um head anunciava "DEMAIS BANDEIRAS (11.008
+    bandeiras)" quando a linha Σ dele agregava um punhado. No mini modelo, com
+    corte de 1: a base tem 2 bandeiras (REDE A e REDE B), o balde global tem 1,
+    e cada head enxerga so as suas."""
+    from run_dashboard import filtrar_por_nivel
+    pac = _com_balde()
+    c = pac["corte_bandeira"]
+    assert c["demais"] >= 1 and c["rotulo_demais"] in pac["dims"]["ban"]
+    assert "rotulo_base" in c, "o rotulo sem contagem precisa viajar no pacote"
+
+    for nivel, pos, rot in (("N1", 0, "10 - H1"), ("N1", 0, "20 - H2"),
+                            ("N3", 2, "1100 - S1")):
+        rec = filtrar_por_nivel(pac, pos, rot, nivel)
+        cr = rec["corte_bandeira"]
+        esperado = {b for l in rec["cubo"]
+                    for b in [rec["dims"]["ban"][l[1]]]} - set()
+        # a contagem tem de bater com o que o gerador mediu para este nivel
+        assert cr["demais"] == pac["demais_por_nivel"][nivel][rot], rot
+        if cr["demais"]:
+            # o rotulo e a CHAVE que o template usa para achar o balde
+            assert cr["rotulo_demais"] in rec["dims"]["ban"], rot
+            assert str(cr["demais"]) in cr["rotulo_demais"], rot
+        # o corte em si nao muda: e global, e a tela declara isso
+        assert cr["top"] == c["top"] and cr["cobertura"] == c["cobertura"]
+    # o pacote GLOBAL nao pode ter sido mutado pelos recortes
+    assert pac["corte_bandeira"]["demais"] == c["demais"]
+
+
+def test_d57_balde_recontado_nao_mexe_em_nenhum_numero():
+    """A D-57 troca um rotulo, nao um valor: receita, particionamento e a
+    reconciliacao com a fato seguem identicos."""
+    from run_dashboard import filtrar_por_nivel
+    pac = _com_balde()
+    total = sum(l[4] for l in pac["cubo"])
+    heads = {p[0] for p in pac["dims"]["perfil"]}
+    soma = sum(sum(l[4] for l in filtrar_por_nivel(pac, 0, h, "N1")["cubo"])
+               for h in heads)
+    assert soma == total == 210000
 
 
 def _ler_templates():

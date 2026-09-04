@@ -54,7 +54,37 @@ def _slug(s: str) -> str:
     return t[:60]
 
 
-def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str) -> dict:
+def _balde_do_nivel(pacote: dict, nome_nivel: str | None, rotulo: str) -> dict:
+    """D-57: o rotulo da linha Σ de bandeiras, recontado PARA ESTE ARQUIVO.
+
+    O rotulo carrega uma contagem ("DEMAIS BANDEIRAS (11.008 bandeiras)") que
+    ate a D-56 era sempre a GLOBAL, mesmo dentro do arquivo de um head — onde
+    ela e falsa: a linha Σ dele agrega so as bandeiras com faturamento no
+    proprio squad. A contagem por nivel vem pronta de `cubos.py` (depois da
+    agregacao ela nao existe mais).
+
+    O CORTE nao muda: as N maiores continuam sendo as mesmas em todos os
+    arquivos (`top` e `cobertura` seguem globais). So a contagem do balde e o
+    rotulo passam a falar do arquivo."""
+    corte = dict(pacote.get("corte_bandeira") or {})
+    if not corte.get("demais"):
+        return corte
+    n = ((pacote.get("demais_por_nivel") or {})
+         .get(str(nome_nivel)) or {}).get(rotulo)
+    if n is None:
+        # Nivel sem contagem gravada: melhor manter o rotulo global do que
+        # inventar um numero. Nunca acontece na geracao normal — os niveis
+        # do config sao os mesmos nos dois lados.
+        return corte
+    base = corte.get("rotulo_base", "DEMAIS BANDEIRAS")
+    corte["demais"] = int(n)
+    corte["rotulo_demais"] = (f"{base} ({n:,} bandeiras)".replace(",", ".")
+                              if n else base)
+    return corte
+
+
+def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
+                      nome_nivel: str | None = None) -> dict:
     """Recorte FISICO por um nivel da hierarquia (D-52): o pacote devolvido so
     contem as linhas de cubo cujo perfil carrega `rotulo` na posicao `pos`
     (0 = head, 1 = gerente, 2 = sup./exec.). E o filtro no nivel de DADOS: o
@@ -74,9 +104,12 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str) -> dict:
       * `cal` — remapear mes reindexaria os dois cubos e os ponteiros de LY;
         mes sem faturamento e resolvido na interface, que ja sabe olhar o
         indice por mes (`opcoesComDado`, template v4);
-      * `ban` e `corte_bandeira` — o corte das N maiores e declarado como
-        calculado sobre a base inteira, ANTES dos filtros (nota da aba
-        Bandeiras). Encolher aqui mudaria o significado do numero."""
+      * o CORTE de bandeira (`top`, `cobertura` e o conjunto das N maiores):
+        declarado como calculado sobre a base inteira, ANTES dos filtros e do
+        recorte por nivel (nota da aba Bandeiras). O que a D-57 reescreve
+        aqui e so a CONTAGEM do balde e o rotulo da linha Σ, via
+        `_balde_do_nivel`: `dims.ban` e `corte_bandeira` saem recontados
+        para o arquivo, mas o corte em si e o mesmo em todos."""
     dims = pacote["dims"]
     manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[pos] == rotulo]
     mapa_perf = {i: j for j, i in enumerate(manter_perf)}
@@ -106,15 +139,27 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str) -> dict:
     sku = [[cod, desc, mapa_cat.get(ic, -1)]
            for cod, desc, ic in (dims["sku"][i] for i in manter_sku)]
 
+    # D-57: a linha Σ de bandeiras declara quantas bandeiras ela agrega NESTE
+    # arquivo. O rotulo e a chave que o template usa para achar o balde
+    # (`D.ban.indexOf(c.rotulo_demais)`), entao os dois lados — a lista `ban` e
+    # o `corte_bandeira` — tem de ser reescritos na mesma passada.
+    corte = _balde_do_nivel(pacote, nome_nivel, rotulo)
+    antigo = (pacote.get("corte_bandeira") or {}).get("rotulo_demais")
+    novo_rot = corte.get("rotulo_demais")
+    ban = ([novo_rot if b == antigo else b for b in dims["ban"]]
+           if antigo and novo_rot else dims["ban"])
+
     novo = dict(pacote)
     novo["dims"] = {**dims,
                     "head": sorted({perfil[l[3]][P_HEAD] for l in cubo}),
                     "canal": sorted({perfil[l[3]][P_CANAL] for l in cubo}),
                     "cat": [dims["cat"][i] for i in manter_cat],
+                    "ban": ban,
                     "sku": sku,
                     "perfil": perfil}
     novo["cubo"] = cubo
     novo["cubo_sku"] = cubo_sku
+    novo["corte_bandeira"] = corte
     return novo
 
 
@@ -317,11 +362,17 @@ def main() -> int:
                 "fora-da-hierarquia nao geram arquivo")
             soma_nivel = 0
             for rot in rotulos:
-                pac = filtrar_por_nivel(pacote, pos, rot)
+                pac = filtrar_por_nivel(pacote, pos, rot, nome_nivel)
                 # Prova do recorte, nao confianca: nenhuma linha de fora.
                 perf = pac["dims"]["perfil"]
                 assert all(perf[l[3]][pos] == rot for l in pac["cubo"])
                 assert all(perf[l[2]][pos] == rot for l in pac["cubo_sku"])
+                # D-57: o rotulo do balde e a chave que o template usa para
+                # localiza-lo — se ele nao estiver na lista de bandeiras, a
+                # linha Σ vira uma bandeira nominal qualquer na tela.
+                assert (not pac["corte_bandeira"].get("demais")
+                        or pac["corte_bandeira"]["rotulo_demais"]
+                        in pac["dims"]["ban"])
                 soma_nivel += sum(l[4] for l in pac["cubo"])
                 # P2-D/L3-G: titulo e cabecalho declaram o recorte; a
                 # restricao de verdade e o recorte fisico feito acima.

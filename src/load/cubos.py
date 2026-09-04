@@ -111,6 +111,36 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     log(f"bandeiras: {len(principais):,} principais ({cobertura:.1%} da receita) "
         f"+ balde com {n_demais:,}", "ok")
 
+    # D-57 (03/09/2026): quantas bandeiras a linha Σ agrega EM CADA NIVEL.
+    #
+    # O rotulo do balde carrega uma contagem ("DEMAIS BANDEIRAS (11.008
+    # bandeiras)") e, ate aqui, essa contagem era a GLOBAL — a mesma string
+    # viajava para dentro dos 73 arquivos. No painel de um head ela era
+    # simplesmente falsa: a linha Σ dele nao agrega 11.008 bandeiras, agrega
+    # so as que tem faturamento no squad dele. Pior, a mesma nota dizia "as
+    # outras 11.008" e, duas linhas abaixo, "neste recorte" — misturando o
+    # universo Dori com o do leitor.
+    #
+    # A contagem TEM de ser feita aqui: depois do groupby a identidade das
+    # bandeiras do balde se perde (viram todas o mesmo rotulo), e nem
+    # `filtrar_por_nivel` nem o template conseguem recupera-la.
+    #
+    # Sao ~72 inteiros no pacote (4 heads + 13 gerentes + 55 sup./exec.).
+    # O CORTE em si continua global e declarado como tal na tela: o conjunto
+    # das N maiores e o mesmo em todos os arquivos, senao uma bandeira
+    # nominal no painel de um head apareceria no balde do painel corporativo
+    # e os arquivos deixariam de ser comparaveis.
+    niveis_arquivo = ((_DASH.get("por_nivel") or {}).get("niveis") or {})
+    demais_por_nivel: dict[str, dict[str, int]] = {}
+    if n_demais:
+        no_balde = d.loc[d["BAN_CUBO"] == rotulo_balde, ["BANDEIRA"] + COLS_PERFIL]
+        for nome_nivel, pos in niveis_arquivo.items():
+            coluna = COLS_PERFIL[int(pos)]
+            demais_por_nivel[str(nome_nivel)] = {
+                str(k): int(v) for k, v in
+                no_balde.groupby(coluna, observed=True)["BANDEIRA"]
+                        .nunique().items()}
+
     # -------------------------------------------------------- CUBO PRINCIPAL
     g = (d.groupby(["ANO_MES", "BAN_CUBO", "CATEGORIA"] + COLS_PERFIL,
                    observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
@@ -187,9 +217,15 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
         },
         "cubo": cubo,
         "cubo_sku": cubo_sku,
+        # D-57: `rotulo_base` e `demais_por_nivel` existem para que
+        # `filtrar_por_nivel` remonte o rotulo do balde com a contagem DO
+        # ARQUIVO. `top` e `cobertura` seguem globais de proposito — o corte
+        # e global, e a tela diz isso.
         "corte_bandeira": {"top": len(principais), "demais": n_demais,
                            "cobertura": round(cobertura, 6),
+                           "rotulo_base": rotulo_demais,
                            "rotulo_demais": rotulo_balde},
+        "demais_por_nivel": demais_por_nivel,
     }
 
 

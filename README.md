@@ -79,6 +79,10 @@ VISIBILIDADE (D-54, 03/09)   botao so aparece com pelo menos UMA linha de dado
                              menos de 2 opcoes some inteira, ↓CSV/↓XLSX saem
                              com a tabela vazia. Decidido pelo cubo, sem lista
                              de nomes. Vale para Full, N1, N2 e N3
+BALDE DE BANDEIRAS (D-57)    a linha Σ declara quantas bandeiras ela agrega
+                             NAQUELE arquivo (antes repetia o numero global em
+                             todos os 73); o CORTE das 300 maiores segue global
+                             e a tela diz isso
 FORMATACAO (D-55, 03/09)     uma funcao formata todo numero de metrica:
                              mil/mi/bi com 1 casa, omitida quando zero —
                              R$ 1 mil · R$ 25 mil · R$ 1,5 mi · R$ 1,2 bi. O
@@ -288,7 +292,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-35 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-55, com o porquê |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-57, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
