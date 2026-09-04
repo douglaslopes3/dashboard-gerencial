@@ -347,10 +347,9 @@ dashboard:
   # compartilhadas. O nome da pasta e o rotulo completo do colaborador, com
   # os caracteres invalidos de nome de pasta trocados por "-".
   publicacao:
-    # 03/09/2026 (noite): DESLIGADA durante a rodada D-63..D-68 — o Douglas
-    # quer ver os 73 arquivos antes de publicar. Volta a `true` no commit de
-    # publicacao, com o ok dele.
-    ativo: false
+    # Ficou desligada durante a rodada D-63..D-71 (03 e 04/09/2026) para o
+    # Douglas ver os 73 arquivos antes; religada em 04/09 com o ok dele.
+    ativo: true
     destino: "../Painéis Comerciais/Gerencial"
 
 logs:
