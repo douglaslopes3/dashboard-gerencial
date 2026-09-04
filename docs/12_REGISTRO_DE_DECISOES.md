@@ -2468,10 +2468,12 @@ busca, dos filtros ou das outras abas muda. A categoria de uma bandeira com
 vários clientes fica um clique abaixo (dentro do cliente).
 
 **Publicação.** Desligada em commit próprio antes de qualquer alteração
-(`b0f5cf8`) porque os 73 arquivos já estão compartilhados. **Religar só com o
-ok do Douglas** depois de ele ver o build; então `publicacao.ativo: true` +
-`python run_dashboard.py` + commit "publicação". Aviso de uma linha aos
-usuários: "a bandeira agora abre por cliente".
+(`b0f5cf8`) porque os 73 arquivos já estão compartilhados. **Religada em
+04/09 à noite com o ok do Douglas** ("pode publicar"): `publicacao.ativo:
+true`, geração em 24,5 s, 72 arquivos nas pastas por usuário + o Full na
+raiz, MD5 conferido na cópia e o publicado byte a byte igual ao build.
+Aviso de uma linha aos usuários fica com o Douglas: "a bandeira agora abre
+por cliente".
 
 **Rollback.** `git revert` dos commits da D-72 + `run_dashboard.py` (republica
 o anterior em ~20 s); parcial, sem código: `dashboard.cliente_rtm_acumulado:

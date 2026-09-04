@@ -370,8 +370,9 @@ dashboard:
     # Douglas ver os 73 arquivos antes; religada em 04/09 com o ok dele.
     # DESLIGADA de novo em 04/09 a tarde para a rodada D-72 (nivel Cliente na
     # aba Bandeiras): os 73 arquivos ja estao compartilhados e toda geracao
-    # substitui — religar so com o ok do Douglas depois da conferencia.
-    ativo: false
+    # substitui. Religada em 04/09 a noite com o ok do Douglas, depois da
+    # conferencia publicado x build (ferramentas/comparar_paineis.py).
+    ativo: true
     destino: "../Painéis Comerciais/Gerencial"
 
 logs:

@@ -20,14 +20,15 @@ receita liquida              R$ 2.326.876.207,52
 peso                         165.663,63 t
 caixas                       33.624.305
 fato                         3.131.629 linhas (linhas 100% zeradas descartadas, D-36)
-D-72 (04/09, PUBLICACAO      aba Bandeiras abre por CLIENTE (Bandeira >
-DESLIGADA ate o ok)          Cliente > Categoria); cliente e o 5o eixo do cubo
+D-72 (04/09, PUBLICADA       aba Bandeiras abre por CLIENTE (Bandeira >
+a noite com o ok)            Cliente > Categoria); cliente e o 5o eixo do cubo
                              principal (730.257 linhas); clientes RTM que
                              herdaram a bandeira viram UMA linha "RTM (soma de
                              N clientes)" sob o distribuidor; bandeira de um
                              cliente so abre direto em categoria. Full 17,6 MB.
-                             Os 73 arquivos novos estao em dashboard/build;
-                             publicados continuam os de 13:16 (D-71)
+                             Os 73 arquivos foram publicados nas pastas em
+                             04/09 a noite (MD5 conferido); a publicacao
+                             automatica esta LIGADA de novo
 ATENCAO (aviso do detector)  3 recortes de extracao na serie: 19 meses ate
                              jul/26, ago/26 ("tipo mercado original") e set/26
                              ("tipo mercado e interno"); ago/26 fechado subiu
@@ -401,7 +402,7 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 | P5 | 4 SKUs fora do `Produtos.xlsx` (eram 7) | **Cadastro de Produtos** | R$ 1,04 mi (0,04%) | `data/quality/skus_sem_cadastro.csv` |
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
 | P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática). Os 73 arquivos publicados em 04/09 ~00:25 já são os da rodada D-63 a D-71 | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
-| P10 | **Cliente na aba Bandeiras: FEITO na D-72 (04/09 à tarde), aguardando o ok para PUBLICAR** (`publicacao.ativo: false`; os 73 arquivos novos estão em `dashboard/build`, conferidos contra os publicados por `ferramentas/comparar_paineis.py`). Ficam para a próxima rodada: canal como dimensão, Vendedor × Bandeira | **Douglas**: ok de publicação; decide o resto | ver docs/12 D-72 | docs/12 (proposta + D-72) |
+| P10 | **Cliente na aba Bandeiras: FEITO e PUBLICADO na D-72 (04/09 à noite, com o ok do Douglas)**; conferido contra os arquivos anteriores por `ferramentas/comparar_paineis.py`. Falta só o aviso de uma linha aos usuários ("a bandeira agora abre por cliente"). Ficam para a próxima rodada: canal como dimensão, Vendedor × Bandeira | **Douglas** avisa os usuários; decide o resto | ver docs/12 D-72 | docs/12 (proposta + D-72) |
 | P11 | Cópia avulsa do Full em `Painéis Comerciais\Gerencial\Dashboard - Full\` (00:23 de 04/09): a publicação automática só grava na raiz, então essa cópia fica desatualizada a cada geração. Apagar ou substituir por link para o da raiz | **Douglas** | 1 arquivo (14,9 MB) | achado pelo `comparar_paineis.py` (D-72) |
 
 ---
