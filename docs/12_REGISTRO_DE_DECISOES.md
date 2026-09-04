@@ -1899,3 +1899,31 @@ Comercial incorporar os clientes à `Hierarquia_Consolidada`, ela esvazia
 sozinha. Nenhuma linha de código ou config muda.
 
 **Rollback.** Não se aplica.
+
+
+---
+
+## D-63 · Período inicial: FY corrente até o último mês fechado (03/09/2026)
+
+**Contexto (crítica do painel, 03/09/2026, capturas dos 4 arquivos de
+referência).** O v4 abria no último ano fiscal da série com todos os meses
+dele marcados. Em setembro o FY2027 tem um mês, parcial: KPIs a −85%/−90%,
+"Maiores quedas" com sete de dez itens "sem faturamento −100%", gráfico com uma
+barra, em todos os 73 arquivos. O Douglas confirmou que isso nunca foi decisão.
+
+**Decisão.** O painel abre no **FY corrente até o último mês fechado**; se o FY
+corrente ainda não tem mês fechado, abre no **FY anterior inteiro** (que tem par
+completo no ano anterior). "Fechado" = competência estritamente anterior ao mês
+da geração, lido de `meta.gerado_em`; é a mesma régua do saneamento (D-50/Q6).
+O mês parcial continua nos chips de Meses. Trocar de base ou de ano pelos chips
+segue marcando o ano inteiro: ali a escolha é do usuário.
+
+**Efeito colateral tratado.** O recorte salvo no navegador vence o padrão, e
+todo mundo tinha "set/26" salvo. A chave do `localStorage` subiu de `v4` para
+`v5`: cada arquivo abre uma vez no período novo e volta a lembrar o que o
+usuário escolher.
+
+**Onde.** `template_v4.html` (`periodoInicial`, `mesDaGeracao`, `CHAVE_LS`);
+guarda em `tests/test_regras.py`. Nenhum número muda.
+
+**Rollback.** git.

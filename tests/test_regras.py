@@ -807,6 +807,19 @@ def test_d57_balde_recontado_nao_mexe_em_nenhum_numero():
     assert soma == total == 210000
 
 
+def test_d63_periodo_inicial_no_ultimo_mes_fechado():
+    """D-63 (03/09/2026): o v4 abre no FY corrente ate o ultimo mes fechado,
+    caindo para o FY anterior quando o corrente nao tem mes fechado. A guarda
+    e textual (o motor e JS): a funcao e a chave v5 do recorte salvo — sem a
+    chave nova o padrao antigo ("set/26") continuaria vindo do localStorage."""
+    txt = _ler_templates()["template_v4.html"]
+    corpo = _sem_comentarios(txt)
+    assert "function periodoInicial" in corpo
+    assert "periodoInicial();" in corpo, "iniciar() tem de chamar o periodo inicial"
+    assert "dashDoriCanais.recorte.v5" in corpo
+    assert "dashDoriCanais.recorte.v4" not in corpo
+
+
 def _ler_templates():
     from src.utils.config import caminho
     raiz = Path(__file__).resolve().parents[1]

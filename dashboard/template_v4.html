@@ -174,6 +174,12 @@
     vem sempre de METRICAS[F.metrica].un, entao Volume e Caixas nunca o
     recebem. Isto SUPERA a F1-G: a celula da matriz passou a repetir o
     prefixo.
+
+  D-63 (03/09/2026) — PERIODO INICIAL.
+    O painel abre no FY corrente ate o ultimo mes FECHADO; sem mes fechado no
+    FY corrente, abre no FY anterior inteiro. Antes abria no FY corrente com
+    todos os meses, que em setembro e um mes parcial. Ver `periodoInicial`.
+    A chave do recorte salvo subiu para v5 para o padrao novo valer uma vez.
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -605,7 +611,11 @@ function prepararDB(){
   // D-51: os rotulos "fora da hierarquia" (sem estrutura + inativos do
   // saneamento) chegam do gerador — o template nao carrega valor de negocio.
   (DB.rotulos_fora||[]).forEach(r=>{ if(r) ROT_AUSENCIA.add(r); });
-  CHAVE_LS = "dashDoriCanais.recorte.v4"
+  // D-63: a chave subiu de v4 para v5 de proposito — o recorte salvo no
+  // navegador vence o padrao de abertura, e todo mundo tinha "set/26" salvo.
+  // Subir a chave faz cada arquivo abrir UMA vez no periodo novo; dali em
+  // diante o que o usuario escolher volta a ser lembrado.
+  CHAVE_LS = "dashDoriCanais.recorte.v5"
     + (DB.meta && DB.meta.recorte ? ".rec."+DB.meta.recorte : "");
 }
 
@@ -2006,6 +2016,36 @@ function ligar(){
   });
 }
 
+/* ================================================ periodo inicial (D-63)
+   Ate a D-62 o painel abria no ULTIMO ano fiscal da serie com TODOS os meses
+   dele marcados. Em setembro isso e UM mes, parcial: KPIs a -90%, "Maiores
+   quedas" cheio de "-100% sem faturamento", grafico com uma barra — em todos
+   os 73 arquivos (observado em 03/09/2026; nunca tinha sido decisao).
+   Regra de 03/09: abrir no FY corrente ATE O ULTIMO MES FECHADO; se o FY
+   corrente ainda nao tem mes fechado, abrir no FY ANTERIOR inteiro, que tem
+   par completo no ano anterior. "Fechado" = competencia estritamente anterior
+   ao mes da geracao (a mesma regua do saneamento, D-50/Q6), lida de
+   DB.meta.gerado_em. O mes parcial continua nos chips de Meses; so nao e o
+   que se ve sem querer. Trocar de base/ano pelos chips segue selecionando o
+   ano inteiro (preSelecionarMeses): la a escolha e do usuario.             */
+function mesDaGeracao(){
+  const m=String(DB.meta&&DB.meta.gerado_em||"").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? m[3]+"-"+m[2] : null;
+}
+function periodoInicial(){
+  const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
+  const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
+  F.ano=anos[anos.length-1];
+  const exec=mesDaGeracao();
+  const fechado=i=> exec ? CAL[i][C_AM] < exec : true;
+  let fy=fys[fys.length-1], meses=mesesDoFY(fy).filter(fechado);
+  if(!meses.length && fys.length>1){
+    fy=fys[fys.length-2]; meses=mesesDoFY(fy).filter(fechado);
+  }
+  F.fy=fy; F.meses.clear(); meses.forEach(i=>F.meses.add(i));
+  if(!F.meses.size) preSelecionarMeses();   // serie sem mes fechado: tudo
+}
+
 function iniciar(){
   /* P2-D: arquivo gerado por head. A marca so DECLARA o recorte no titulo e
      no cabecalho; a restricao de verdade e do run_dashboard.py, que nao
@@ -2021,10 +2061,7 @@ function iniciar(){
   // D-52: so o Template Full tem o filtro Head — nos arquivos por nivel a
   // linha fica oculta (ocultar/remover, nunca acinzentar).
   if(RESTRITO) el("frowHead").hidden=true;
-  const fys=[...new Set(CAL.map(c=>c[C_FYROT]))];
-  const anos=[...new Set(CAL.map(c=>c[C_ANO]))];
-  F.fy=fys[fys.length-1]; F.ano=anos[anos.length-1];
-  preSelecionarMeses();
+  periodoInicial();                          // D-63
   // v2: reabre no recorte do link (#r=…) ou, sem link, no ultimo recorte
   // salvo neste navegador. Sem nenhum dos dois, fica o padrao acima.
   aplicarRecorte(lerRecorteInicial());
