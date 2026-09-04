@@ -9,7 +9,8 @@
 
 ```
 Documentos\Painéis Comerciais\Gerencial\
-├── Dashboard_Gerencial.html                         Full: visão corporativa, só diretoria
+├── Dashboard - Full\                                D-73: pasta própria do Full, compartilhada
+│   └── Dashboard_Gerencial.html                     com quem só pode ver a visão corporativa
 ├── 10 - DISTRIBUICAO - MICHEL MEIRA\
 │   └── Dashboard_Gerencial_N1_10-distribuicao-michel-meira.html
 ├── 21000 - Ger Reg_SP - HEBER SILVA\
@@ -24,7 +25,7 @@ Documentos\Painéis Comerciais\Gerencial\
 | **O que vai** | só os 73 HTML autocontidos (agregado; linha transacional nunca chega ao HTML). `bases/`, `data/`, `src/`, `config/`, `docs/`, logs e os CSVs de exceção ficam no ambiente de desenvolvimento |
 | **Quem publica** | `python run_dashboard.py` (config `dashboard.publicacao`): copia **substituindo pelo mesmo nome** e confere o MD5 de cada cópia. Não há passo manual de cópia |
 | **Segregação** | por **conteúdo**: o arquivo de um colaborador só contém os dados do escopo dele (recorte físico na geração, D-52). A permissão da pasta é a segunda camada, não a única |
-| **Permissão** | o Douglas compartilha cada pasta com o respectivo colaborador **uma vez** (herança de permissão da pasta). Como o nome do arquivo não muda entre gerações, o link continua válido. O Full fica na raiz, fora das pastas |
+| **Permissão** | o Douglas compartilha cada pasta com o respectivo colaborador **uma vez** (herança de permissão da pasta). Como o nome do arquivo não muda entre gerações, o link continua válido. O Full fica na pasta `Dashboard - Full\` (config `publicacao.pasta_full`, D-73), compartilhada à parte com quem não pode ver as pastas dos colaboradores; até 04/09 ficava na raiz |
 | **Como o colaborador abre** | o SharePoint Online **não renderiza `.html`** no navegador (clicar baixa o arquivo). Modo de uso: sincronizar a pasta no OneDrive e abrir por duplo clique no Explorer, o mesmo dos Scorecards. Link por Teams abre o visualizador, que não executa o painel |
 | **Nomes** | sem sufixo de versão desde a D-58 (`Dashboard_Gerencial*.html`); a versão do template é rastreada no config e no git |
 | **Painel antigo que sobra numa pasta** | a geração não apaga o que não criou. `ferramentas/limpar_paineis_antigos.py` recolhe para quarentena (D-60) |
@@ -38,7 +39,7 @@ Documentos\Painéis Comerciais\Gerencial\
 | Painéis v3 de 01/09 na raiz do destino | **apagados** (02/09 à noite) |
 | Painéis `_Canais_v4` antigos nas 72 pastas | **apagados** à mão em 03/09 (D-60) |
 | Compartilhar cada pasta com o colaborador | **pendente**: previsto para 04/09/2026, após a apresentação. Até lá a segregação por pasta não está em vigor (a segregação por conteúdo já está) |
-| Full restrito à diretoria | fica na raiz; sem compartilhamento explícito, só quem tem acesso à raiz vê |
+| Full restrito à diretoria | desde a **D-73** (04/09/2026 à noite) fica em `Dashboard - Full\`, pasta que o Douglas compartilha com quem só pode ver a visão corporativa (a raiz daria visibilidade a todas as pastas). A geração grava lá; a raiz não recebe mais o Full |
 
 ## 3. O que ficou das decisões D-a a D-e
 

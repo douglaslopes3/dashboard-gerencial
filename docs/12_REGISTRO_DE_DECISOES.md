@@ -2486,3 +2486,36 @@ grão do cubo.
 `BAN_MULTI`, `matrizNiveis`, `renderBandeiras`), `config/config.yaml`
 (`cliente_rtm_acumulado`, `rotulos_exibicao.rtm_acumulado`, publicação),
 `ferramentas/comparar_paineis.py`, testes, docs 05/06/08/09/11/13, README.
+
+---
+
+## D-73 · O Full é publicado na pasta `Dashboard - Full\`, não na raiz (04/09/2026 à noite)
+
+**Pedido do Douglas.** "Quero que agora o Full grave na pasta
+`Painéis Comerciais\Gerencial\Dashboard - Full`, pois precisei compartilhar
+com pessoas que não podem ver os outros."
+
+**Contexto.** Pela Q13 (D-52) o Full ficava na raiz do destino, fora das
+pastas compartilhadas, e só quem tinha acesso à raiz o via. Compartilhar a
+raiz daria visibilidade a todas as pastas de colaborador; por isso o Douglas
+criou a pasta `Dashboard - Full\` à mão (00:23 de 04/09, a "cópia avulsa"
+que a ferramenta de comparação achou, P11) e à noite moveu o Full da D-72
+para lá. A geração continuava gravando na raiz, então a pasta envelheceria a
+cada execução.
+
+**Decisão.** `dashboard.publicacao.pasta_full: "Dashboard - Full"`: a geração
+grava o Full nessa subpasta do destino (`pasta_do_full` em
+`run_dashboard.py`; vazio = raiz, regra anterior). A raiz não recebe mais o
+Full. `limpar_paineis_antigos.py` passa a esperar o Full no mesmo lugar, de
+modo que um Full deixado na raiz por engano vira candidato a quarentena. O
+nome do arquivo não muda: o link da pasta continua válido. Resolve a P11.
+
+**Verificado.** Geração com a chave nova: 72 arquivos nas pastas por
+usuário + o Full em `Dashboard - Full\` (MD5 conferido), nenhum
+`Dashboard_Gerencial.html` na raiz; teste unitário da regra (subpasta,
+vazio, ausente; o config tem de declarar a pasta).
+
+**Onde.** `config/config.yaml`, `run_dashboard.py` (`pasta_do_full`),
+`ferramentas/limpar_paineis_antigos.py`, testes, docs 10/13/15, README.
+
+**Rollback.** `pasta_full: ""` volta o Full para a raiz, sem código.

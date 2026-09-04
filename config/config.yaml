@@ -374,6 +374,12 @@ dashboard:
     # conferencia publicado x build (ferramentas/comparar_paineis.py).
     ativo: true
     destino: "../Painéis Comerciais/Gerencial"
+    # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
+    # destino e passa a ser gravado nesta subpasta, porque ele precisou
+    # compartilhar o Full com pessoas que NAO podem ver as pastas dos outros
+    # colaboradores — e a raiz da visibilidade a tudo. Vazio = raiz (regra
+    # anterior, Q13). O nome do arquivo nao muda, entao o link continua.
+    pasta_full: "Dashboard - Full"
 
 logs:
   nivel: "info"

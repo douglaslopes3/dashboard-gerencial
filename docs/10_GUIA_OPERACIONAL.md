@@ -89,8 +89,10 @@ a base ao centavo.
 **Regra de distribuição: cada colaborador recebe só a própria pasta.** A
 pasta do colaborador é compartilhada com ele uma vez (ação do Douglas no
 SharePoint; pendente para 04/09/2026); as gerações seguintes substituem o
-arquivo com o mesmo nome, então o link continua válido. O Full fica na raiz,
-fora das pastas compartilhadas.
+arquivo com o mesmo nome, então o link continua válido. O Full fica na pasta
+`Dashboard - Full\` (config `dashboard.publicacao.pasta_full`, D-73),
+compartilhada à parte com quem só pode ver a visão corporativa; a raiz não
+recebe mais o Full.
 
 **Quando um nome de saída muda** (`dashboard.arquivo_saida`,
 `dashboard.por_nivel.prefixo`) ou um colaborador sai da estrutura, a geração

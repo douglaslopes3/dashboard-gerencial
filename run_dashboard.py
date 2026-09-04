@@ -158,6 +158,15 @@ def _pasta_usuario(rotulo: str) -> str:
     return nome[:100]
 
 
+def pasta_do_full(destino: Path, pub: dict) -> Path:
+    """Onde o painel Full e publicado (D-73, 04/09/2026): a subpasta
+    `dashboard.publicacao.pasta_full` do destino; vazia = a raiz (regra da
+    Q13). O Douglas compartilhou o Full com pessoas que nao podem ver as
+    pastas dos colaboradores, e a raiz mostraria todas."""
+    sub = str(pub.get("pasta_full") or "").strip()
+    return destino / sub if sub else destino
+
+
 def publicar(origem: Path, destino_dir: Path) -> None:
     """Copia SUBSTITUINDO (mesmo nome -> links do SharePoint continuam
     validos) e confere o hash — padrao da publicacao de 01/09/2026."""
@@ -383,12 +392,14 @@ def main() -> int:
                 f"R$ {br(soma_nivel / 100)} + fora da hierarquia "
                 f"R$ {br(resto / 100)} = R$ {br(rec_total / 100)}", "ok")
         if destino:
-            # Q13: o painel Full vai para a RAIZ do destino, fora das pastas
-            # compartilhadas — e o unico com a visao corporativa inteira.
-            publicar(alvo, destino)
+            # Q13: o painel Full ia para a RAIZ do destino, fora das pastas
+            # compartilhadas. D-73: vai para a subpasta `pasta_full` (o Douglas
+            # compartilha essa pasta com quem so pode ver o Full).
+            pasta_full = pasta_do_full(destino, pub)
+            publicar(alvo, pasta_full)
             log("")
             log(f"publicados {n_arquivos} arquivos por nivel (pasta por "
-                f"usuario) + o Full na raiz de {destino}", "ok")
+                f"usuario) em {destino} + o Full em {pasta_full}", "ok")
 
     log("")
     log(f"tempo total ............ {time.time() - t0:.1f}s")

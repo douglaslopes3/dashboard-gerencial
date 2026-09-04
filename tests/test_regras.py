@@ -450,6 +450,20 @@ def test_d52_recorte_por_n3_e_particionamento_do_nivel():
     assert soma == sum(l[cubos.BASE_MET] for l in pac["cubo"]) == 210000
 
 
+def test_d73_full_publica_na_subpasta_do_config_ou_na_raiz():
+    """D-73 (04/09/2026): o Full vai para `publicacao.pasta_full`; vazia ou
+    ausente = raiz (Q13). O config atual aponta para uma subpasta."""
+    from pathlib import Path
+    from run_dashboard import pasta_do_full
+    from src.utils.config import CFG
+    d = Path("X")
+    assert pasta_do_full(d, {"pasta_full": "Dashboard - Full"}) == d / "Dashboard - Full"
+    assert pasta_do_full(d, {"pasta_full": "  "}) == d
+    assert pasta_do_full(d, {}) == d
+    assert str(CFG["dashboard"]["publicacao"].get("pasta_full") or "").strip(), \
+        "o config tem de declarar a pasta do Full (decisao do Douglas, D-73)"
+
+
 def test_d52_pasta_usuario_sanitiza_caracteres_invalidos():
     from run_dashboard import _pasta_usuario
     assert _pasta_usuario("2320 - Superv_RS/SC - ALITSON") ==         "2320 - Superv_RS-SC - ALITSON"

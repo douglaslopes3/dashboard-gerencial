@@ -152,11 +152,13 @@ por nivel (D-52)             73 arquivos: Full + 4 N1 + 13 N2 + 55 N3, recorte
                              o N4 nao gera arquivo (decisao 02/09); baldes
                              fora-da-hierarquia tambem nao; particionamento
                              reconciliado nos 3 niveis, ao centavo
-publicacao (Q13)             substituicao automatica na geracao: 72 pastas por
-                             usuario + o Full na raiz de Paineis Comerciais\
-                             Gerencial\, com MD5 conferido; o Douglas
-                             compartilha cada pasta com o proprio usuario
-                             (permissao por heranca; links preservados)
+publicacao (Q13, D-73)       substituicao automatica na geracao: 72 pastas por
+                             usuario + o Full na pasta "Dashboard - Full\" de
+                             Paineis Comerciais\Gerencial\ (D-73, 04/09: a
+                             raiz daria visibilidade a todas as pastas), com
+                             MD5 conferido; o Douglas compartilha cada pasta
+                             com o proprio usuario (permissao por heranca;
+                             links preservados)
 ```
 
 **Auditoria completa** (26–27/08, cinco camadas, tudo medido): [`AUDIT.md`](AUDIT.md)
@@ -403,7 +405,7 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
 | P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática). Os 73 arquivos publicados em 04/09 ~00:25 já são os da rodada D-63 a D-71 | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
 | P10 | **Cliente na aba Bandeiras: FEITO e PUBLICADO na D-72 (04/09 à noite, com o ok do Douglas)**; conferido contra os arquivos anteriores por `ferramentas/comparar_paineis.py`. Falta só o aviso de uma linha aos usuários ("a bandeira agora abre por cliente"). Ficam para a próxima rodada: canal como dimensão, Vendedor × Bandeira | **Douglas** avisa os usuários; decide o resto | ver docs/12 D-72 | docs/12 (proposta + D-72) |
-| P11 | Cópia avulsa do Full em `Painéis Comerciais\Gerencial\Dashboard - Full\` (00:23 de 04/09): a publicação automática só grava na raiz, então essa cópia fica desatualizada a cada geração. Apagar ou substituir por link para o da raiz | **Douglas** | 1 arquivo (14,9 MB) | achado pelo `comparar_paineis.py` (D-72) |
+| P11 | ~~Cópia avulsa do Full em `Dashboard - Full\`~~ **Resolvida na D-73** (04/09 à noite): a pasta virou o destino oficial do Full (`publicacao.pasta_full`), porque o Douglas a compartilhou com pessoas que não podem ver as pastas dos colaboradores. A raiz não recebe mais o Full | — | — | docs/12 D-73 |
 
 ---
 

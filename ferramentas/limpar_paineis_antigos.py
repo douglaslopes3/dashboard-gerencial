@@ -57,7 +57,7 @@ for _fluxo in (sys.stdout, sys.stderr):
     except (AttributeError, OSError):
         pass
 
-from run_dashboard import _pasta_usuario, _slug
+from run_dashboard import _pasta_usuario, _slug, pasta_do_full
 from src.utils import log as L
 from src.utils.config import CFG, PASTA_CURATED, caminho
 from src.utils.log import abortar, log, titulo
@@ -80,7 +80,9 @@ def esperados(destino: Path) -> set[Path]:
     pn = _DASH.get("por_nivel") or {}
     prefixo = pn.get("prefixo", "Dashboard_Gerencial_")
 
-    alvo = {destino / _DASH["arquivo_saida"]}          # o Full, na raiz
+    # o Full: na subpasta `publicacao.pasta_full` (D-73) ou na raiz (Q13)
+    alvo = {pasta_do_full(destino, _DASH.get("publicacao") or {})
+            / _DASH["arquivo_saida"]}
     if pn.get("ativo"):
         for nome_nivel, pos in (pn.get("niveis") or {}).items():
             for rot in sorted({p[int(pos)] for p in perfis} - fora):

@@ -20,7 +20,7 @@
                                      └──► Dashboard_Gerencial_N1_/N2_/N3_<colaborador>.html
                                           (72 arquivos · só os dados do próprio escopo)
                                      └──► publica substituindo em Painéis Comerciais\Gerencial\
-                                          (Full na raiz · um por pasta de colaborador · MD5 conferido)
+                                          (Full em Dashboard - Full\ · um por pasta de colaborador · MD5 conferido)
 ```
 
 ---
@@ -170,7 +170,8 @@ agregado; e camada agregada que não reconcilia com a fato **não é publicada**
    nível é copiado **substituindo** para a pasta do próprio colaborador em
    `Documentos\Painéis Comerciais\Gerencial\` (nome da pasta = rótulo do
    colaborador, caracteres inválidos trocados por `-`), e o Full vai para a
-   raiz; MD5 conferido em cada cópia. O Douglas compartilha cada pasta com o
+   pasta `Dashboard - Full\` (config `publicacao.pasta_full`, D-73; até
+   04/09 era a raiz); MD5 conferido em cada cópia. O Douglas compartilha cada pasta com o
    respectivo colaborador uma vez; as gerações seguintes mantêm nome e link.
    A geração **não apaga** o que ela não criou: painel antigo que sobrar numa
    pasta é recolhido por `ferramentas/limpar_paineis_antigos.py` (D-60).
