@@ -241,7 +241,7 @@ só por cor**: levam sempre seta (▲/▼) e sinal (+/−).
 ## Rodar os testes
 
 ```bash
-python tests/test_regras.py      # 62 testes de regra critica
+python tests/test_regras.py      # 63 testes de regra critica
 python tests/cenarios.py         # 6 cenarios de ponta a ponta (roda o pipeline)
 ```
 

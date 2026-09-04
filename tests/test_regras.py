@@ -372,7 +372,9 @@ def test_d48_perfil_tem_os_niveis_na_ordem_declarada():
     assert cubos.COLS_PERFIL == ["HEAD", "GERENTE", "SUPERVISOR",
                                  "CANAL", "PROJETO", "VENDEDOR"]
     for p in pac["dims"]["perfil"]:
-        assert len(p) == 6, "o perfil tem de carregar os seis componentes"
+        # D-71: a posicao 6 e a flag "vendedor e o proprio sup./exec."
+        assert len(p) == 7, "o perfil carrega os seis componentes + a flag da D-71"
+        assert p[6] in (0, 1)
     sups = {p[2] for p in pac["dims"]["perfil"]}
     assert sups == {"1100 - S1", "1200 - S2", "2100 - S3"}
     vends = {p[5] for p in pac["dims"]["perfil"]}
@@ -832,7 +834,31 @@ def test_d69_filtro_hierarquico_vale_nos_dois_cubos():
                   'DIMS_FILTRO = ["cat","can","head","ger","sup","vend"]'):
         assert termo in corpo, f"template v4 perdeu o filtro hierarquico: {termo}"
     # a lista de chips nao pode ser nominal (D-54): sai do perfil do cubo
-    assert "lista(P_GER)" in corpo and "lista(P_VEND)" in corpo
+    assert "lista(P_GER)" in corpo and "lista(P_VEND, p=>!vendEhSup(p))" in corpo
+
+
+def test_d71_vendedor_que_e_o_proprio_sup_nao_desce_um_nivel():
+    """D-71: a flag do perfil (posicao 6) marca o Vend./RCA que e a mesma
+    pessoa do Sup./Exec. (pelo NOME; codigo e papel sempre diferem). O
+    template usa a flag para nao expandir a linha e nao oferecer o vendedor
+    no filtro. Rotulos de ausencia nunca casam."""
+    from src.load import cubos
+    fato, dim_cli, dim_prod, dim_cal = _mini_modelo()
+    dim = dim_cli.copy()
+    # clientes 1-2: sup e vendedor sao a MESMA pessoa (nomes iguais, codigos e
+    # papeis diferentes, um deles com " - " dentro dos colchetes)
+    dim.loc[dim["COD_CLIENTE"].isin(["1", "2"]), "SUPERVISOR"] = "1100 - Superv_X - [VAGO - JOAO 1]"
+    dim.loc[dim["COD_CLIENTE"].isin(["1", "2"]), "VENDEDOR"] = "900 - TT Superv_X - [VAGO - JOAO 1]"
+    pac = cubos.construir(fato, dim, dim_prod, dim_cal)
+    assert all(len(p) == 7 for p in pac["dims"]["perfil"])
+    flags = {(p[2], p[5]): p[6] for p in pac["dims"]["perfil"]}
+    assert flags[("1100 - Superv_X - [VAGO - JOAO 1]", "900 - TT Superv_X - [VAGO - JOAO 1]")] == 1
+    assert all(v == 0 for k, v in flags.items() if k[0] != "1100 - Superv_X - [VAGO - JOAO 1]")
+    assert cubos._mesma_pessoa("NÃO ATRIBUÍDO", "NÃO ATRIBUÍDO") is False
+    assert cubos._mesma_pessoa("2140 - Exec TA_SPC - RONALDO SILVA",
+                               "540 - TT Rep DAT - (540) Rep DAT") is False
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    assert "P_VEND_E_SUP=6" in corpo and "vendEhSup(pf)) caminho.pop()" in corpo
 
 
 def test_d70_sem_notas_de_rodape():

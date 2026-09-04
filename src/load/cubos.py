@@ -48,6 +48,22 @@ def _indexar(valores) -> tuple[list, dict]:
     return lista, {v: i for i, v in enumerate(lista)}
 
 
+def _nome_do_rotulo(rotulo) -> str:
+    """Nome de pessoa de um rotulo "codigo - papel - nome" (cadastros.py).
+    Split em no maximo 2 separadores: o nome pode conter " - " dentro de
+    colchetes ("[VAGO - FRANCISCO 1]") e tem de ficar inteiro."""
+    partes = str(rotulo).split(" - ", 2)
+    return partes[-1].strip().upper()
+
+
+def _mesma_pessoa(sup, vend) -> bool:
+    """D-71: Sup./Exec. e Vend./RCA sao a mesma pessoa quando o NOME e o
+    mesmo. Rotulos de ausencia (NAO ATRIBUIDO, INATIVO...) nunca contam."""
+    if pd.isna(sup) or pd.isna(vend) or " - " not in str(sup) or " - " not in str(vend):
+        return False
+    return _nome_do_rotulo(sup) == _nome_do_rotulo(vend)
+
+
 def _escalar(g: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(index=g.index)
     out["R"] = (g["RECEITA"] * ESC_RECEITA).round().astype("int64")
@@ -95,6 +111,21 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
                .sort_values(COLS_PERFIL)
                .values.tolist())
     i_perf = {tuple(p): i for i, p in enumerate(perfis)}
+    # D-71 (04/09/2026): quando o Vend./RCA E o proprio Sup./Exec., nao ha
+    # nivel a descer. Medido: 37 dos 55 Sup./Exec. tem um unico vendedor
+    # abaixo, e e ele mesmo com outro codigo ("1150 - Superv_SPC+Litoral -
+    # DEODATO CARMO" -> "972 - TT Superv_SPC+Litora - DEODATO CARMO"); 43 dos
+    # 203 pares sao a mesma pessoa. A igualdade e pelo NOME (ultima parte do
+    # rotulo "codigo - papel - nome"; codigo e papel sempre diferem). A flag
+    # viaja como 7o elemento do perfil — as posicoes 0-5 que o template le nao
+    # mudam. O template usa a flag para nao expandir a linha na matriz e para
+    # nao oferecer essa pessoa como opcao de Vend./RCA.
+    pos_sup, pos_vend = COLS_PERFIL.index("SUPERVISOR"), COLS_PERFIL.index("VENDEDOR")
+    perfis_out = [p + [1 if _mesma_pessoa(p[pos_sup], p[pos_vend]) else 0]
+                  for p in perfis]
+    n_mesma = sum(p[-1] for p in perfis_out)
+    log(f"perfis em que o Vend./RCA e o proprio Sup./Exec.: {n_mesma} "
+        f"(nao descem um nivel na matriz, D-71)", "ok")
     log(f"perfis (head x gerente x sup./exec. x canal x projeto x vendedor): "
         f"{len(perfis)}", "ok")
 
@@ -195,10 +226,11 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
             "cat": cats,
             "head": heads,
             "canal": canais,
-            # [head, gerente, sup./exec., canal, projeto, vendedor] — o MESMO
-            # eixo nos dois cubos desde a D-48; o vendedor (N4) entrou na
-            # posicao 5 na D-50, sem mexer nas posicoes que o template le.
-            "perfil": perfis,
+            # [head, gerente, sup./exec., canal, projeto, vendedor,
+            #  vend_e_o_sup] — o MESMO eixo nos dois cubos desde a D-48; o
+            # vendedor (N4) entrou na posicao 5 na D-50 e a flag da D-71 na
+            # posicao 6, sem mexer nas posicoes que o template le.
+            "perfil": perfis_out,
             "sku": sku_labels,     # [codigo, descricao, indice de categoria]
         },
         "cubo": cubo,

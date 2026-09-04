@@ -2136,3 +2136,42 @@ documentadas em docs/08 e docs/10.
 número muda.
 
 **Rollback.** git.
+
+
+---
+
+## D-71 · Vend./RCA que é o próprio Sup./Exec. não é um nível (04/09/2026)
+
+**Pedido do Douglas.** "Quando o Sup./Exec. for igual ao Vend./RCA não tem por
+que descer mais um nível", valendo para o filtro e para a matriz.
+
+**Medido antes (cubo de 04/09).** "Igual" só existe pelo **nome**: 0 pares com
+rótulo idêntico, 0 com o mesmo código, **43 dos 203 pares com o mesmo nome**
+(`1150 - Superv_SPC+Litoral - DEODATO CARMO` → `972 - TT Superv_SPC+Litora -
+DEODATO CARMO`). **37 dos 55 Sup./Exec. têm um único vendedor abaixo, e é ele
+mesmo** com outro código. Na base inteira, 88 perfis (combinações
+head × gerente × sup × canal × projeto × vendedor) são "vendedor = o próprio
+sup".
+
+**Decisão.** A igualdade é decidida no gerador, pelo nome (última parte do
+rótulo `código - papel - nome`, com o nome inteiro mesmo quando tem " - "
+dentro de colchetes), e viaja como **7º elemento do perfil** (posições 0 a 5
+não mudam). O template usa a flag em dois lugares:
+
+- **matriz hierárquica**: o caminho para no Sup./Exec.; a linha dele não abre
+  (o valor já é o dele). Sup./Exec. que tem ele mesmo **e** outros vendedores
+  abre só os outros.
+- **filtro Vend./RCA**: essa pessoa não é opção (escolher o Sup./Exec. já é
+  escolhê-la). No Full a lista caiu de 197 para 154 chips; no arquivo de um
+  Sup./Exec. que é o próprio vendedor, a linha some.
+
+**Verificado.** Arquivo N3 de Deodato Carmo: matriz de uma linha sem expansor,
+linhas Gerente/Sup./Exec./Vend./RCA ocultas; Full: 88 perfis marcados no log
+do pipeline. Rótulos de ausência nunca casam (teste).
+
+**Onde.** `cubos.py` (`_nome_do_rotulo`, `_mesma_pessoa`, flag no perfil),
+`template_v4.html` (`P_VEND_E_SUP`, `vendEhSup`, `renderHier`,
+`montarFiltros`, `atualizarOpcoes`); testes. Nenhum número muda: o total do
+Sup./Exec. já incluía as vendas dele.
+
+**Rollback.** git.

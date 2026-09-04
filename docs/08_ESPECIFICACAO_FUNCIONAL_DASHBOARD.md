@@ -23,7 +23,7 @@ no template.
 | **Head** | `DIM_CLIENTE.HEAD` | N | seletor de escopo do **Template Full**; não existe nos arquivos por colaborador (D-52) |
 | **Gerente** | perfil do cubo (N2) | N | D-69: vale nas três abas; cascata pelo dado; some no arquivo em que só há uma opção |
 | **Sup./Exec.** | perfil do cubo (N3) | N | idem |
-| **Vend./RCA** | perfil do cubo (N4) | N | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível |
+| **Vend./RCA** | perfil do cubo (N4) | N | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível. Vendedor que é o próprio Sup./Exec. (mesma pessoa, D-71) não é opção |
 
 Saíram na D-51 (Q9) e não voltaram: Projeto e UF (o eixo UF saiu dos cubos,
 Q10; projeto continua no perfil do cubo, sem filtro na tela). Bandeira e SKU
@@ -102,7 +102,9 @@ drill-down nem "voltar".
   (SANEAMENTO)`, rótulos vindos do config) ficam fora da hierarquia, sem
   expansão, e o **Total geral fecha com os cards**. No arquivo de um
   colaborador a matriz começa no nível dele (N2 → Gerente..., N3 →
-  Sup./Exec...) e o N4 é a folha.
+  Sup./Exec...) e o N4 é a folha. **Sup./Exec. que é o próprio vendedor não
+  desce mais um nível** (D-71): a linha dele não abre; se ele tem outros
+  vendedores além de si, só os outros aparecem ao abrir.
 * **Ordem dos chips de filtro:** rótulos de ausência (`NÃO ATRIBUÍDO`,
   `NAO INFORMADO`, `SEM CANAL`, `SEM BANDEIRA`) sempre **por último**; o resto
   em ordem alfabética pt-BR. A lista espelha `config → dimensoes.rotulo_*`.

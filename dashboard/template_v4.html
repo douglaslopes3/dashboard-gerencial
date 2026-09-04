@@ -207,6 +207,10 @@
     dado; um so selecionado aparece pelo nome na linha de estado.
 
   D-70 (04/09/2026) — as NOTAS DE RODAPE dos cards (.note) sairam.
+
+  D-71 (04/09/2026) — Vend./RCA que E o proprio Sup./Exec. (mesma pessoa,
+    flag na posicao 6 do perfil, decidida no gerador pelo nome) nao e um
+    nivel: a matriz nao desce ate ele e o filtro Vend./RCA nao o oferece.
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -687,7 +691,11 @@ function prepararDB(){
    permitiu apagar todo o codigo de "filtro ignorado na camada de SKU". */
 const PERF = (l,sku)=> D.perfil[sku ? l[2] : l[3]];
 // D-50: o VENDEDOR (N4) viaja na posicao 5 do perfil.
-const P_HEAD=0, P_GER=1, P_SUP=2, P_CAN=3, P_PROJ=4, P_VEND=5;
+// D-71 (04/09/2026): a posicao 6 e a flag "o Vend./RCA E o proprio Sup./Exec."
+// (mesma pessoa, decidido no gerador pelo nome). Quando ligada, nao ha nivel
+// a descer: a matriz nao abre esse vendedor e o filtro nao o oferece.
+const P_HEAD=0, P_GER=1, P_SUP=2, P_CAN=3, P_PROJ=4, P_VEND=5, P_VEND_E_SUP=6;
+const vendEhSup = p => !!p[P_VEND_E_SUP];
 // D-51: o eixo UF saiu dos cubos (Q10). D-64 (03/09/2026): a BANDEIRA saiu do
 // cubo de SKU — nenhuma tela do v4 a lia de la (o acessor `BANDE` so estava
 // definido). Cubo principal: 4 indices + 3 metricas; cubo de SKU: 3 + 3.
@@ -1063,7 +1071,7 @@ function atualizarOpcoes(){
       if(passaPrincipal(l, "head"))  head.add(p[P_HEAD]);
       if(passaPrincipal(l, "ger"))   ger.add(p[P_GER]);     // D-69
       if(passaPrincipal(l, "sup"))   sup.add(p[P_SUP]);
-      if(passaPrincipal(l, "vend"))  vend.add(p[P_VEND]);
+      if(passaPrincipal(l, "vend") && !vendEhSup(p)) vend.add(p[P_VEND]); // D-71
       if(passaPrincipal(l, "cat"))   cat.add(l[2]);
       if(passaPrincipal(l, null))    ban.add(l[1]);
     }
@@ -1112,10 +1120,14 @@ function montarFiltros(){
   // tem uma opcao e some sozinha; a de Vend./RCA fica. Cascata pelo dado:
   // com um gerente escolhido, OPC.sup so tem os executivos dele.
   const rotulos=[...D.perfil];
-  const lista=pos=>[...new Set(rotulos.map(p=>p[pos]))].sort(ausenciaPorUltimo());
+  const lista=(pos,so)=>[...new Set(rotulos.filter(so||(()=>true)).map(p=>p[pos]))]
+    .sort(ausenciaPorUltimo());
   chips("fGer",  "frowGer",  lista(P_GER),  g=>OPC.ger.has(g),  g=>F.ger.has(g),  g=>g, g=>EXIBE(g));
   chips("fSup",  "frowSup",  lista(P_SUP),  s=>OPC.sup.has(s),  s=>F.sup.has(s),  s=>s, s=>EXIBE(s));
-  chips("fVend", "frowVend", lista(P_VEND), v=>OPC.vend.has(v), v=>F.vend.has(v), v=>v, v=>EXIBE(v));
+  // D-71: vendedor que e o proprio Sup./Exec. nao e opcao — escolher o
+  // Sup./Exec. ja e escolher ele.
+  chips("fVend", "frowVend", lista(P_VEND, p=>!vendEhSup(p)),
+        v=>OPC.vend.has(v), v=>F.vend.has(v), v=>v, v=>EXIBE(v));
   montarTop();
   el("frowLimpar").hidden = !TEM_FILTRO_DIM();
 }
@@ -1725,10 +1737,16 @@ function renderHier(p){
   const POSN=[P_HEAD,P_GER,P_SUP,P_VEND].slice(NIVEL0);
   el("cadHier").textContent="· "+NIVEIS.join(" → ");
   const fora=new Set((DB.rotulos_fora||[]).filter(Boolean));
+  // D-71: quando o Vend./RCA e o proprio Sup./Exec., o caminho para no
+  // Sup./Exec. — a linha dele nao abre, e o valor ja e o dele. Num Sup./Exec.
+  // com ele mesmo E outros vendedores, so os outros aparecem ao abrir.
+  const ultimoEhVend = POSN[POSN.length-1]===P_VEND;
   matrizNiveis({idTab:"tabHier", aba:"geral",
     niveis:NIVEIS,
     pathFn:l=>{const pf=D.perfil[l[3]];
-      return POSN.map(i=>pf[i]);},
+      const caminho=POSN.map(i=>pf[i]);
+      if(ultimoEhVend && vendEhSup(pf)) caminho.pop();
+      return caminho;},
     rotNo:(niv,k)=>EXIBE(k),                 // D-68: linhas Σ em linguagem de leitor
     usaSku:false, p, den:met(total(p.atual)), expSet:EXP.geral,
     topN:0, baldeK:null, foraSet:fora, ignorar:null});
