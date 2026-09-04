@@ -349,7 +349,10 @@ dashboard:
   publicacao:
     # Ficou desligada durante a rodada D-63..D-71 (03 e 04/09/2026) para o
     # Douglas ver os 73 arquivos antes; religada em 04/09 com o ok dele.
-    ativo: true
+    # DESLIGADA de novo em 04/09 a tarde para a rodada D-72 (nivel Cliente na
+    # aba Bandeiras): os 73 arquivos ja estao compartilhados e toda geracao
+    # substitui — religar so com o ok do Douglas depois da conferencia.
+    ativo: false
     destino: "../Painéis Comerciais/Gerencial"
 
 logs:
