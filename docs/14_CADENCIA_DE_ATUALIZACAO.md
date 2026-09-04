@@ -142,7 +142,7 @@ depois.
 
 | | |
 |---|---|
-| **O que caracteriza alteração** | decisão de negócio: mês de início do fiscal, tolerâncias, pisos de cobertura, corte de bandeiras (300), correções declaradas, regras do saneamento (`rtm_herda_bandeira`, janela), nomes de saída, destino de publicação, gabarito de valores esperados |
+| **O que caracteriza alteração** | decisão de negócio: mês de início do fiscal, tolerâncias, pisos de cobertura, corte de exibição de bandeiras (`top_bandeiras`, `exibir_todas_bandeiras_em`), rótulos de tela das linhas Σ (`rotulos_exibicao`), correções declaradas, regras do saneamento (`rtm_herda_bandeira`, janela), nomes de saída, destino de publicação, gabarito de valores esperados |
 | **Conferir depois** | o pipeline inteiro re-valida; toda correção declarada sai no log ("N linha(s) corrigidas por ..."). Nome de saída novo → rodar `ferramentas/limpar_paineis_antigos.py` depois de gerar (D-58/D-60) |
 
 ### 2.7 `dashboard/template_v4.html` (interface) e `dashboard/lib/chart.umd.min.js`

@@ -131,7 +131,7 @@ ou aborta com a causa (nenhum Parquet é atualizado num aborto):
 | 2 | **FATO** | monta a fato, confere o **grão** (zero duplicados) e **reconcilia contra a linha `Total`** de cada arquivo, nas 3 métricas | — |
 | 3 | **DIMENSÕES** | calendário, cliente (com canal, estrutura N1–N4, RTM e saneamento), produto | — |
 | 4 | **INTEGRIDADE** | FKs 100% + pisos de cobertura (estrutura ≥95%, canal ≥95%). Foi aqui que a edição da hierarquia sem os distribuidores abortou a 75,40% em 03/09 (D-61) | — |
-| 5 | **AGREGAR** | os 2 cubos, **sem o eixo UF** desde a D-51 (principal 123.900 linhas: mês × bandeira × categoria × perfil; SKU 866.028: mês × SKU × perfil × bandeira; perfil = head, gerente, sup./exec., canal, projeto, vendedor, 517 tuplas) e a **reconciliação cubo × fato**, tudo **antes** de qualquer gravação. A contagem do balde de bandeiras por nível nasce aqui (D-57) | — |
+| 5 | **AGREGAR** | os 2 cubos, **sem o eixo UF** desde a D-51 (principal 495.037 linhas: mês × bandeira × categoria × perfil, **todas** as bandeiras desde a D-65; SKU 680.530: mês × SKU × perfil, sem bandeira desde a D-64; perfil = head, gerente, sup./exec., canal, projeto, vendedor, 517 tuplas) e a **reconciliação cubo × fato**, tudo **antes** de qualquer gravação | — |
 | 6 | **GRAVAR + RELATAR** | o modelo estrela em Parquet; `cubos.json`/`resumo.json` gravados de forma **atômica** e carimbados com a execução (conferida pelo `run_dashboard.py`); relatório de qualidade | `data/curated/DIM_*.parquet`, `FATO_SELLIN/ANO=*/`, `cubos.json`, `resumo.json`, `data/quality/*` |
 
 **Regra de ouro do passo 6:** linha transacional **nunca** chega ao HTML, só
@@ -148,16 +148,17 @@ agregado; e camada agregada que não reconcilia com a fato **não é publicada**
    nasce em Python.
 3. Faz **duas substituições de texto**: embute o `dashboard/lib/chart.umd.min.js`
    no marcador de biblioteca e injeta os cubos, **compactados** (gzip+base64,
-   30,7 MB → 11,1 MB; o navegador descompacta na abertura, sem rede), entre os
+   34,2 MB → 13,9 MB; o navegador descompacta na abertura, sem rede), entre os
    marcadores de dados (cada marcador precisa existir exatamente 1 vez).
-4. Grava **`dashboard/build/Dashboard_Gerencial.html`** (11,4 MB, um arquivo
+4. Grava **`dashboard/build/Dashboard_Gerencial.html`** (14,2 MB, um arquivo
    só, **zero requisições de rede**; abre por duplo clique, inclusive em
    `file://` no OneDrive).
 5. **Arquivos por nível** (config `dashboard.por_nivel`, D-52): para cada
    head (N1), gerente (N2) e sup./exec. (N3) da base, `filtrar_por_nivel`
    recorta os dois cubos no **nível de dados** e remapeia os índices; desde a
-   D-54 as listas de canal, categoria e SKU também encolhem, e desde a D-57 a
-   linha Σ de bandeiras é recontada para o arquivo. O que é de outro escopo
+   D-54 as listas de canal, categoria e SKU também encolhem, e desde a D-65 a
+   de bandeiras (o arquivo leva todas as do escopo; o corte é de exibição, no
+   template). O que é de outro escopo
    **não existe** dentro do arquivo. A geração confere por assert que nenhuma
    linha vazou e loga o particionamento (soma do nível + fora da hierarquia =
    base completa, ao centavo). Os baldes `NÃO ATRIBUÍDO` e `INATIVO

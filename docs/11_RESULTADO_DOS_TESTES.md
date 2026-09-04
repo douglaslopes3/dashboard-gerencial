@@ -936,6 +936,98 @@ ferramenta                       python ferramentas/limpar_paineis_antigos.py
                                  manual listava 73 antigos, 41 MB)
 ```
 
+## Rodada de 03/09/2026 à noite (D-63 a D-68, crítica do painel)
+
+```
+unitarios                        60/60  (python tests/test_regras.py)
+pipeline (20260903-2330)         exit 0 · cobertura 97,65% · reconciliacao ok ·
+                                 cubo principal 495.037 (todas as bandeiras) ·
+                                 cubo SKU 680.530 (sem bandeira) · ~31 s com cache
+geracao                          73 arquivos em 15,6 s, publicacao DESLIGADA
+                                 (config) · particionamento N1 = N2 = N3:
+                                 2.270.444.755,76 + fora 54.687.559,19 =
+                                 2.325.132.314,95 (26 centavos abaixo da
+                                 execucao anterior: arredondamento por grupo
+                                 com 4x mais grupos; dentro da tolerancia
+                                 relativa 1e-6 da reconciliacao)
+tamanhos                         Full 14,24 MB (era 11,38) · Atacado 11,13
+                                 (7,17) · Sul/CO 3,78 (2,31) · RS/SC 3,11
+                                 (1,82) · Distribuicao 1,24 (2,02: perdeu as
+                                 bandeiras fora do escopo que viajavam de nome)
+navegador (4 arquivos)           Full, N1 Distribuicao, N2 Sul/CO, N3 RS/SC:
+                                 console zero erros nas 3 abas
+```
+
+## T-50 · Periodo inicial (D-63)
+
+```
+Full, N2 Sul/CO, N3 RS/SC        abrem em "set/25 a ago/26 (12 meses) · LY 12
+                                 de 12 meses cobertos" (localStorage limpo);
+                                 grafico com 12 pares de barras; KPI Full
+                                 R$ 1,2 bi ▲ +4,4% (antes: set/26 parcial,
+                                 1 barra, −85% a −94%)
+unitario                         periodoInicial + chave de recorte v5
+```
+
+## T-51 · Cubo de SKU sem bandeira (D-64)
+
+```
+unitarios (5 atualizados)        posicao da receita 3 no cubo de SKU; soma por
+                                 sup./exec. bate entre os dois cubos
+reconciliacao real               CUBO_SKU 680.530 linhas x fato: ok nas 3 metricas
+```
+
+## T-52 · Todas as bandeiras no arquivo, corte de exibicao (D-65)
+
+```
+unitarios (3 novos)              cubo sem balde (3 bandeiras do modelo de teste);
+                                 recorte H2 leva so REDE C, reindexada, R$ 1.100
+                                 intactos; N3 exibir_todas = true, N1 = false;
+                                 particionamento fecha
+Full (aba Bandeiras)             Top 50: 50 linhas nominais (LASA primeiro) +
+                                 "Σ DEMAIS BANDEIRAS (10.298 bandeiras)";
+                                 rodape "50 de 10348 exibidas + sintese";
+                                 nota: nominais = 50,2% do recorte
+N3 RS/SC                         2.930 bandeiras nominais, linha Top oculta,
+                                 nota "nao ha corte nem linha Σ"; ganhos agora
+                                 listam EURO COMPANY, LUCIBEL... (antes
+                                 estavam dentro do Σ e fora dos destaques)
+N2 Sul/CO                        3.415 bandeiras nominais, Top oculto, KPI
+                                 R$ 129,6 mi
+```
+
+## T-53 · Busca (D-66)
+
+```
+Full, Bandeiras, "confian"       4 de 10.348: CONFIANÇA, DOCES DO VALE
+                                 CONFIANCA..., CONFIANCA LOJA DE CONVENIENCIA,
+                                 EMPORIO CONFIANCA... (sem acento, fora do
+                                 Top 50); rodape "busca: 4 de 10348; o total
+                                 soma todas"
+Full, Categorias, "chocolate"    categorias com SKU casando abertas sozinhas
+                                 (AMENDOIM > AMENDOIM CHOCOLATE DORI CONF...),
+                                 42 linhas
+unitario                         campos, semAcento, estado no recorte
+```
+
+## T-54 · Colunas de decisao primeiro (D-67)
+
+```
+Full (matriz hierarquica)        cabecalho: HEAD › GERENTE › SUP./EXEC. ›
+                                 VEND./RCA, ATUAL, ANT., Δ, Δ%, PART. %,
+                                 OUT/25, NOV/25, ... TOTAL
+unitario                         ordem no cabecalho e na exportacao
+```
+
+## T-55 · Rotulos de leitor nas linhas Σ (D-68)
+
+```
+Full (matriz hierarquica)        ultimas linhas: "Sem estrutura comercial" e
+                                 "Inativos (sem sell-in há 6 meses)" (antes
+                                 NÃO ATRIBUÍDO / INATIVO (SANEAMENTO))
+unitario                         texto vem do config, nao do template
+```
+
 ## T-49 · Cliente RTM herda a bandeira do distribuidor (D-59)
 
 ```

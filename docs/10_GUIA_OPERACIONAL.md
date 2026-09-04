@@ -65,7 +65,7 @@ Uma execução (~10 s) gera **73 arquivos** em `dashboard\build\` e já os
 Gerencial\` (D-52/Q13; `dashboard.publicacao.ativo: false` desliga):
 
 ```
-Dashboard_Gerencial.html                         painel completo (Full), ~11,4 MB
+Dashboard_Gerencial.html                         painel completo (Full), ~14,2 MB
                                                  publicado na RAIZ do destino
 Dashboard_Gerencial_N1_<head>.html               4 arquivos, um por head
 Dashboard_Gerencial_N2_<gerente>.html            13 arquivos, um por gerente
@@ -143,7 +143,8 @@ um log ali.
 | Desempatar um cliente com duas linhas conflitantes na hierarquia | `dimensoes.estrutura_comercial.desempate_cliente` (o caminho preferido é corrigir na origem, como na D-56) |
 | Cliente RTM herda a bandeira do distribuidor, ou mantém a do ponto final | `saneamento.rtm_herda_bandeira` (`true` desde a D-59; `false` devolve a Q4-a) |
 | Janela de inatividade do saneamento | `saneamento.janela_meses` (6) e `ancora_janela` |
-| Mostrar mais bandeiras no ranking | `dashboard.top_bandeiras` (300 = 76,7% da receita) |
+| Mudar o corte de exibição de bandeiras do Full e dos heads | `dashboard.top_bandeiras` (300 = 76,7% da receita no Full); `exibir_todas_bandeiras_em` diz quais níveis exibem todas (N2, N3) |
+| Trocar o texto de tela das linhas Σ (sem estrutura, inativos) | `dashboard.rotulos_exibicao` (a chave de dado não muda) |
 | Mudar quantos itens aparecem em ganhos/quedas | `dashboard.top_ranking` |
 | Ligar/desligar os arquivos por nível, ou trocar o prefixo do nome | `dashboard.por_nivel` (`ativo`, `niveis`, `prefixo`) |
 | Trocar o nome do painel completo | `dashboard.arquivo_saida` |
@@ -162,11 +163,25 @@ filtra, não corrige e não ordena nada.)
 
 **3 abas.** **Visão Geral** (5 cards de KPI, gráfico de Evolução e a **matriz
 hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA), **Bandeiras**
-(ganhos/quedas + matriz Bandeira → Categoria, as 300 maiores nominais e o
-resto na linha Σ) e **Categorias** (ganhos/quedas + matriz Categoria → SKU).
-Toda navegação entre níveis é pela **expansão da matriz** (clique em ▸); não
-há drill-down nem "voltar". No arquivo de um colaborador a matriz começa no
-nível dele.
+(ganhos/quedas + matriz Bandeira → Categoria) e **Categorias** (ganhos/quedas
++ matriz Categoria → SKU). Toda navegação entre níveis é pela **expansão da
+matriz** (clique em ▸); não há drill-down nem "voltar". No arquivo de um
+colaborador a matriz começa no nível dele.
+
+**Abertura (D-63).** O painel abre no ano fiscal corrente **até o último mês
+fechado**; se o FY corrente ainda não tem mês fechado (setembro), abre no FY
+anterior inteiro. O mês parcial está nos chips de Meses.
+
+**Bandeiras (D-65/D-66).** O arquivo carrega **todas** as bandeiras do escopo.
+No Full e nos arquivos de head a tabela mostra as N maiores (seletor **Top**) e
+soma o resto na linha Σ "DEMAIS BANDEIRAS (N bandeiras)"; nos arquivos de
+gerente e Sup./Exec. aparecem todas, sem Top. O campo **Buscar** acha qualquer
+bandeira, dentro ou fora do corte. Em Categorias, a busca por SKU (código ou
+descrição) abre sozinha a categoria do SKU achado.
+
+**Matrizes (D-67).** Colunas na ordem: nome · **ATUAL · ANT. · Δ · Δ% ·
+Part. %** · série de até 12 períodos · TOTAL da série. A exportação segue a
+mesma ordem.
 
 **Seletores globais.** Métrica (Valor R$ / Volume t / Caixas), base de
 comparação (YTD Fiscal / YTD Calendário; a comparação com o ano anterior está
@@ -200,9 +215,9 @@ período, quantos meses do ano anterior estão cobertos e os filtros ligados.
 
 1. **Caixas é métrica bruta.** Valor e Volume são líquidos de devolução; Caixas
    não. Desvio medido: 0,28%.
-2. **O ranking de bandeiras é nominal nas 300 maiores** (76,7% do faturamento);
-   as demais entram agregadas na linha Σ, cuja contagem é a do arquivo (D-57),
-   e **o total continua fechando**. O corte é o mesmo em todos os arquivos.
+2. **Todas as bandeiras do escopo estão no arquivo**; no Full e nos arquivos
+   de head o corte é só de exibição (Top N + linha Σ), e **o total continua
+   fechando**. Gerentes e Sup./Exec. veem todas.
 3. **Ticket médio = preço médio** (`Σvalor ÷ Σpeso`); o card "Fat. médio/mês"
    é `receita ÷ nº de meses`.
 4. **Linhas síntese Σ da matriz hierárquica** (`NÃO ATRIBUÍDO`, `INATIVO
@@ -218,7 +233,7 @@ só por cor**: levam sempre seta (▲/▼) e sinal (+/−).
 ## Rodar os testes
 
 ```bash
-python tests/test_regras.py      # 55 testes de regra critica
+python tests/test_regras.py      # 60 testes de regra critica
 python tests/cenarios.py         # 6 cenarios de ponta a ponta (roda o pipeline)
 ```
 

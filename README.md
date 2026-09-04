@@ -74,13 +74,25 @@ cobertura de canal           100,00% da receita
 fora da hierarquia           R$ 54,69 mi (2,35%), 1.053 clientes: 612 inativos
                              + 158 pendentes Q5 + 166 RTM sem distribuidor +
                              117 sem linha em base nenhuma
-testes                       55/55 unitarios · 6/6 cenarios ponta a ponta
-pipeline                     ~2 min a frio · ~20 s com cache · exit 0
-painel (v4, D-51)            11,38 MB · zero requisicao de rede · 3 ABAS:
+testes                       60/60 unitarios · 6/6 cenarios ponta a ponta
+pipeline                     ~2 min a frio · ~30 s com cache · exit 0
+painel (v4, D-51)            14,24 MB (Full) · zero requisicao de rede · 3 ABAS:
                              Visao Geral · Bandeiras · Categorias
-                             cubos compactados no arquivo (30,7 MB -> 11,1 MB),
+                             cubos compactados no arquivo (34,2 MB -> 13,9 MB),
                              SEM o eixo UF (Q10): 517 perfis com N4 · cubo
-                             principal 123.900 linhas · cubo SKU 866.028
+                             principal 495.037 linhas (todas as bandeiras,
+                             D-65) · cubo SKU 680.530 (sem bandeira, D-64)
+                             arquivos por nivel: Atacado 11,1 MB, Sul/CO 3,8,
+                             RS/SC 3,1, Distribuicao 1,2
+ABERTURA (D-63, 03/09)       abre no FY corrente ate o ultimo mes fechado; sem
+                             mes fechado no FY, abre no FY anterior inteiro
+                             (em setembro: set/25 a ago/26, LY 12 de 12)
+MATRIZES (D-67, 03/09)       colunas de decisao primeiro: nome · ATUAL · ANT. ·
+                             Δ · Δ% · Part. % · serie (ate 12) · TOTAL
+BUSCA (D-66, 03/09)          bandeira (aba Bandeiras) e SKU (aba Categorias),
+                             sem acento, ignora o corte, fica no recorte
+ROTULOS Σ (D-68, 03/09)      "Sem estrutura comercial" e "Inativos (sem sell-in
+                             ha 6 meses)" na tela; chave de dado inalterada
                              MATRIZ HIERARQUICA EXPANSIVEL na Visao Geral
                              (Head > Gerente > Sup./Exec. > Vend./RCA; linhas
                              sintese Σ para fora-da-hierarquia) · Bandeiras
@@ -176,9 +188,10 @@ máquina de destino.
 
 **3 abas** — **Visão Geral** (5 cards de KPI, gráfico de Evolução e a
 **matriz hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA) ·
-**Bandeiras** (ganhos/quedas + matriz expansível Bandeira → Categoria, top N
-nominais + balde Σ) · **Categorias** (ganhos/quedas + matriz expansível
-Categoria → SKU, todos os 400 SKUs). Toda navegação entre níveis é pela
+**Bandeiras** (ganhos/quedas + matriz expansível Bandeira → Categoria: todas
+as bandeiras do escopo no arquivo; Full e N1 exibem as N maiores + linha Σ,
+N2 e N3 exibem todas; busca por nome) · **Categorias** (ganhos/quedas +
+matriz expansível Categoria → SKU, todos os SKUs do escopo; busca por SKU). Toda navegação entre níveis é pela
 **expansão da matriz** — o drill-down deixou de existir. As linhas síntese Σ
 (sem estrutura, inativos do saneamento) ficam fora da hierarquia com o
 histórico preservado no Total geral, que fecha com os cards.
@@ -253,11 +266,11 @@ arquivo: é o nível expansível dentro do arquivo do N3. Configuração em
 1. **Caixas é métrica bruta.** Valor e Volume são líquidos de devolução; Caixas
    não — 93,7% das linhas de devolução não têm quantidade na origem. Desvio
    medido: **0,28%**.
-2. **O ranking de bandeiras é nominal nas 300 maiores** (76,7% do faturamento,
-   medido em 03/09/2026; na tela a cobertura é recalculada sob o recorte
-   ativo). As outras 10.048 **não somem**: entram agregadas na linha Σ, cuja
-   contagem é a do arquivo (D-57), e todo total continua reconciliando com a
-   base. O corte é o mesmo em todos os 73 arquivos.
+2. **Todas as bandeiras do escopo estão no arquivo** (D-65). No Full e nos
+   arquivos por head a tabela exibe as N maiores **daquele arquivo** (seletor
+   Top; 300 = 76,7% da receita no Full) e soma as outras na linha Σ montada na
+   tela; a busca acha qualquer uma. Gerentes e Sup./Exec. veem todas, sem
+   corte. Todo total continua reconciliando com a base.
 3. ~~**A camada de SKU cruza com head, canal, categoria e UF — não com
    gerente, bandeira nem projeto.**~~ **Resolvido em 02/09/2026 (D-48):** o
    cubo de SKU passou a carregar o mesmo perfil comercial do cubo principal
@@ -323,7 +336,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 08 | [Especificação funcional](docs/08_ESPECIFICACAO_FUNCIONAL_DASHBOARD.md) |
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
-| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-49 |
+| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-55 |
 | 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-68, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
