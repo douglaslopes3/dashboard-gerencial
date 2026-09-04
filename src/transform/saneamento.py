@@ -68,6 +68,12 @@ _COLS_NOVAS = {
     "DISTRIBUIDOR": pd.NA,          # nome reduzido (da base RTM)
     "CANAL_ORIGINAL": pd.NA,        # canal ANTES da reatribuicao (rastreio)
     "BANDEIRA_ORIGINAL": pd.NA,     # bandeira ANTES da reatribuicao (D-59)
+    # D-72 (04/09/2026): True so no cliente RTM cuja BANDEIRA foi de fato
+    # trocada pela do distribuidor. E a flag que o cubo le para acumular os
+    # clientes RTM numa linha unica sob o distribuidor na aba Bandeiras —
+    # "acumula so quando herdou": com `rtm_herda_bandeira: false`, ou quando o
+    # distribuidor nao tem bandeira, o cliente segue nominal.
+    "BANDEIRA_HERDADA": False,
     "INATIVO": False,               # regra 5.2 aplicada
     "MOTIVO_INATIVO": pd.NA,
     "DATA_INATIVACAO": pd.NA,
@@ -182,6 +188,7 @@ def aplicar(dim_cli: pd.DataFrame, rtm: pd.DataFrame, faltando: pd.DataFrame,
             # ausencia — o oposto do objetivo.
             vale = nova.notna() & (nova != _SEM_BANDEIRA)
             d.loc[alvo[alvo].index[vale.values], "BANDEIRA"] = nova[vale].values
+            d.loc[alvo[alvo].index[vale.values], "BANDEIRA_HERDADA"] = True   # D-72
             n_ok, n_nao = int(vale.sum()), int((~vale).sum())
             medidas["rtm_bandeira_herdada"] = n_ok
             msg = (f"D-59: {n_ok:,} cliente(s) RTM passaram a carregar a "

@@ -315,6 +315,25 @@ dashboard:
   rotulos_exibicao:
     sem_estrutura: "Sem estrutura comercial"
     inativo: "Inativos (sem sell-in há 6 meses)"
+    # D-72 (04/09/2026): rotulo da linha Σ que acumula os clientes RTM sob o
+    # distribuidor na aba Bandeiras. `{n}` vira a contagem de clientes RTM
+    # com sell-in atras da linha (contagem fixa, do historico, como o "N
+    # bandeiras" da linha Σ de bandeiras).
+    rtm_acumulado: "RTM (soma de {n} clientes)"
+
+  # D-72 (04/09/2026, decisao do Douglas): a aba Bandeiras abre por CLIENTE
+  # (Bandeira > Cliente > Categoria). O cliente entrou como eixo do cubo
+  # principal (indice 4 da linha, depois do perfil; as posicoes 1-3 que o
+  # template le nao mudaram). Medido antes de decidir: 495.628 -> 724.744
+  # linhas no Full com a regra abaixo ligada (831.155 sem ela).
+  # Regra dele: "os clientes RTM nao devem aparecer na matriz de bandeira do
+  # canal de Distribuicao; trazer acumulado" — com `true`, todo cliente RTM
+  # que HERDOU a bandeira do distribuidor (DIM_CLIENTE.BANDEIRA_HERDADA) e
+  # somado numa linha unica por bandeira, rotulada por
+  # `rotulos_exibicao.rtm_acumulado`. `false` mostra cada cliente RTM pelo
+  # nome, como qualquer outro. A regra "acumula so quando herdou" garante que
+  # com `saneamento.rtm_herda_bandeira: false` nada e acumulado.
+  cliente_rtm_acumulado: true
 
   # Quantos itens no bloco de destaque de ganhos/quedas.
   top_ranking: 10

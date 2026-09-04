@@ -119,6 +119,17 @@ motor re-agrega os cubos com **índice por mês + memo + render só da aba ativa
 > antes de o eixo HEAD/GERENTE virar par e antes do balde `DEMAIS`. Servem para
 > comparar as **alternativas entre si**; o tamanho do que foi gerado é o de cima.
 
+> **Estado em 04/09/2026 (D-72):** o cubo principal é `ANO_MES × BANDEIRA
+> (todas) × CATEGORIA × PERFIL(head, gerente, sup./exec., canal, projeto,
+> vendedor) × CLIENTE` com **730.257** linhas (495.628 antes do cliente;
+> 831.155 se cada RTM fosse nominal, por isso os RTM que herdaram a bandeira
+> viajam como uma chave por bandeira), e o cubo de SKU é `ANO_MES × SKU ×
+> PERFIL` com 681.892. Full **17,6 MB** (cubos 45,2 MB → 17,3 compactados),
+> Atacado 12,4, Sul/CO 4,4, RS/SC 3,5, Distribuição 1,3. Medido no navegador:
+> abertura do Full 1,8 s, aba Bandeiras 1,07 s, Visão Geral 0,27 s. Folga até
+> o teto de 25 MB, a 4% ao mês: cerca de 9 meses no Full (que não é
+> compartilhado); os arquivos por nível têm folga de anos.
+
 Referência: o protótipo `Dashboard_Gerencial_Dori.html` tem **9,6 MB**, e os
 Scorecards publicados têm 3,2 MB. Está dentro do que a empresa já abre.
 

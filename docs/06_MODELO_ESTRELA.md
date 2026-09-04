@@ -120,7 +120,7 @@ seria falso amanhã. Ver §7 do prompt e o `docs/07_CATALOGO_METRICAS.md`.
 | `CANAL`, `SUBCANAL` | `bases/Canais/Canais.xlsx` (26/08/2026) | 0 clientes — 100% de cobertura |
 | `VENDEDOR` | `Hierarquia_Consolidada.xlsx`, N4 (D-50) | idem estrutura |
 | `COD_BANDEIRA`, `BANDEIRA_ESTRUTURA` | cadastro de bandeiras do Comercial na hierarquia (D-42; atributo, sem função de join desde a D-49) | 2.967 clientes sem código |
-| `ORIGEM_RTM`, `COD_DISTRIBUIDOR`, `DISTRIBUIDOR`, `CANAL_ORIGINAL`, `BANDEIRA_ORIGINAL` | `RTM_DePara_Transicao.xlsx` via `saneamento.py` (D-50; `BANDEIRA_ORIGINAL` na D-59) | só nos 1.762 clientes RTM |
+| `ORIGEM_RTM`, `COD_DISTRIBUIDOR`, `DISTRIBUIDOR`, `CANAL_ORIGINAL`, `BANDEIRA_ORIGINAL`, `BANDEIRA_HERDADA` | `RTM_DePara_Transicao.xlsx` via `saneamento.py` (D-50; `BANDEIRA_ORIGINAL` na D-59; `BANDEIRA_HERDADA` na D-72, flag lida pelo cubo para acumular os RTM sob o distribuidor) | só nos 1.762 clientes RTM |
 | `INATIVO`, `MOTIVO_INATIVO`, `DATA_INATIVACAO`, `SANEAMENTO_PENDENTE` | `Hierarquia_Clientes_Faltando.xlsx` via `saneamento.py` (D-50) | flags; 612 inativos, 158 pendentes |
 | `NA_ESTRUTURA`, `TEM_CANAL` | derivados | booleanos |
 
@@ -142,7 +142,13 @@ ponto final fica em `BANDEIRA_ORIGINAL`. Colunas e regras em `docs/05 §2b`.
   SKU deixou de ter o par (head, canal) e passou a carregar também a bandeira,
   o que acabou com os filtros que a aba de SKU ignorava.
 * **O nome do cliente vence o mais recente** (`ANO_MES` máximo): cliente
-  renomeado no meio da série apareceria duas vezes no ranking.
+  renomeado no meio da série apareceria duas vezes no ranking. Desde a
+  **D-72** (04/09/2026) esse nome chega ao painel: o **cliente é o 5º índice
+  do cubo principal** (mês × bandeira × categoria × perfil × cliente;
+  `dims.cli` = `[código, nome, n_rtm]`), e a aba Bandeiras abre Bandeira →
+  Cliente → Categoria. Os clientes RTM que herdaram a bandeira do
+  distribuidor viajam como **uma chave sintética por bandeira** (`n_rtm` =
+  quantos são), nunca nominais. Medido: 495.628 → 730.257 linhas.
 * **`NA_ESTRUTURA = false`** marca os 71 clientes de GAP-05, que entram com
   `HEAD = "NÃO ATRIBUÍDO"`. Descartá-los faria o total do painel não bater com a
   fonte.

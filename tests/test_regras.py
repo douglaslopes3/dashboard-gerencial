@@ -354,6 +354,9 @@ def _mini_modelo():
                      "221 - V3", "221 - V3"],
         "CANAL": ["VAREJO"] * 6,
         "PROJETO": ["P1"] * 6,
+        # D-72: o cubo exige nome e a flag de bandeira herdada (RTM)
+        "NOME_CLIENTE": ["CLI 1", "CLI 2", "CLI 3", "CLI 4", "CLI 5", "CLI 6"],
+        "BANDEIRA_HERDADA": [False] * 6,
     })
     dim_prod = pd.DataFrame({
         "COD_PRODUTO": ["10", "20", "30"],
@@ -400,10 +403,10 @@ def test_d48_receita_por_sup_exec_bate_entre_os_dois_cubos():
     por_sup_principal, por_sup_sku = {}, {}
     for l in pac["cubo"]:
         k = perfil[l[3]][2]
-        por_sup_principal[k] = por_sup_principal.get(k, 0) + l[4]
+        por_sup_principal[k] = por_sup_principal.get(k, 0) + l[cubos.BASE_MET]
     for l in pac["cubo_sku"]:
         k = perfil[l[2]][2]
-        por_sup_sku[k] = por_sup_sku.get(k, 0) + l[3]      # D-64: receita em 3
+        por_sup_sku[k] = por_sup_sku.get(k, 0) + l[cubos.BASE_MET_SKU]
     assert set(por_sup_principal) == set(por_sup_sku)
     for k in por_sup_principal:
         # centavos: a diferenca aceita e a do arredondamento por grupo
@@ -422,8 +425,8 @@ def test_d48_recorte_por_head_corta_os_dois_cubos_pelo_perfil():
     assert all(perfil[l[3]][0] == "10 - H1" for l in rec["cubo"])
     # o cubo de SKU e cortado pelo MESMO indice de perfil (posicao 2)
     assert all(perfil[l[2]][0] == "10 - H1" for l in rec["cubo_sku"])
-    assert sum(l[4] for l in rec["cubo"]) == 100000      # R$ 1.000,00
-    assert sum(l[3] for l in rec["cubo_sku"]) == 100000
+    assert sum(l[cubos.BASE_MET] for l in rec["cubo"]) == 100000      # R$ 1.000,00
+    assert sum(l[cubos.BASE_MET_SKU] for l in rec["cubo_sku"]) == 100000
 
 
 def test_d52_recorte_por_n3_e_particionamento_do_nivel():
@@ -437,14 +440,14 @@ def test_d52_recorte_por_n3_e_particionamento_do_nivel():
     perfil = rec["dims"]["perfil"]
     assert all(perfil[l[3]][2] == "1200 - S2" for l in rec["cubo"])
     assert all(perfil[l[2]][2] == "1200 - S2" for l in rec["cubo_sku"])
-    assert sum(l[4] for l in rec["cubo"]) == 70000       # R$ 700,00
+    assert sum(l[cubos.BASE_MET] for l in rec["cubo"]) == 70000       # R$ 700,00
     # a lista de heads do arquivo encolhe junto (chips coerentes)
     assert rec["dims"]["head"] == ["10 - H1"]
     # particionamento do nivel N3: soma dos 3 sups = total
     sups = {p[2] for p in pac["dims"]["perfil"]}
-    soma = sum(sum(l[4] for l in filtrar_por_nivel(pac, 2, s)["cubo"])
+    soma = sum(sum(l[cubos.BASE_MET] for l in filtrar_por_nivel(pac, 2, s)["cubo"])
                for s in sups)
-    assert soma == sum(l[4] for l in pac["cubo"]) == 210000
+    assert soma == sum(l[cubos.BASE_MET] for l in pac["cubo"]) == 210000
 
 
 def test_d52_pasta_usuario_sanitiza_caracteres_invalidos():
@@ -665,15 +668,16 @@ def test_d50_precedencia_rtm_sobre_saneamento():
 # ============================== D-51 · Fase 3: cubos sem o eixo UF (02/09)
 def test_d51_cubos_sem_eixo_uf_e_posicoes_do_template():
     """Q10: o eixo UF saiu dos dois cubos. As posicoes que o template v4 le
-    (metricas a partir da coluna 4; perfil em 3/2; bandeira em 1/3) sao o
-    contrato — mudar exige mudar o template junto."""
+    (perfil em 3/2; bandeira em 1; metricas a partir de cubos.BASE_MET, que
+    era 4 e virou 5 na D-72 com o cliente na posicao 4) sao o contrato —
+    mudar exige mudar o template junto."""
     from src.load import cubos
     pac = cubos.construir(*_mini_modelo())
     assert "uf" not in pac["dims"]
-    assert all(len(l) == 7 for l in pac["cubo"])
-    # soma da receita na posicao 4 = total do mini modelo (R$ 2.100 em centavos)
-    assert sum(l[4] for l in pac["cubo"]) == 210000
-    assert sum(l[3] for l in pac["cubo_sku"]) == 210000    # D-64: 3 indices
+    assert all(len(l) == 8 for l in pac["cubo"])       # D-72: + cliente
+    # soma da receita em BASE_MET = total do mini modelo (R$ 2.100 em centavos)
+    assert sum(l[cubos.BASE_MET] for l in pac["cubo"]) == 210000
+    assert sum(l[cubos.BASE_MET_SKU] for l in pac["cubo_sku"]) == 210000    # D-64: 3 indices
     # bandeira do cubo principal segue na posicao 1
     assert all(l[1] < len(pac["dims"]["ban"]) for l in pac["cubo"])
 
@@ -727,8 +731,8 @@ def test_d54_reindexacao_de_categoria_e_sku_aponta_para_o_rotulo_certo():
     assert all(cats[l[2]] == "BALA" for l in rec["cubo"])
     assert all(cats[skus[l[1]][2]] == "BALA" for l in rec["cubo_sku"])
     assert all(skus[l[1]][0] == "30" for l in rec["cubo_sku"])
-    assert sum(l[4] for l in rec["cubo"]) == 110000          # R$ 1.100,00
-    assert sum(l[3] for l in rec["cubo_sku"]) == 110000
+    assert sum(l[cubos.BASE_MET] for l in rec["cubo"]) == 110000          # R$ 1.100,00
+    assert sum(l[cubos.BASE_MET_SKU] for l in rec["cubo_sku"]) == 110000
 
 
 def test_d54_recorte_preserva_o_calendario():
@@ -767,7 +771,7 @@ def test_d65_cubo_carrega_todas_as_bandeiras_sem_balde():
     assert c["universo"] == 3 and c["exibir_todas"] is False
     assert "rotulo_base" in c and "rotulo_demais" not in c
     assert "demais_por_nivel" not in pac
-    assert sum(l[4] for l in pac["cubo"]) == 210000
+    assert sum(l[cubos.BASE_MET] for l in pac["cubo"]) == 210000
 
 
 def test_d65_recorte_leva_so_as_bandeiras_do_escopo_reindexadas():
@@ -781,7 +785,7 @@ def test_d65_recorte_leva_so_as_bandeiras_do_escopo_reindexadas():
     h2 = filtrar_por_nivel(pac, 0, "20 - H2", "N1")
     assert h2["dims"]["ban"] == ["REDE C"]
     assert all(l[1] < len(h2["dims"]["ban"]) for l in h2["cubo"])
-    assert sum(l[4] for l in h2["cubo"]) == 110000            # R$ 1.100,00
+    assert sum(l[cubos.BASE_MET] for l in h2["cubo"]) == 110000            # R$ 1.100,00
     assert h2["corte_bandeira"]["universo"] == 1
     assert h2["corte_bandeira"]["exibir_todas"] is False      # N1: corte
     h1 = filtrar_por_nivel(pac, 0, "10 - H1", "N1")
@@ -797,7 +801,7 @@ def test_d65_recorte_leva_so_as_bandeiras_do_escopo_reindexadas():
     assert len(pac["dims"]["ban"]) == 3
     # particionamento por nivel continua fechando
     heads = {p[0] for p in pac["dims"]["perfil"]}
-    assert sum(sum(l[4] for l in filtrar_por_nivel(pac, 0, h, "N1")["cubo"])
+    assert sum(sum(l[cubos.BASE_MET] for l in filtrar_por_nivel(pac, 0, h, "N1")["cubo"])
                for h in heads) == 210000
 
 
@@ -980,6 +984,133 @@ def test_d55_template_tem_uma_unica_escada_de_formatacao():
         assert "const ESCALAS" in corpo, f"{nome} perdeu a tabela unica de escala"
         # o prefixo de moeda nunca e literal: sai da unidade da metrica
         assert 'un==="R$"' in corpo, f"{nome} perdeu o prefixo dirigido pela metrica"
+
+
+# ===================== D-72 (04/09/2026): cliente como eixo do cubo principal
+def _modelo_rtm_acumulado():
+    """H1: o cliente 1 e um DISTRIBUIDOR de bandeira 'DIST X'; os clientes 3
+    e 4 sao RTM que HERDARAM essa bandeira (flag da D-59/D-72); o 2 e uma
+    rede comum. H2 (5-6) fica em REDE C."""
+    fato, dim_cli, dim_prod, dim_cal = _mini_modelo()
+    dim = dim_cli.copy()
+    dim["BANDEIRA"] = ["DIST X", "REDE B", "DIST X", "DIST X", "REDE C", "REDE C"]
+    dim["BANDEIRA_HERDADA"] = [False, False, True, True, False, False]
+    return fato, dim, dim_prod, dim_cal
+
+
+def test_d72_cliente_e_o_quinto_indice_e_a_bandeira_nao_muda_de_valor():
+    """O cliente entrou DEPOIS do perfil: bandeira/categoria/perfil seguem em
+    1/2/3; as metricas deslocaram para BASE_MET = 5. Pai = soma dos filhos:
+    o total por bandeira e o mesmo de antes da D-72."""
+    from src.load import cubos
+    pac = cubos.construir(*_mini_modelo())
+    assert cubos.BASE_MET == 5 and cubos.BASE_MET_SKU == 3
+    assert all(len(l) == 8 for l in pac["cubo"])
+    cli = pac["dims"]["cli"]
+    assert all(l[4] < len(cli) for l in pac["cubo"])
+    assert cli[0] == ["1", "CLI 1", 0]                  # [codigo, nome, n_rtm]
+    assert {c[0] for c in cli} == {"1", "2", "3", "4", "5", "6"}
+    por_ban = {}
+    for l in pac["cubo"]:
+        por_ban[pac["dims"]["ban"][l[1]]] = por_ban.get(pac["dims"]["ban"][l[1]], 0) + l[cubos.BASE_MET]
+    assert por_ban == {"REDE A": 90000, "REDE B": 120000}   # 100+300+500 · 200+400+600
+    # cada cliente e uma linha propria sob a bandeira dele
+    por_cli = {}
+    for l in pac["cubo"]:
+        por_cli[cli[l[4]][0]] = por_cli.get(cli[l[4]][0], 0) + l[cubos.BASE_MET]
+    assert por_cli == {"1": 10000, "2": 20000, "3": 30000, "4": 40000,
+                       "5": 50000, "6": 60000}
+    # o cubo de SKU nao mudou (D-64: 3 indices)
+    assert all(len(l) == 6 for l in pac["cubo_sku"])
+
+
+def test_d72_rtm_que_herdou_a_bandeira_vira_uma_linha_acumulada():
+    """Regra do Douglas: cliente RTM nao aparece nominal na bandeira do
+    distribuidor — os que HERDARAM a bandeira viram UMA chave por bandeira,
+    com a contagem no rotulo; o distribuidor segue nominal na mesma
+    bandeira. `cliente_rtm_acumulado: false` devolve cada RTM pelo nome."""
+    from src.load import cubos
+    pac = cubos.construir(*_modelo_rtm_acumulado())
+    cli, ban = pac["dims"]["cli"], pac["dims"]["ban"]
+    acum = [c for c in cli if c[2] > 0]
+    assert acum == [["", "", 2]], "uma linha acumulada, somando 2 clientes RTM"
+    assert len(cli) == 5                                 # 4 nominais + 1 acumulado
+    por = {}
+    for l in pac["cubo"]:
+        k = (ban[l[1]], cli[l[4]][0] or "RTM")
+        por[k] = por.get(k, 0) + l[cubos.BASE_MET]
+    assert por[("DIST X", "1")] == 10000                # o distribuidor, nominal
+    assert por[("DIST X", "RTM")] == 70000              # 300 + 400 acumulados
+    assert ("DIST X", "3") not in por and ("DIST X", "4") not in por
+    assert sum(v for (b, _), v in por.items() if b == "DIST X") == 80000
+    # chave sintetica nunca colide com codigo real
+    assert cubos.RTM_PREFIXO.startswith("")
+    # rollback pelo config: cada RTM volta a ser nominal
+    original = cubos._DASH
+    cubos._DASH = {**original, "cliente_rtm_acumulado": False}
+    try:
+        pac2 = cubos.construir(*_modelo_rtm_acumulado())
+    finally:
+        cubos._DASH = original
+    assert all(c[2] == 0 for c in pac2["dims"]["cli"]) and len(pac2["dims"]["cli"]) == 6
+
+
+def test_d72_recorte_por_nivel_reindexa_clientes_e_mantem_a_contagem_rtm():
+    """O arquivo de um colaborador leva SO os clientes do escopo (nem o nome
+    dos outros viaja), reindexados; a contagem da linha RTM nao muda."""
+    from src.load import cubos
+    from run_dashboard import filtrar_por_nivel
+    pac = cubos.construir(*_modelo_rtm_acumulado())
+    h2 = filtrar_por_nivel(pac, 0, "20 - H2", "N1")
+    assert [c[0] for c in h2["dims"]["cli"]] == ["5", "6"]
+    assert all(l[4] < len(h2["dims"]["cli"]) for l in h2["cubo"])
+    assert sum(l[cubos.BASE_MET] for l in h2["cubo"]) == 110000
+    h1 = filtrar_por_nivel(pac, 0, "10 - H1", "N1")
+    assert [c for c in h1["dims"]["cli"] if c[2] > 0] == [["", "", 2]]
+    assert {c[0] for c in h1["dims"]["cli"] if c[2] == 0} == {"1", "2"}
+    assert sum(l[cubos.BASE_MET] for l in h1["cubo"]) == 100000
+    assert len(pac["dims"]["cli"]) == 5                  # o pacote global nao muda
+
+
+def test_d72_saneamento_marca_a_bandeira_herdada():
+    """BANDEIRA_HERDADA e a flag que o cubo le: True so no RTM cuja bandeira
+    foi de fato trocada; False no distribuidor, com o parametro desligado e
+    quando o distribuidor nao tem bandeira ("acumula so quando herdou")."""
+    from src.transform import saneamento
+    from src.utils.config import CFG
+    lig = _com_flag_bandeira(True)[0].set_index("COD_CLIENTE")
+    assert bool(lig.loc["900", "BANDEIRA_HERDADA"]) is True
+    assert bool(lig.loc["800", "BANDEIRA_HERDADA"]) is False
+    des = _com_flag_bandeira(False)[0].set_index("COD_CLIENTE")
+    assert bool(des.loc["900", "BANDEIRA_HERDADA"]) is False
+    dim, rtm, falt, fato = _dim_saneamento()
+    dim = dim.copy()
+    dim.loc[dim["COD_CLIENTE"] == "800", "BANDEIRA"] = CFG["dimensoes"]["rotulo_sem_bandeira"]
+    original = saneamento._SAN
+    saneamento._SAN = {**original, "rtm_herda_bandeira": True}
+    try:
+        d, _, _ = saneamento.aplicar(dim, rtm, falt, fato, mes_execucao="2026-09")
+    finally:
+        saneamento._SAN = original
+    assert bool(d.set_index("COD_CLIENTE").loc["900", "BANDEIRA_HERDADA"]) is False
+
+
+def test_d72_template_abre_bandeira_por_cliente():
+    """Matriz Bandeira > Cliente > Categoria com chave tipada; nivel Cliente
+    pulado na bandeira de um cliente so (BAN_MULTI); linha RTM acumulada por
+    ultimo; metricas em BASE_MET = 5; rotulo de leitor vem do config (D-68)."""
+    from src.utils.config import CFG
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    for termo in ('niveis:["Bandeira","Cliente","Categoria"]',
+                  "const BASE_MET = 5", "function marcarBandeirasMulti",
+                  'BAN_MULTI[l[1]] ? [l[1], "c"+l[4], "k"+l[2]] : [l[1], "k"+l[2]]',
+                  "function rotCli", "rtm_acumulado", "acumFn:", "nivelDe:",
+                  "const CLIDE = (l)=> l[4]"):
+        assert termo in corpo, f"template v4 perdeu a D-72: {termo}"
+    assert "col-4" not in corpo, "posicao de metrica solta voltou ao template"
+    rot = (CFG["dashboard"].get("rotulos_exibicao") or {}).get("rtm_acumulado")
+    assert rot and "{n}" in rot
+    assert rot not in corpo, "o rotulo de leitor mora no config, nao no template"
 
 
 # ================================================================== runner

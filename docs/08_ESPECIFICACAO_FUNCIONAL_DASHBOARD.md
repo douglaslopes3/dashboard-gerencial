@@ -113,8 +113,30 @@ drill-down nem "voltar".
 
 * **▲ Maiores ganhos** e **▼ Maiores quedas** (top 10, por Δ absoluto; a linha
   Σ não entra nos destaques, é agregação, não bandeira).
-* **Matriz expansível Bandeira → Categoria.** O arquivo carrega **todas** as
-  bandeiras do escopo (D-65); o corte é só de exibição:
+* **Matriz expansível Bandeira → Cliente → Categoria** (D-72, 04/09/2026;
+  era Bandeira → Categoria até a D-71). Regras do nível Cliente:
+  * a bandeira com **mais de um cliente no arquivo** abre por cliente
+    (`código - nome`, o nome do Sell In); o cliente abre por categoria;
+  * a bandeira com **um cliente só** (93% delas: a bandeira é o próprio
+    cliente) **não desce esse nível**: abre direto em categoria, como antes.
+    É a lógica da D-71, decidida uma vez na carga, sobre o cubo inteiro do
+    arquivo, sem depender de filtro ou período;
+  * os **clientes RTM** que herdaram a bandeira do distribuidor (D-59) nunca
+    aparecem pelo nome: viram **uma linha Σ "RTM (soma de N clientes)"** sob
+    o distribuidor (texto em `dashboard.rotulos_exibicao.rtm_acumulado`;
+    N é a contagem fixa de clientes com sell-in atrás da linha), que fica por
+    último entre os filhos e abre por categoria como qualquer cliente. Os CNPJs
+    próprios do distribuidor seguem nominais na mesma bandeira. Quando os RTM
+    pararem de comprar direto, a linha vai a "–" nos meses novos, o CNPJ do
+    distribuidor sobe e a bandeira segue comparável; quando período e LY
+    ficarem sem faturamento direto, a linha some sozinha;
+  * pai = soma dos filhos por construção; **nenhum número do nível bandeira
+    mudou** com a D-72 (conferido nos 73 arquivos, ao centavo de
+    arredondamento, `ferramentas/comparar_paineis.py`); a busca segue por
+    bandeira; a exportação leva as linhas visíveis, com "Cliente: …" na
+    coluna Item.
+  O arquivo carrega **todas** as bandeiras do escopo (D-65); o corte é só de
+  exibição:
   * **Full e N1**: seletor **Top** (10 / 50 / 100 / 200 / 300; só os cortes
     abaixo do universo do recorte, mais o primeiro que o cobre inteiro, D-54).
     As N maiores **do próprio arquivo** aparecem nominalmente; as outras são

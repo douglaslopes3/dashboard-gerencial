@@ -2185,8 +2185,9 @@ Sup./Exec. já incluía as vendas dele.
 
 ## PROPOSTA EM ABERTO (04/09/2026) · Aba Bandeiras com o nível Cliente e a linha RTM acumulada
 
-**Estado: analisada e medida, SEM decisão. Nada foi implementado.** Quando o
-Douglas decidir, vira D-72 com as respostas às perguntas do fim desta seção.
+**Estado: DECIDIDA em 04/09/2026 à tarde ("vamos abrir a rodada: opção A,
+Bandeira > Cliente > Categoria") e executada como D-72, logo abaixo.** A
+seção fica como registro da análise que sustentou a decisão.
 A maquete estática (CSS do template, números reais de FY2026) foi apresentada
 em 04/09 à tarde; é só desenho, não está no repositório.
 
@@ -2373,3 +2374,113 @@ carga; ok do Douglas; religar e publicar; aviso de uma linha aos usuários
    rever o teto, já que a distribuição é por SharePoint e não por e-mail.
 
 **Rollback.** Não se aplica (nada implementado).
+
+---
+
+## D-72 · Aba Bandeiras abre por Cliente; clientes RTM acumulados sob o distribuidor (04/09/2026)
+
+**Decisão do Douglas** (04/09/2026 à tarde, depois da análise e da maquete
+registradas na seção anterior): "vamos abrir a rodada: opção A, Bandeira >
+Cliente > Categoria". Das seis perguntas pendentes, ele fechou a rota (A) e
+a ordem dos níveis; as outras quatro ficaram no padrão declarado aqui:
+nomes de cliente vão nos arquivos N1 (a opção A exige); a contagem do rótulo
+RTM é **fixa** (histórica, como o "N bandeiras" da linha Σ); a busca continua
+só por bandeira; o teto de 25 MB do Full fica como está (não é arquivo
+compartilhado).
+
+**O que mudou.**
+
+- **Cubo principal** (`cubos.py`): o CLIENTE entrou como 5º índice, DEPOIS do
+  perfil (`[mês, bandeira, categoria, perfil, cliente, R, P, C]`), então as
+  posições 1/2/3 que o template lê não mudaram; as métricas deslocaram uma
+  casa (`BASE_MET` 4 → 5, `BASE_MET_SKU` 3, exportadas para o gerador e os
+  testes: fim dos números soltos). `dims.cli` = `[código, nome, n_rtm]`.
+- **RTM acumulado**: cliente RTM cuja bandeira foi de fato trocada pela do
+  distribuidor (`DIM_CLIENTE.BANDEIRA_HERDADA`, coluna nova gravada pelo
+  `saneamento.py` na D-59) vira **uma chave sintética por bandeira**
+  (`RTM@<bandeira>`, nunca colide com código); `n_rtm` = clientes RTM
+  distintos com sell-in atrás dela. "Acumula só quando herdou": com
+  `saneamento.rtm_herda_bandeira: false` ou distribuidor sem bandeira, o
+  cliente segue nominal. `dashboard.cliente_rtm_acumulado: false` mostra cada
+  RTM pelo nome (rollback pelo config). Rótulo de leitor em
+  `dashboard.rotulos_exibicao.rtm_acumulado` ("RTM (soma de {n} clientes)").
+- **Gerador** (`filtrar_por_nivel`): `dims.cli` encolhe para os clientes do
+  escopo, reindexados; assert por arquivo de que toda linha aponta para um
+  cliente da lista. A contagem RTM não muda por arquivo (todos os RTM de um
+  distribuidor carregam a hierarquia dele).
+- **Template v4**: `BASE_MET = 5`; `METRICAS.col` virou posição dentro do
+  triplo `[R, P, C]` (o último `col-4` solto saiu); `BAN_MULTI` decidido uma
+  vez na carga (bandeira com mais de um cliente no arquivo); a matriz da aba
+  Bandeiras é `["Bandeira","Cliente","Categoria"]` com **chave tipada** abaixo
+  da bandeira (`c<i>` cliente, `k<i>` categoria) porque a profundidade não
+  diz mais qual dimensão é a linha: bandeira de um cliente só **pula o
+  nível** (caminho `[bandeira, categoria]`, como antes; lógica da D-71),
+  bandeira com vários abre por cliente e o cliente abre por categoria.
+  `matrizNiveis` ganhou `nivelDe` (nome do nível pela chave, para título e
+  exportação) e `acumFn` (linha acumulada: "Σ " no rótulo, classe `fora`, por
+  último entre os irmãos, expansível).
+- **Ferramenta nova** `ferramentas/comparar_paineis.py`: publicado × build,
+  sem navegador (total geral, por mês, por bandeira dentro do teto teórico
+  de arredondamento de 1 unidade por linha de cubo; SKU e dimensões exatos;
+  pareia pelo caminho e avisa de cópia avulsa).
+
+**Medido (execução 20260904-183146, 3.131.629 linhas, R$ 2.326.876.207,52).**
+
+| | Antes (D-71) | D-72 |
+|---|---|---|
+| Cubo principal | 495.628 linhas | **730.257** (831.155 se cada RTM fosse nominal) |
+| Clientes no eixo | — | 14.544 nominais + 25 linhas RTM somando 1.596 clientes |
+| Bandeiras com mais de um cliente (Full) | — | 739 de 10.350 (Distribuição: 36 de 66) |
+| Full | 14,96 MB | **17,60 MB** (cubos 45,2 MB → 17,3 compactados) |
+| N1 Atacado · Distribuição | 11,14 · 1,25 MB | 12,39 · 1,34 MB |
+| N2 Sul/CO · N3 RS/SC | 3,78 · 3,11 MB | 4,38 · 3,49 MB |
+| Full no navegador: abertura · aba Bandeiras · Visão Geral | 1,15 s · 0,68 s · 0,17 s | 1,8 s · 1,07 s · 0,27 s |
+| Pipeline · geração dos 73 | 35 s · 12 s | 35 s · 21 s |
+
+**Prova de que nenhum número de bandeira mudou**: `comparar_paineis.py`
+contra os 73 arquivos publicados às 13:16 (mesma base): 73 de 73 dentro do
+teto; cubo de SKU e listas de dimensão idênticos; pior desvio de bandeira 18
+centavos (KA Regional e Full), diferença do total geral do Full −18 centavos
+em R$ 2,33 bi (mais grupos, mais arredondamentos, dentro da tolerância de
+1e-6 do pipeline). A ferramenta achou uma **cópia avulsa** do Full em
+`Painéis Comerciais\Gerencial\Dashboard - Full\` (00:23 de 04/09, fora da
+publicação automática, que só grava na raiz): ignorada na comparação,
+reportada ao Douglas.
+
+**Verificado no navegador (zero erro no console).** Full: cabeçalho
+"Bandeira › Cliente › Categoria"; ATACADAO abre em 415 CNPJs ordenados pelo
+valor, `1023022 - ATACADAO S.A.` abre em categorias; DIST. LOBO (um cliente)
+tem o título "abrir Categoria" e abre direto; DIST. CLAUMAR abre em
+`1003318 - CLAUMAR ALIMENTOS LTDA` R$ 20,9 mi + `Σ RTM (soma de 109
+clientes)` R$ 3,1 mi por último, que abre em GOMAS/BALA/AMENDOIM; Total
+geral = KPI (R$ 1,2 bi). N1 Distribuição: 66 bandeiras, 36 com expansor de
+cliente, 113 clientes no arquivo (88 nominais + 25 linhas RTM), DIST. DISO =
+CNPJ próprio R$ 764,1 mil + Σ RTM (355) R$ 8,5 mi, DIST. CHUA = 2 CNPJs + Σ
+RTM (2) R$ 19,3 mil; Total geral = KPI R$ 278,7 mi.
+
+**Testes.** 68/68 unitários (63 + 5 da D-72: posições e soma por bandeira,
+RTM acumulado com rollback pelo config, recorte por nível reindexando
+clientes, flag do saneamento, guarda do template) e 6/6 cenários.
+
+**O que o usuário vê mudar.** Só o expansor ▸ nas bandeiras com mais de um
+cliente e o nível a mais; nada do nível bandeira, dos ganhos/quedas, da
+busca, dos filtros ou das outras abas muda. A categoria de uma bandeira com
+vários clientes fica um clique abaixo (dentro do cliente).
+
+**Publicação.** Desligada em commit próprio antes de qualquer alteração
+(`b0f5cf8`) porque os 73 arquivos já estão compartilhados. **Religar só com o
+ok do Douglas** depois de ele ver o build; então `publicacao.ativo: true` +
+`python run_dashboard.py` + commit "publicação". Aviso de uma linha aos
+usuários: "a bandeira agora abre por cliente".
+
+**Rollback.** `git revert` dos commits da D-72 + `run_dashboard.py` (republica
+o anterior em ~20 s); parcial, sem código: `dashboard.cliente_rtm_acumulado:
+false` (RTM nominal) — o nível Cliente em si não tem chave de desligar, é o
+grão do cubo.
+
+**Onde.** `src/transform/saneamento.py` (`BANDEIRA_HERDADA`), `src/load/cubos.py`
+(eixo, chave RTM, `BASE_MET`), `run_dashboard.py` (`filtrar_por_nivel`,
+`rotulos_exibicao`), `dashboard/template_v4.html` (`CLIDE`, `rotCli`,
+`BAN_MULTI`, `matrizNiveis`, `renderBandeiras`), `config/config.yaml`
+(`cliente_rtm_acumulado`, `rotulos_exibicao.rtm_acumulado`, publicação),
+`ferramentas/comparar_paineis.py`, testes, docs 05/06/08/09/11/13, README.

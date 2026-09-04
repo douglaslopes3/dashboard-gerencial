@@ -94,6 +94,7 @@ na `DIM_CLIENTE` — a fato nunca é tocada:
 | `DISTRIBUIDOR` | nome reduzido do distribuidor (da base RTM) |
 | `CANAL_ORIGINAL` | canal ANTES da reatribuição (rastreabilidade; só nos reatribuídos) |
 | `BANDEIRA_ORIGINAL` | bandeira do ponto final ANTES da reatribuição (D-59; gravada nos dois modos do parâmetro, só nos reatribuídos) |
+| `BANDEIRA_HERDADA` | **D-72** (04/09/2026): `True` só no cliente RTM cuja `BANDEIRA` foi de fato trocada pela do distribuidor. É a flag que o cubo lê para somar os clientes RTM numa linha única sob o distribuidor na aba Bandeiras ("acumula só quando herdou"); `False` no distribuidor, com o parâmetro desligado e quando o distribuidor não tem bandeira |
 | `INATIVO` | regra 5.2 aplicada (HIERARQUIA=NÃO e sem sell-in na janela) |
 | `MOTIVO_INATIVO` / `DATA_INATIVACAO` | rastreabilidade da inativação |
 | `SANEAMENTO_PENDENTE` | HIERARQUIA=NÃO **com** sell-in na janela — caso não coberto (Q5), aguarda decisão |

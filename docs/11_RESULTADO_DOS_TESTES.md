@@ -1099,3 +1099,51 @@ medido no curated                bandeiras por head antes -> depois: Distribuica
                                  · receita que trocou de rotulo R$ 82.759.658,47
                                  (3,56%)
 ```
+
+## T-59 · Aba Bandeiras por Cliente, RTM acumulado (D-72, 04/09/2026)
+
+```
+unitarios                        68 de 68 (63 + 5 da D-72): cliente e o 5o indice
+                                 e a soma por bandeira nao muda; RTM que herdou
+                                 a bandeira vira UMA chave com contagem, com
+                                 rollback por `cliente_rtm_acumulado: false`;
+                                 recorte por nivel reindexa clientes e mantem a
+                                 contagem RTM; `BANDEIRA_HERDADA` no saneamento
+                                 (ligado/desligado/distribuidor sem bandeira);
+                                 guarda do template (niveis, BASE_MET = 5,
+                                 BAN_MULTI, chave tipada, rotulo so no config)
+cenarios ponta a ponta           6 de 6 (execucao 20260904-184114)
+pipeline real                    exit 0 · 3.131.629 linhas · R$ 2.326.876.207,52
+                                 · cubos reconciliados nas 3 metricas ·
+                                 "clientes: 14.544 nominais + 25 linha(s) RTM
+                                 acumulada(s) somando 1.596 clientes" ·
+                                 CUBO_PRINCIPAL 730.257 · CUBO_SKU 681.892
+geracao (publicacao OFF)         73 arquivos em 20,9 s; particionamento N1/N2/N3
+                                 fecha ao centavo (R$ 2.272.064.860,38 + fora
+                                 54.811.347,44 = 2.326.876.207,82); assert por
+                                 arquivo: toda linha aponta para bandeira E
+                                 cliente da lista do arquivo
+comparar_paineis.py              publicado (13:16, D-71) x build (D-72), mesma
+                                 base: 73 de 73 dentro do teto de arredondamento
+                                 em total geral, por mes e por bandeira; cubo de
+                                 SKU e dims identicos; pior bandeira 18 centavos;
+                                 Full -18 centavos em R$ 2,33 bi. Achou copia
+                                 avulsa do Full em "Dashboard - Full\" (P11)
+navegador, Full                  abertura 1,8 s · heap 105 MB · aba Bandeiras
+                                 1,07 s · Visao Geral 0,27 s · zero erro no
+                                 console · cabecalho "Bandeira > Cliente >
+                                 Categoria" · 739 bandeiras com expansor de
+                                 cliente · ATACADAO -> 415 CNPJs por valor ->
+                                 categorias · DIST. LOBO "abrir Categoria"
+                                 direto · DIST. CLAUMAR -> 1003318 R$ 20,9 mi +
+                                 "Σ RTM (soma de 109 clientes)" R$ 3,1 mi por
+                                 ultimo, abre em GOMAS/BALA/AMENDOIM · Total
+                                 geral = KPI R$ 1,2 bi
+navegador, N1 Distribuicao       66 bandeiras, 36 com expansor · 113 clientes no
+                                 arquivo (88 nominais + 25 RTM) · DIST. DISO ->
+                                 CNPJ R$ 764,1 mil + Σ RTM (355) R$ 8,5 mi ·
+                                 DIST. CHUA -> 2 CNPJs + Σ RTM (2) R$ 19,3 mil ·
+                                 Total geral = KPI R$ 278,7 mi
+tamanhos                         Full 17,60 MB · Atacado 12,39 · Distribuicao
+                                 1,34 · Sul/CO 4,38 · RS/SC 3,49
+```

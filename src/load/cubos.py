@@ -42,6 +42,18 @@ ESC_RECEITA = 100      # centavos
 ESC_PESO = 1000        # gramas
 ESC_CAIXAS = 100       # centesimos de caixa
 
+# D-72 (04/09/2026): posicao da PRIMEIRA metrica (R) em cada cubo. O template
+# le as mesmas posicoes (`BASE_MET`/`BASE_SKU`); o gerador e os testes somam
+# por estas constantes, nunca por numero solto.
+#   cubo principal: [mes, bandeira, categoria, perfil, cliente] + [R, P, C]
+#   cubo de SKU:    [mes, sku, perfil] + [R, P, C]
+BASE_MET = 5
+BASE_MET_SKU = 3
+# Chave sintetica do cliente ACUMULADO (clientes RTM somados sob a bandeira
+# do distribuidor). O caractere de controle \u0001 garante que nunca colide
+# com um codigo real.
+RTM_PREFIXO = "\u0001RTM@"
+
 
 def _indexar(valores) -> tuple[list, dict]:
     lista = list(valores)
@@ -83,8 +95,17 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # validate="m:1" (A15): uma duplicata futura em DIM_CLIENTE/DIM_PRODUTO
     # multiplicaria o cubo — a reconciliacao pegaria, mas com o diagnostico
     # errado ("cubo nao reconcilia"). Aqui o erro nasce com o nome certo.
+    # D-72: NOME_CLIENTE e BANDEIRA_HERDADA sao OBRIGATORIAS na DIM_CLIENTE
+    # (nome para o rotulo do nivel Cliente; a flag decide o acumulado RTM).
+    # Faltar coluna aborta com o nome certo em vez de sair um painel com
+    # clientes sem nome.
+    for col in ("NOME_CLIENTE", "BANDEIRA_HERDADA"):
+        if col not in dim_cliente.columns:
+            abortar(f"DIM_CLIENTE sem a coluna {col} (D-72): rode o pipeline "
+                    "inteiro — o cubo de cliente precisa dela.")
     d = fato.merge(
-        dim_cliente[["COD_CLIENTE", "BANDEIRA", "HEAD", "GERENTE",
+        dim_cliente[["COD_CLIENTE", "NOME_CLIENTE", "BANDEIRA",
+                     "BANDEIRA_HERDADA", "HEAD", "GERENTE",
                      "SUPERVISOR", "VENDEDOR", "CANAL", "PROJETO"]],
         on="COD_CLIENTE", how="left", validate="m:1")
     d = d.merge(dim_produto[["COD_PRODUTO", "CATEGORIA"]],
@@ -151,19 +172,54 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     log(f"bandeiras: {len(bans):,} no cubo (todas); corte de EXIBICAO {topn} "
         f"= {cobertura:.1%} da receita no Full", "ok")
 
+    # ------------------------------------------- cliente: eixo do cubo (D-72)
+    # Decisao do Douglas (04/09/2026): a aba Bandeiras abre por CLIENTE
+    # (Bandeira > Cliente > Categoria). Ate aqui cliente nao era eixo de cubo
+    # nenhum (D-30). Medido antes: 9.611 das 10.350 bandeiras tem UM cliente
+    # (a bandeira e o proprio cliente) — o template nao desce esse nivel
+    # quando ele e redundante (mesma logica da D-71).
+    #
+    # Regra dele para o RTM: "os clientes RTM nao devem aparecer na matriz de
+    # bandeira do canal de Distribuicao; trazer acumulado". Cliente RTM que
+    # HERDOU a bandeira do distribuidor (DIM_CLIENTE.BANDEIRA_HERDADA, D-59 +
+    # D-72) vira UMA chave sintetica por bandeira; o rotulo de leitor vem do
+    # config (`rotulos_exibicao.rtm_acumulado`) com a contagem de clientes.
+    # Medido: 831.155 linhas com todos nominais -> 724.744 acumulando.
+    # `dashboard.cliente_rtm_acumulado: false` volta a mostrar cada RTM.
+    acumular = bool(_DASH.get("cliente_rtm_acumulado", True))
+    herdou = d["BANDEIRA_HERDADA"].fillna(False).astype(bool) if acumular \
+        else pd.Series(False, index=d.index)
+    d["CLI_KEY"] = d["COD_CLIENTE"].astype(str)
+    d.loc[herdou, "CLI_KEY"] = RTM_PREFIXO + d.loc[herdou, "BANDEIRA"].astype(str)
+    # rotulo por chave: [codigo, nome, n_rtm]; n_rtm > 0 marca o acumulado
+    # (n = clientes RTM distintos com sell-in atras da linha, contagem fixa)
+    nomes = (d.loc[~herdou, ["CLI_KEY", "NOME_CLIENTE"]]
+              .drop_duplicates("CLI_KEY").set_index("CLI_KEY")["NOME_CLIENTE"])
+    n_rtm = d.loc[herdou].groupby("CLI_KEY")["COD_CLIENTE"].nunique()
+    clis, i_cli = _indexar(sorted(d["CLI_KEY"].unique()))
+    cli_labels = [["", "", int(n_rtm[k])] if k.startswith(RTM_PREFIXO)
+                  else [k, (n if isinstance(n := nomes.get(k), str) else ""), 0]
+                  for k in clis]
+    log(f"clientes: {len(clis) - len(n_rtm):,} nominais + {len(n_rtm):,} "
+        f"linha(s) RTM acumulada(s) somando {int(n_rtm.sum()):,} clientes "
+        f"(D-72; `cliente_rtm_acumulado`={acumular})", "ok")
+
     # -------------------------------------------------------- CUBO PRINCIPAL
-    g = (d.groupby(["ANO_MES", "BANDEIRA", "CATEGORIA"] + COLS_PERFIL,
+    # D-72: o CLIENTE entrou como 5o indice, DEPOIS do perfil — as posicoes
+    # 1 (bandeira), 2 (categoria) e 3 (perfil) que o template le nao mudaram;
+    # as metricas deslocaram uma casa (BASE_MET 4 -> 5).
+    g = (d.groupby(["ANO_MES", "BANDEIRA", "CATEGORIA"] + COLS_PERFIL + ["CLI_KEY"],
                    observed=True, dropna=False)[["RECEITA", "PESO_KG", "CAIXAS"]]
           .sum(min_count=1).reset_index())
     esc = _escalar(g)
     cubo = [[i_mes[am], i_ban[bn], i_cat[ct], i_perf[(hd, gr, sp, cn, pj, vd)],
-             r, p, c]
-            for am, bn, ct, hd, gr, sp, cn, pj, vd, r, p, c
+             i_cli[cl], r, p, c]
+            for am, bn, ct, hd, gr, sp, cn, pj, vd, cl, r, p, c
             in zip(g["ANO_MES"], g["BANDEIRA"], g["CATEGORIA"], g["HEAD"],
                    g["GERENTE"], g["SUPERVISOR"], g["CANAL"], g["PROJETO"],
-                   g["VENDEDOR"], esc["R"], esc["P"], esc["C"])]
+                   g["VENDEDOR"], g["CLI_KEY"], esc["R"], esc["P"], esc["C"])]
     log(f"CUBO_PRINCIPAL         {len(cubo):>10,} linhas "
-        f"(ANO_MES x BANDEIRA x CATEGORIA x PERFIL)", "ok")
+        f"(ANO_MES x BANDEIRA x CATEGORIA x PERFIL x CLIENTE)", "ok")
 
     # -------------------------------------------------------------- CUBO SKU
     # D-48 (02/09/2026) — o eixo comercial deste cubo era o par (HEAD, CANAL),
@@ -232,6 +288,10 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
             # posicao 6, sem mexer nas posicoes que o template le.
             "perfil": perfis_out,
             "sku": sku_labels,     # [codigo, descricao, indice de categoria]
+            # D-72: [codigo, nome, n_rtm]. n_rtm > 0 = linha acumulada dos
+            # clientes RTM sob a bandeira (codigo e nome vazios; o rotulo
+            # vem de DB.rotulos_exibicao.rtm_acumulado no template).
+            "cli": cli_labels,
         },
         "cubo": cubo,
         "cubo_sku": cubo_sku,
@@ -256,10 +316,10 @@ def reconciliar(pacote: dict, fato: pd.DataFrame) -> list[str]:
     }
     escalas = (ESC_RECEITA, ESC_PESO, ESC_CAIXAS)
     ruins = []
-    # D-51: sem o eixo UF, o cubo principal tem 4 indices antes das metricas.
-    # D-64: o de SKU tem 3 (a bandeira saiu dele).
-    for nome, chave, base in (("CUBO_PRINCIPAL", "cubo", 4),
-                              ("CUBO_SKU", "cubo_sku", 3)):
+    # D-51: sem o eixo UF, o cubo principal tinha 4 indices antes das
+    # metricas; D-72: 5 (o cliente entrou). D-64: o de SKU tem 3.
+    for nome, chave, base in (("CUBO_PRINCIPAL", "cubo", BASE_MET),
+                              ("CUBO_SKU", "cubo_sku", BASE_MET_SKU)):
         linhas = pacote[chave]
         for k, (metrica, esc) in enumerate(zip(alvo, escalas)):
             soma = sum(l[base + k] for l in linhas) / esc

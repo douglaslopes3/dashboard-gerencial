@@ -211,6 +211,22 @@
   D-71 (04/09/2026) — Vend./RCA que E o proprio Sup./Exec. (mesma pessoa,
     flag na posicao 6 do perfil, decidida no gerador pelo nome) nao e um
     nivel: a matriz nao desce ate ele e o filtro Vend./RCA nao o oferece.
+
+  D-72 (04/09/2026, decisao do Douglas) — a aba Bandeiras abre por CLIENTE:
+    matriz Bandeira > Cliente > Categoria. O cliente entrou como 5o indice
+    do cubo principal (posicao 4, depois do perfil; bandeira/categoria/
+    perfil seguem em 1/2/3; metricas a partir da 5 — `BASE_MET`). Regras:
+    - bandeira com UM cliente so no arquivo (93% delas: a bandeira e o
+      proprio cliente) NAO desce o nivel — abre direto em categoria, como
+      antes (mesma logica da D-71: nivel redundante e pulado, `BAN_MULTI`);
+    - os clientes RTM que herdaram a bandeira do distribuidor chegam do
+      gerador como UMA linha por bandeira (`dims.cli[i][2]` = quantos sao);
+      aqui ela vira linha Σ (rotulo de leitor em
+      DB.rotulos_exibicao.rtm_acumulado), fica por ultimo entre os filhos
+      e abre por categoria como qualquer cliente;
+    - os niveis abaixo da bandeira viajam com chave TIPADA ("c<i>" cliente,
+      "k<i>" categoria), porque a profundidade nao diz mais qual dimensao e
+      a linha (`rotNo`/`nivelDe` decidem pela chave).
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -675,11 +691,13 @@ function prepararDB(){
   for(const l of CUBO) IDX_CUBO[l[0]].push(l);
   IDX_SKU = Array.from({length:NM}, ()=>[]);
   for(const l of CUBO_SKU) IDX_SKU[l[0]].push(l);
-  // D-51: sem o eixo UF as metricas comecam na coluna 4.
+  marcarBandeirasMulti();                  // D-72
+  // `col` e a posicao DENTRO do triplo [R, P, C] que somar() devolve — nao a
+  // coluna do cubo (essa e BASE_MET/BASE_SKU, D-72).
   METRICAS = {
-    val: {rot:"Valor (R$)", col:4, esc:ESC.R, un:"R$"},
-    vol: {rot:"Volume (t)", col:5, esc:ESC.P*1000, un:"t"},
-    cx : {rot:"Caixas",     col:6, esc:ESC.C, un:"cx"}
+    val: {rot:"Valor (R$)", col:0, esc:ESC.R, un:"R$"},
+    vol: {rot:"Volume (t)", col:1, esc:ESC.P*1000, un:"t"},
+    cx : {rot:"Caixas",     col:2, esc:ESC.C, un:"cx"}
   };
   // D-51: os rotulos "fora da hierarquia" (sem estrutura + inativos do
   // saneamento) chegam do gerador — o template nao carrega valor de negocio.
@@ -707,9 +725,37 @@ const P_HEAD=0, P_GER=1, P_SUP=2, P_CAN=3, P_PROJ=4, P_VEND=5, P_VEND_E_SUP=6;
 const vendEhSup = p => !!p[P_VEND_E_SUP];
 // D-51: o eixo UF saiu dos cubos (Q10). D-64 (03/09/2026): a BANDEIRA saiu do
 // cubo de SKU — nenhuma tela do v4 a lia de la (o acessor `BANDE` so estava
-// definido). Cubo principal: 4 indices + 3 metricas; cubo de SKU: 3 + 3.
+// definido). Cubo principal: 4 indices + 3 metricas ate a D-71; 5 + 3 desde a
+// D-72 (o cliente entrou na posicao 4); cubo de SKU: 3 + 3.
 const BANDE = (l)=> l[1];                 // so no cubo principal
 const CATDE = (l,sku)=> sku ? D.sku[l[1]][2] : l[2];
+const CLIDE = (l)=> l[4];                 // D-72: so no cubo principal
+/* D-72: rotulo do nivel Cliente. `dims.cli[i]` = [codigo, nome, n_rtm];
+   n_rtm > 0 e a linha acumulada dos clientes RTM (texto do config, com a
+   contagem no lugar de {n}); sem mapeamento mostra so "Σ" + contagem. */
+const cliEhAcum = i => D.cli[i][2] > 0;
+function rotCli(i){
+  const c = D.cli[i];
+  if(c[2] > 0){
+    const t = (DB.rotulos_exibicao||{}).rtm_acumulado;
+    return t ? t.replace("{n}", c[2].toLocaleString("pt-BR")) : "Σ "+c[2];
+  }
+  return c[1] ? c[0]+" - "+c[1] : c[0];
+}
+/* D-72: bandeira com mais de um cliente NO ARQUIVO. Decidido uma vez, na
+   carga, sobre o cubo inteiro (nao muda com filtro nem periodo — como a flag
+   da D-71, que e decidida no gerador). Bandeira com um cliente so nao desce
+   o nivel Cliente: abre direto em Categoria, como antes da D-72. */
+let BAN_MULTI = null;
+function marcarBandeirasMulti(){
+  const primeiro = new Int32Array(D.ban.length).fill(-1);
+  BAN_MULTI = new Uint8Array(D.ban.length);
+  for(const l of CUBO){
+    const b = l[1], c = l[4];
+    if(primeiro[b] < 0) primeiro[b] = c;
+    else if(primeiro[b] !== c) BAN_MULTI[b] = 1;
+  }
+}
 
 // indices das colunas do calendario
 const C_AM=0, C_ROT=1, C_ANO=2, C_MES=3, C_TRI=4, C_SEM=5,
@@ -969,7 +1015,7 @@ function passaSku(l, ignorar){
 
 /* ------------------------------------------------------------- agregacao */
 const MZERO = ()=>[0,0,0];
-const BASE_MET = 4;               // D-51: 4 indices no cubo principal
+const BASE_MET = 5;               // D-51: 4 indices no cubo principal; D-72: 5 (cliente)
 const BASE_SKU = 3;               // D-64: 3 indices no cubo de SKU
 function somar(meses, chaveFn, ignorar){
   const out = new Map();
@@ -1002,7 +1048,7 @@ function total(meses, ignorar){
 }
 function met(v){
   const m = METRICAS[F.metrica];
-  return v[m.col-4] / m.esc;
+  return v[m.col] / m.esc;
 }
 function receita(v){ return v[0]/ESC.R; }
 function pesoKg(v){ return v[1]/ESC.P; }
@@ -1311,7 +1357,7 @@ function renderKPIs(p){
     ? ` <small title="só ${p.mesesComPar} de ${p.atual.length} meses têm par no ano anterior: comparativo desligado; selecione apenas os meses pareados para comparar">(par incompleto)</small>` : "";
   const itens=[];
   for(const [k,mt] of Object.entries(METRICAS)){
-    const va=a[mt.col-4]/mt.esc, vl=l[mt.col-4]/mt.esc, vaP=aP[mt.col-4]/mt.esc;
+    const va=a[mt.col]/mt.esc, vl=l[mt.col]/mt.esc, vaP=aP[mt.col]/mt.esc;
     const pc=varPct(p.ly.length?vaP:null, p.ly.length?vl:null);
     itens.push(`<div class="kpi${F.metrica===k?" destaque":""}">
       <div class="rot">${mt.rot}</div>
@@ -1619,8 +1665,13 @@ function matrizNiveis(cfg){
   const q = cfg.busca && semAcento(cfg.busca.q);
   const busca = q ? {nivel:cfg.busca.nivel, q} : null;
   const casa = (nivel,k)=> semAcento(cfg.rotNo(nivel,k)).includes(busca.q);
+  // D-72: `cfg.acumFn(nivel,k)` marca a linha ACUMULADA (Σ RTM): fica por
+  // ultimo entre os irmaos, como a sintese do nivel 0; o resto pelo total.
+  const ehAcum = (nivel,k)=> !!(cfg.acumFn && cfg.acumFn(nivel,k));
+  const nivelDe = (nivel,k)=> cfg.nivelDe ? cfg.nivelDe(nivel,k) : cfg.niveis[nivel];
   const filhosDe = (n,nivel)=>{
-    const f=[...n.filhos.values()].sort((x,y)=>tot(y)-tot(x));
+    const ac = x => ehAcum(nivel+1, x.k) ? 1 : 0;
+    const f=[...n.filhos.values()].sort((x,y)=>(ac(x)-ac(y))||(tot(y)-tot(x)));
     return (busca && busca.nivel===nivel+1) ? f.filter(x=>casa(nivel+1,x.k)) : f;
   };
   if(busca && busca.nivel===0) normais=normais.filter(n=>casa(0,n.k));
@@ -1669,15 +1720,16 @@ function matrizNiveis(cfg){
     const abre=!ehSintese && nivel<nNiv-1 && filhos.length>0;
     // D-66: com busca no nivel de baixo, o pai do item achado abre sozinho.
     const aberto=abre && (cfg.expSet.has(caminho) || (busca && busca.nivel===nivel+1));
+    const acum = !ehSintese && n.k!=="__resto__" && ehAcum(nivel, n.k);   // D-72
     const rot = n.k==="__resto__"
       ? (cfg.rotResto ? cfg.rotResto(n.n) : "Σ")     // D-65: linha do corte
-      : cfg.rotNo(nivel, n.k);
+      : (acum?"Σ ":"")+cfg.rotNo(nivel, n.k);
     const marca=abre?(aberto?"▾ ":"▸ "):"";
     const nome=`<span class="${nivel?`recuo${nivel}`:""}${abre?" exp":""}"${
-      abre?` data-x="${encodeURIComponent(caminho)}" title="${aberto?"recolher":"abrir "+cfg.niveis[nivel+1]}"`:""}>${marca}${rot}</span>`;
+      abre?` data-x="${encodeURIComponent(caminho)}" title="${aberto?"recolher":"abrir "+nivelDe(nivel+1, filhos[0].k)}"`:""}>${marca}${rot}</span>`;
     const semLy=!temLy||!n.temL;
     const part=razao(n.a,cfg.den);
-    classes.push((nivel===0?"n0":"")+(ehSintese?" fora balde":""));
+    classes.push((nivel===0?"n0":"")+(ehSintese?" fora balde":"")+(acum?" fora":""));
     linhas.push([{v:nome},
                {v:fmtMetrica(n.a)},
                {v:semLy?ND:fmtMetrica(n.l)},
@@ -1686,7 +1738,7 @@ function matrizNiveis(cfg){
                {v:fmtParte(part)}]
       .concat(n.serie.map((v,i)=>({v:num(v),c:"serie"+(i?"":" corte")})))
       .concat([{v:"<b>"+num(tot(n))+"</b>",c:"serie corte"}]));
-    raw.push([cfg.niveis[nivel]+": "+_semHtml(String(rot)),
+    raw.push([nivelDe(nivel, n.k)+": "+_semHtml(String(rot)),
               nr(n.a), semLy?null:nr(n.l), semLy?null:nr(n.aP-n.l),
               nr(pctNum(varPct(semLy?null:n.aP,semLy?null:n.l))),
               part===null?null:nr(part*100)]
@@ -1797,13 +1849,21 @@ function renderBandeiras(p){
   el("sBan").textContent="· "+METRICAS[F.metrica].rot+" · "+BASES[F.base].rot;
   const den=met(total(p.atual));
   const rotResto=n=>`${c.rotulo_base||"DEMAIS BANDEIRAS"} (${n.toLocaleString("pt-BR")} bandeiras)`;
-  // D-51 (Step 2.3): a tabela final e a MATRIZ expansivel Bandeira > Categoria.
+  // D-51 (Step 2.3): a tabela final e a MATRIZ expansivel. D-72: Bandeira >
+  // Cliente > Categoria — o nivel Cliente so existe na bandeira com mais de
+  // um cliente no arquivo (BAN_MULTI); nas outras o caminho pula direto para
+  // a categoria, como antes. Abaixo da bandeira a chave e TIPADA ("c<i>"
+  // cliente, "k<i>" categoria): a profundidade nao diz mais qual dimensao e.
   // D-70: sem nota de rodape. A contagem do Σ esta no rotulo da linha e o
   // "exibidas/busca" no rodape "Total geral (...)" da propria tabela.
+  const tipo = k => String(k)[0];
   matrizNiveis({idTab:"tabBan", aba:"band",
-    niveis:["Bandeira","Categoria"],
-    pathFn:l=>[l[1], l[2]],
-    rotNo:(niv,k)=> niv===0 ? D.ban[+k] : D.cat[+k],
+    niveis:["Bandeira","Cliente","Categoria"],
+    pathFn:l=> BAN_MULTI[l[1]] ? [l[1], "c"+l[4], "k"+l[2]] : [l[1], "k"+l[2]],
+    rotNo:(niv,k)=> niv===0 ? D.ban[+k]
+                  : tipo(k)==="c" ? rotCli(+String(k).slice(1)) : D.cat[+String(k).slice(1)],
+    nivelDe:(niv,k)=> niv===0 ? "Bandeira" : tipo(k)==="c" ? "Cliente" : "Categoria",
+    acumFn:(niv,k)=> niv>0 && tipo(k)==="c" && cliEhAcum(+String(k).slice(1)),
     usaSku:false, p, den, expSet:EXP.band,
     topN: todas ? 0 : F.topBan, baldeK:null, foraSet:null,
     ignorar:null, rotResto, busca:{nivel:0, q:F.qBan}});

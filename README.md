@@ -12,14 +12,22 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 
 ---
 
-## Estado atual — medido em 04/09/2026 (execucao 20260904-001046; ago/26 fechado + set/26 parcial)
+## Estado atual — medido em 04/09/2026 (execucao 20260904-183146; ago/26 fechado + set/26 parcial)
 
 ```
-29 arquivos de Sell In       3.130.712 linhas de origem   25 meses (2024-09 a 2026-09)
-receita liquida              R$ 2.325.132.314,80
-peso                         165.547,35 t
-caixas                       33.601.335
-fato                         3.127.196 linhas (3.516 100% zeradas descartadas, D-36)
+29 arquivos de Sell In       3.131.629 linhas de fato    25 meses (2024-09 a 2026-09)
+receita liquida              R$ 2.326.876.207,52
+peso                         165.663,63 t
+caixas                       33.624.305
+fato                         3.131.629 linhas (linhas 100% zeradas descartadas, D-36)
+D-72 (04/09, PUBLICACAO      aba Bandeiras abre por CLIENTE (Bandeira >
+DESLIGADA ate o ok)          Cliente > Categoria); cliente e o 5o eixo do cubo
+                             principal (730.257 linhas); clientes RTM que
+                             herdaram a bandeira viram UMA linha "RTM (soma de
+                             N clientes)" sob o distribuidor; bandeira de um
+                             cliente so abre direto em categoria. Full 17,6 MB.
+                             Os 73 arquivos novos estao em dashboard/build;
+                             publicados continuam os de 13:16 (D-71)
 ATENCAO (aviso do detector)  3 recortes de extracao na serie: 19 meses ate
                              jul/26, ago/26 ("tipo mercado original") e set/26
                              ("tipo mercado e interno"); ago/26 fechado subiu
@@ -74,16 +82,17 @@ cobertura de canal           100,00% da receita
 fora da hierarquia           R$ 54,69 mi (2,35%), 1.053 clientes: 612 inativos
                              + 158 pendentes Q5 + 166 RTM sem distribuidor +
                              117 sem linha em base nenhuma
-testes                       63/63 unitarios · 6/6 cenarios ponta a ponta
+testes                       68/68 unitarios · 6/6 cenarios ponta a ponta
 pipeline                     ~2 min a frio · ~30 s com cache · exit 0
-painel (v4, D-51)            14,24 MB (Full) · zero requisicao de rede · 3 ABAS:
+painel (v4, D-51)            17,60 MB (Full) · zero requisicao de rede · 3 ABAS:
                              Visao Geral · Bandeiras · Categorias
-                             cubos compactados no arquivo (34,2 MB -> 13,9 MB),
+                             cubos compactados no arquivo (45,2 MB -> 17,3 MB),
                              SEM o eixo UF (Q10): 517 perfis com N4 · cubo
-                             principal 495.037 linhas (todas as bandeiras,
-                             D-65) · cubo SKU 680.530 (sem bandeira, D-64)
-                             arquivos por nivel: Atacado 11,1 MB, Sul/CO 3,8,
-                             RS/SC 3,1, Distribuicao 1,2
+                             principal 730.257 linhas (todas as bandeiras,
+                             D-65; cliente como 5o eixo, D-72) · cubo SKU
+                             681.892 (sem bandeira, D-64)
+                             arquivos por nivel: Atacado 12,4 MB, Sul/CO 4,4,
+                             RS/SC 3,5, Distribuicao 1,3
 ABERTURA (D-63, 03/09)       abre no FY corrente ate o ultimo mes fechado; sem
                              mes fechado no FY, abre no FY anterior inteiro
                              (em setembro: set/25 a ago/26, LY 12 de 12)
@@ -199,9 +208,12 @@ máquina de destino.
 
 **3 abas** — **Visão Geral** (5 cards de KPI, gráfico de Evolução e a
 **matriz hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA) ·
-**Bandeiras** (ganhos/quedas + matriz expansível Bandeira → Categoria: todas
-as bandeiras do escopo no arquivo; Full e N1 exibem as N maiores + linha Σ,
-N2 e N3 exibem todas; busca por nome) · **Categorias** (ganhos/quedas +
+**Bandeiras** (ganhos/quedas + matriz expansível **Bandeira → Cliente →
+Categoria** desde a D-72: a bandeira com mais de um cliente abre por CNPJ, a
+de um cliente só abre direto em categoria, e os clientes RTM que herdaram a
+bandeira do distribuidor aparecem como uma única linha "RTM (soma de N
+clientes)"; todas as bandeiras do escopo no arquivo; Full e N1 exibem as N
+maiores + linha Σ, N2 e N3 exibem todas; busca por nome) · **Categorias** (ganhos/quedas +
 matriz expansível Categoria → SKU, todos os SKUs do escopo; busca por SKU). Toda navegação entre níveis é pela
 **expansão da matriz** — o drill-down deixou de existir. As linhas síntese Σ
 (sem estrutura, inativos do saneamento) ficam fora da hierarquia com o
@@ -348,7 +360,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-58 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-71, com o porquê; ao fim, a proposta em aberto de 04/09 (aba Bandeiras por cliente) |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-72, com o porquê (a D-72 vem precedida da análise que a sustentou) |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
@@ -389,7 +401,8 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 | P5 | 4 SKUs fora do `Produtos.xlsx` (eram 7) | **Cadastro de Produtos** | R$ 1,04 mi (0,04%) | `data/quality/skus_sem_cadastro.csv` |
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
 | P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática). Os 73 arquivos publicados em 04/09 ~00:25 já são os da rodada D-63 a D-71 | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
-| P10 | Próxima rodada do painel: cubo de cliente (N2/N3), canal como dimensão, Vendedor × Bandeira. **Em 04/09 à tarde a abertura por cliente na aba Bandeiras foi analisada e medida (opção A: cliente no cubo principal, RTM acumulado sob o distribuidor); está registrada como proposta em aberto no docs/12, com 6 decisões pendentes** | **Douglas decide** | ver Roadmap acima e a proposta | crítica de 03/09 (docs/12 D-63 a D-71) e proposta em aberto (docs/12, fim) |
+| P10 | **Cliente na aba Bandeiras: FEITO na D-72 (04/09 à tarde), aguardando o ok para PUBLICAR** (`publicacao.ativo: false`; os 73 arquivos novos estão em `dashboard/build`, conferidos contra os publicados por `ferramentas/comparar_paineis.py`). Ficam para a próxima rodada: canal como dimensão, Vendedor × Bandeira | **Douglas**: ok de publicação; decide o resto | ver docs/12 D-72 | docs/12 (proposta + D-72) |
+| P11 | Cópia avulsa do Full em `Painéis Comerciais\Gerencial\Dashboard - Full\` (00:23 de 04/09): a publicação automática só grava na raiz, então essa cópia fica desatualizada a cada geração. Apagar ou substituir por link para o da raiz | **Douglas** | 1 arquivo (14,9 MB) | achado pelo `comparar_paineis.py` (D-72) |
 
 ---
 

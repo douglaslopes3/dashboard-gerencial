@@ -32,7 +32,7 @@ for _fluxo in (sys.stdout, sys.stderr):
     except (AttributeError, OSError):
         pass
 
-from src.load.cubos import COLS_PERFIL
+from src.load.cubos import BASE_MET, COLS_PERFIL
 from src.utils import log as L
 from src.utils.config import CFG, PASTA_CURATED, caminho, preparar_pastas
 from src.utils.log import abortar, log, titulo
@@ -79,14 +79,22 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
     bandeiras, D-65, e o arquivo de um colaborador leva so as do escopo dele,
     reindexadas). A D-57 (Σ recontado por nivel) foi superada: nao ha mais
     balde na geracao; o corte e de EXIBICAO e mora no template. Aqui so se
-    decide se o nivel exibe todas (`dashboard.exibir_todas_bandeiras_em`)."""
+    decide se o nivel exibe todas (`dashboard.exibir_todas_bandeiras_em`).
+
+    D-72 (04/09/2026): o CLIENTE e o 5o indice do cubo principal; `dims.cli`
+    tambem encolhe para os clientes do escopo, reindexados — o arquivo de um
+    colaborador nao carrega nem o nome de um cliente de fora. A contagem da
+    linha RTM acumulada (`n_rtm`) nao muda: todos os clientes RTM de um
+    distribuidor carregam a hierarquia dele (D-50), entao qualquer arquivo
+    que tenha a linha tem os mesmos clientes atras dela."""
     dims = pacote["dims"]
     manter_perf = [i for i, p in enumerate(dims["perfil"]) if p[pos] == rotulo]
     mapa_perf = {i: j for j, i in enumerate(manter_perf)}
 
-    # D-51: sem o eixo UF o cubo principal tem 7 colunas (4 indices + 3
-    # metricas). D-64: o de SKU tem 6 (mes, sku, perfil + 3 metricas).
-    cubo = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6]]
+    # D-51: sem o eixo UF o cubo principal tinha 7 colunas; D-72: 8 (mes,
+    # bandeira, categoria, perfil, cliente + 3 metricas). D-64: o de SKU tem
+    # 6 (mes, sku, perfil + 3 metricas).
+    cubo = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6], l[7]]
             for l in pacote["cubo"] if l[3] in mapa_perf]
     cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5]]
                 for l in pacote["cubo_sku"] if l[2] in mapa_perf]
@@ -107,8 +115,12 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
     # e a do ranking global por receita (cubos.py), e `sorted` a preserva.
     manter_ban = sorted({l[1] for l in cubo})
     mapa_ban = {b: i for i, b in enumerate(manter_ban)}
+    # ---- cliente (D-72): so os do escopo, reindexados
+    manter_cli = sorted({l[4] for l in cubo})
+    mapa_cli = {c: i for i, c in enumerate(manter_cli)}
 
-    cubo = [[l[0], mapa_ban[l[1]], mapa_cat[l[2]], l[3], l[4], l[5], l[6]]
+    cubo = [[l[0], mapa_ban[l[1]], mapa_cat[l[2]], l[3], mapa_cli[l[4]],
+             l[5], l[6], l[7]]
             for l in cubo]
     cubo_sku = [[l[0], mapa_sku[l[1]], l[2], l[3], l[4], l[5]]
                 for l in cubo_sku]
@@ -129,6 +141,7 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
                     "canal": sorted({perfil[l[3]][P_CANAL] for l in cubo}),
                     "cat": [dims["cat"][i] for i in manter_cat],
                     "ban": [dims["ban"][i] for i in manter_ban],
+                    "cli": [dims["cli"][i] for i in manter_cli],   # D-72
                     "sku": sku,
                     "perfil": perfil}
     novo["cubo"] = cubo
@@ -248,6 +261,8 @@ def main() -> int:
         k: v for k, v in (
             (CFG["dimensoes"]["rotulo_sem_estrutura"], exib.get("sem_estrutura")),
             (CFG["dimensoes"].get("rotulo_inativo"), exib.get("inativo")),
+            # D-72: rotulo da linha RTM acumulada ("{n}" = contagem)
+            ("rtm_acumulado", exib.get("rtm_acumulado")),
         ) if k and v}
 
     template = caminho(_DASH["template"])
@@ -334,7 +349,7 @@ def main() -> int:
         prefixo = pn.get("prefixo", "Dashboard_Gerencial_")
         pub = _DASH.get("publicacao") or {}
         destino = caminho(pub["destino"]) if pub.get("ativo") else None
-        rec_total = sum(l[4] for l in pacote["cubo"])      # centavos, exato
+        rec_total = sum(l[BASE_MET] for l in pacote["cubo"])   # centavos, exato
         n_arquivos = 0
         for nome_nivel, pos in (pn.get("niveis") or {}).items():
             pos = int(pos)
@@ -351,7 +366,9 @@ def main() -> int:
                 assert all(perf[l[2]][pos] == rot for l in pac["cubo_sku"])
                 # D-65: toda linha aponta para uma bandeira DA LISTA do arquivo
                 assert all(l[1] < len(pac["dims"]["ban"]) for l in pac["cubo"])
-                soma_nivel += sum(l[4] for l in pac["cubo"])
+                # D-72: e para um cliente da lista do arquivo
+                assert all(l[4] < len(pac["dims"]["cli"]) for l in pac["cubo"])
+                soma_nivel += sum(l[BASE_MET] for l in pac["cubo"])
                 # P2-D/L3-G: titulo e cabecalho declaram o recorte; a
                 # restricao de verdade e o recorte fisico feito acima.
                 pac["meta"] = {**pacote["meta"], "recorte": rot,
