@@ -91,8 +91,9 @@ drill-down nem "voltar".
   sem par no LY fica **sem a barra clara e sem o ponto de Δ%**, nunca zero. A
   granularidade é o "Ver por"; grupo incompleto sai **(parcial)**.
 * **Matriz hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA
-  (D-51), com colunas por período da série (na granularidade do "Ver por"),
-  TOTAL, ATUAL, ANT., Δ e Δ%. Agregação por caminho: **o pai é a soma dos
+  (D-51). Colunas, na ordem da D-67 (igual nas três matrizes e na exportação):
+  nome · **ATUAL · ANT. · Δ · Δ% · Part. %** · série de até 12 períodos (na
+  granularidade do "Ver por") · TOTAL da série. Agregação por caminho: **o pai é a soma dos
   filhos por construção**. As linhas síntese Σ (`NÃO ATRIBUÍDO`, `INATIVO
   (SANEAMENTO)`, rótulos vindos do config) ficam fora da hierarquia, sem
   expansão, e o **Total geral fecha com os cards**. No arquivo de um

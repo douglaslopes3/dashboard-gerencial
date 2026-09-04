@@ -191,6 +191,10 @@
   D-66 (03/09/2026) — BUSCA por bandeira (aba Bandeiras) e por SKU (aba
     Categorias): sem acento, sem caixa, ignora o corte de exibicao, abre a
     categoria do SKU achado, persiste no recorte (`qBan`/`qSku`).
+
+  D-67 (03/09/2026) — COLUNAS DE DECISAO PRIMEIRO nas tres matrizes:
+    nome | ATUAL | ANT. | Δ | Δ% | Part. % || serie (ate 12) | TOTAL.
+    A exportacao segue a mesma ordem.
   ---------------------------------------------------------------------------
 
   Este arquivo e o TEMPLATE. A interface inteira vive aqui e e editada a mao.
@@ -1555,10 +1559,16 @@ function matrizNiveis(cfg){
   const num=v=>v===0 ? '<span class="zero">–</span>' : fmtMetrica(v);
   const rotCol=c=>rotuloColuna(c.rot)
     +(c.meses.length<(TAM_GRUPO[F.gran]||1)?"*":"");
-  const cabec=[{v:cfg.niveis.join(" › "),t:1}]
-    .concat(cols.map(c=>({v:rotCol(c),c:"serie"})))
-    .concat([{v:"TOTAL",c:"serie corte"},{v:"ATUAL"},{v:"ANT."},
-             {v:"Δ"},{v:"Δ%"},{v:"Part. %"}]);
+  /* D-67 (03/09/2026, opcao A do Douglas): as colunas de DECISAO (ATUAL,
+     ANT., Δ, Δ%, Part. %) vem PRIMEIRO, logo depois do nome; a serie de ate
+     12 periodos e o TOTAL dela ficam a direita, como contexto. Antes a serie
+     vinha antes e, nas capturas dos 4 arquivos de referencia, a ultima
+     coluna visivel sem rolar era o TOTAL: o que se decide ficava fora da
+     tela. A mesma ordem vale para a exportacao. */
+  const cabec=[{v:cfg.niveis.join(" › "),t:1},
+               {v:"ATUAL"},{v:"ANT."},{v:"Δ"},{v:"Δ%"},{v:"Part. %"}]
+    .concat(cols.map((c,i)=>({v:rotCol(c),c:"serie"+(i?"":" corte")})))
+    .concat([{v:"TOTAL",c:"serie corte"}]);
   const linhas=[], raw=[], classes=[];
   function linhaDo(n, nivel, caminho, ehSintese){
     const filhos = ehSintese ? [] : filhosDe(n, nivel);
@@ -1574,20 +1584,20 @@ function matrizNiveis(cfg){
     const semLy=!temLy||!n.temL;
     const part=razao(n.a,cfg.den);
     classes.push((nivel===0?"n0":"")+(ehSintese?" fora balde":""));
-    linhas.push([{v:nome}]
-      .concat(n.serie.map(v=>({v:num(v),c:"serie"})))
-      .concat([{v:"<b>"+num(tot(n))+"</b>",c:"serie corte"},
+    linhas.push([{v:nome},
                {v:fmtMetrica(n.a)},
                {v:semLy?ND:fmtMetrica(n.l)},
                {v:semLy?ND:fmtDelta(n.aP-n.l)},
                {v:fmtPct(varPct(semLy?null:n.aP,semLy?null:n.l))},
-               {v:fmtParte(part)}]));
-    raw.push([cfg.niveis[nivel]+": "+_semHtml(String(rot))]
+               {v:fmtParte(part)}]
+      .concat(n.serie.map((v,i)=>({v:num(v),c:"serie"+(i?"":" corte")})))
+      .concat([{v:"<b>"+num(tot(n))+"</b>",c:"serie corte"}]));
+    raw.push([cfg.niveis[nivel]+": "+_semHtml(String(rot)),
+              nr(n.a), semLy?null:nr(n.l), semLy?null:nr(n.aP-n.l),
+              nr(pctNum(varPct(semLy?null:n.aP,semLy?null:n.l))),
+              part===null?null:nr(part*100)]
       .concat(n.serie.map(v=>nr(v)))
-      .concat([nr(tot(n)), nr(n.a), semLy?null:nr(n.l),
-               semLy?null:nr(n.aP-n.l),
-               nr(pctNum(varPct(semLy?null:n.aP,semLy?null:n.l))),
-               part===null?null:nr(part*100)]));
+      .concat([nr(tot(n))]));
     if(aberto)
       filhos.forEach(f=>linhaDo(f, nivel+1, caminho+SEP+f.k, false));
   }
@@ -1603,25 +1613,25 @@ function matrizNiveis(cfg){
   const rodape=[{v:`<b>Total geral</b>${
       busca ? ` <small>(busca: ${normais.length} de ${universo}; o total soma todas)</small>`
       : (cfg.topN>0&&universo>cfg.topN?` <small>(${normais.length} de ${universo} exibidas + síntese)</small>`:"")}`}]
-    .concat(g.serie.map(v=>({v:num(v),c:"serie"})))
-    .concat([{v:"<b>"+num(g.serie.reduce((s,v)=>s+v,0))+"</b>",c:"serie corte"},
-             {v:fmtMetrica(g.a)},
+    .concat([{v:fmtMetrica(g.a)},
              {v:gSemLy?ND:fmtMetrica(g.l)},
              {v:gSemLy?ND:fmtDelta(g.aP-g.l)},
              {v:fmtPct(varPct(gSemLy?null:g.aP,gSemLy?null:g.l))},
-             {v:cfg.den?fmtParte(g.a/cfg.den):"n/d"}]);
-  raw.push(["Total geral"]
+             {v:cfg.den?fmtParte(g.a/cfg.den):"n/d"}])
+    .concat(g.serie.map((v,i)=>({v:num(v),c:"serie"+(i?"":" corte")})))
+    .concat([{v:"<b>"+num(g.serie.reduce((s,v)=>s+v,0))+"</b>",c:"serie corte"}]);
+  raw.push(["Total geral", nr(g.a),
+            gSemLy?null:nr(g.l), gSemLy?null:nr(g.aP-g.l),
+            nr(pctNum(varPct(gSemLy?null:g.aP,gSemLy?null:g.l))),
+            cfg.den?nr(g.a/cfg.den*100):null]
     .concat(g.serie.map(v=>nr(v)))
-    .concat([nr(g.serie.reduce((s,v)=>s+v,0)), nr(g.a),
-             gSemLy?null:nr(g.l), gSemLy?null:nr(g.aP-g.l),
-             nr(pctNum(varPct(gSemLy?null:g.aP,gSemLy?null:g.l))),
-             cfg.den?nr(g.a/cfg.den*100):null]));
+    .concat([nr(g.serie.reduce((s,v)=>s+v,0))]));
   const tb=el(cfg.idTab);
   tb.classList.add("matriz","niveis");
   tb.innerHTML=tabelaMat(cabec,linhas,rodape,classes);
   registrarExport(cfg.idTab,
-    ["Item"].concat(cols.map(rotCol))
-      .concat(["TOTAL","ATUAL","ANT.","Δ","Δ%","Part. %"]), raw);
+    ["Item","ATUAL","ANT.","Δ","Δ%","Part. %"].concat(cols.map(rotCol))
+      .concat(["TOTAL"]), raw);                       // D-67: mesma ordem
   tb.onclick=e=>{
     const s=e.target.closest(".exp"); if(!s) return;
     const c=decodeURIComponent(s.dataset.x);
@@ -1643,13 +1653,13 @@ function notaMatriz(){
   const n=cols.length, todas=gruposSerie().length;
   const g=GRANS_PL[F.gran]||GRANS[F.gran].toLowerCase();
   const temParcial=cols.some(c=>c.meses.length<(TAM_GRUPO[F.gran]||1));
-  return `Colunas: os <b>${n} últimos ${g}</b>${todas>n?` da série (de ${todas}
-    disponíveis)`:""}, em <b>${METRICAS[F.metrica].rot}</b>. A granularidade é o
-    seletor <b>Ver por</b> da barra de Período.
-    ${temParcial?"<b>*</b> marca período parcial: a série não cobre todos os meses dele. ":""}
-    <b>TOTAL</b> é a soma das colunas exibidas.
-    <b>ATUAL</b> e <b>ANT.</b> são o período selecionado e os mesmos meses do
-    ano anterior; <b>Δ</b> e <b>Δ%</b> comparam esses dois, não a série.
+  return `<b>ATUAL</b> e <b>ANT.</b> são o período selecionado e os mesmos
+    meses do ano anterior; <b>Δ</b> e <b>Δ%</b> comparam esses dois, não a
+    série. À direita, a série: os <b>${n} últimos ${g}</b>${todas>n?` (de ${todas}
+    disponíveis)`:""}, em <b>${METRICAS[F.metrica].rot}</b>, na granularidade do
+    seletor <b>Ver por</b> da barra de Período;
+    ${temParcial?"<b>*</b> marca período parcial: a série não cobre todos os meses dele; ":""}
+    <b>TOTAL</b> é a soma das colunas da série exibidas.
     Ordenado pelo <b>TOTAL</b>, para as linhas não trocarem quando você muda o
     período. <b>–</b> é ausência de faturamento.`;
 }

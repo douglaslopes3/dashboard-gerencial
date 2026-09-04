@@ -2024,3 +2024,30 @@ bandeira) e da aba **Categorias** (por código ou descrição de SKU). Regras:
 muda.
 
 **Rollback.** git.
+
+
+---
+
+## D-67 · Colunas de decisão antes da série, nas três matrizes (03/09/2026)
+
+**Contexto.** Nas capturas dos quatro arquivos de referência (Full, N1
+Distribuição, N2 Sul/CO, N3 RS/SC), a última coluna visível da matriz de
+Bandeiras sem rolar era o TOTAL da série; ATUAL, ANT., Δ, Δ% e Part. % (o que
+se decide) só apareciam rolando para a direita.
+
+**Decisão (opção A, escolhida pelo Douglas entre "decisão primeiro" e "série
+recolhível").** Ordem nas três matrizes (hierárquica, Bandeiras, Categorias):
+
+```
+nome | ATUAL | ANT. | Δ | Δ% | Part. % || série (até 12 períodos) | TOTAL
+```
+
+A série continua à direita como contexto, com o TOTAL dela no fim; uma
+divisória marca onde a série começa. A exportação CSV/XLSX segue a mesma
+ordem. A nota da matriz foi reescrita na mesma sequência.
+
+**Onde.** `template_v4.html` (`matrizNiveis`: `cabec`, `linhaDo`, rodapé,
+`registrarExport`; `notaMatriz`); guarda em `tests/test_regras.py`; docs/08
+§2. Nenhum número muda.
+
+**Rollback.** git.

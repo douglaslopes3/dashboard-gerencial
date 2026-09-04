@@ -809,6 +809,15 @@ def test_d66_template_tem_busca_de_bandeira_e_sku_persistida():
         assert termo in corpo, f"template v4 perdeu a busca (D-66): {termo}"
 
 
+def test_d67_colunas_de_decisao_antes_da_serie():
+    """D-67: nas tres matrizes o cabecalho e nome | ATUAL | ANT. | Δ | Δ% |
+    Part. % | serie... | TOTAL — e a exportacao segue a mesma ordem."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    assert '{v:"ATUAL"},{v:"ANT."},{v:"Δ"},{v:"Δ%"},{v:"Part. %"}]' in corpo
+    assert '.concat([{v:"TOTAL",c:"serie corte"}])' in corpo
+    assert '["Item","ATUAL","ANT.","Δ","Δ%","Part. %"].concat(cols.map(rotCol))' in corpo
+
+
 def test_d65_template_monta_o_corte_na_tela():
     """O template nao procura mais o balde pelo rotulo (`D.ban.indexOf`), monta
     a linha Σ do corte de exibicao ele mesmo (`__resto__`) e respeita
