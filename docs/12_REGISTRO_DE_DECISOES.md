@@ -1589,15 +1589,16 @@ Nenhum dos dois é workaround de duplicidade antiga: o `drop_duplicates` é a
 é justamente o que **prova** que a base está limpa — quando está, ele não
 imprime nada.
 
-**Condição de aceite, ainda pendente.** A última execução do pipeline
-(`logs/pipeline_20260902-220859-7291ab.log`, 03/09 01:09) ainda registra
+**Condição de aceite: cumprida em 03/09/2026.** No momento da decisão a última
+execução (`logs/pipeline_20260902-220859-7291ab.log`) ainda registrava
 `aviso 13 cliente(s) com VENDEDOR conflitante no de-para`, e a
-`Hierarquia_Consolidada.xlsx` foi modificada **depois** disso (03/09, 11:54).
-A aposentadoria só está confirmada quando um `python run_pipeline.py` sobre a
-base nova **não** trouxer mais esse aviso. O mesmo reprocessamento dirá se as
-correções declaradas `correcoes_head`/`correcoes_gerente` (`[Vago]` → `[VAGO]`,
-436 + 783 linhas na execução anterior) também ficaram ociosas — se ficarem,
-saem do config em decisão própria.
+`Hierarquia_Consolidada.xlsx` tinha sido modificada depois disso. O
+reprocessamento sobre a base nova (`20260903-155531`, 15:55) **não traz mais o
+aviso**: o desempate na origem está confirmado. As correções declaradas
+`correcoes_head`/`correcoes_gerente` (`[Vago]` → `[VAGO]`) **continuam ativas**
+(433 + 780 linhas nessa execução; eram 436 + 783), portanto não ficaram
+ociosas e ficam no config. (A mesma edição da base derrubou os distribuidores
+no primeiro momento; ver D-61.)
 
 **Legado identificado e mantido por ora.** `ROT_AUSENCIA` no template ainda
 carrega `"SEM UF"`, que é rótulo morto desde a D-51/Q10 (o eixo UF saiu dos
