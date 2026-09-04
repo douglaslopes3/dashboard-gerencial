@@ -187,11 +187,12 @@ mesma ordem.
 comparação (YTD Fiscal / YTD Calendário; a comparação com o ano anterior está
 **embutida**: os meses selecionados contra os mesmos meses do ano anterior),
 Ano, Meses (chips, com `Todos`/`Nenhum`), Canal, Categoria, Head (este só no
-Full) e, desde a D-69, **Gerente, Sup./Exec. e Vend./RCA**: é assim que um
-head vê um subordinado específico em qualquer aba, e um gerente vê um
-executivo. As listas só trazem quem tem dado no recorte; escolher um gerente
-encolhe a lista de Sup./Exec.; no arquivo de um Sup./Exec. só a linha de
-Vend./RCA aparece. Na barra de Período, o seletor **Ver por** (Mês / Trimestre / Semestre /
+Full) e, desde a D-69, **Gerente, Sup./Exec. e Vend./RCA** em listas
+suspensas de escolha única ("Todos" = sem filtro): é assim que um head vê um
+subordinado específico em qualquer aba, e um gerente vê um executivo. As
+listas só trazem quem tem dado no recorte; escolher um gerente encolhe a lista
+de Sup./Exec.; no arquivo de um Sup./Exec. só a linha de Vend./RCA aparece, e
+some se ele mesmo é o único vendedor (D-71). Na barra de Período, o seletor **Ver por** (Mês / Trimestre / Semestre /
 Ano) define a granularidade das colunas e das barras; grupo com menos meses
 que a granularidade pede sai rotulado **(parcial)** ou com `*`. O painel de
 filtros existe em todas as abas: abaixo do gráfico na Visão Geral, no topo

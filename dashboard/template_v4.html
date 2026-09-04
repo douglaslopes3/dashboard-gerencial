@@ -305,10 +305,15 @@ h1 span{color:var(--azul)}
   background:#fff;color:var(--bd);border:1px solid var(--bd)}
 .chip.on .z0{background:rgba(255,255,255,.92);color:#00539f;border-color:#fff}
 .mon-wrap{max-height:78px;overflow:auto}
-/* D-69: as linhas hierarquicas podem ter dezenas de chips no Full (55
-   sup./exec., 203 vendedores) — rolam dentro da linha em vez de empurrar a
-   tela; a cascata pelo dado (escolher head/gerente) as encolhe. */
-.hier-wrap{max-height:104px;overflow:auto}
+/* D-69: os tres niveis hierarquicos sao LISTAS SUSPENSAS de escolha unica
+   (decisao de 04/09): no Full sao 13 gerentes, 55 sup./exec. e 154
+   vendedores — chips nao cabem, e o caso de uso e um subordinado por vez.
+   Mesma tinta dos chips; nada cinza (regra da D-51). */
+.lista{border:1px solid #bfd3e6;border-radius:5px;padding:4px 9px;font-size:12px;
+  min-width:320px;max-width:100%;background:#f7fafd;color:var(--txt);cursor:pointer}
+.lista:hover{border-color:var(--azul);background:#fff}
+.lista.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
+.lista:focus{outline:none;box-shadow:0 0 0 2px rgba(0,83,159,.15)}
 /* D-66 (03/09/2026): campo de busca das abas Bandeiras (bandeira) e
    Categorias (SKU). Acha qualquer item do escopo, dentro ou fora do corte de
    exibicao; sem acento e sem caixa. */
@@ -537,9 +542,13 @@ canvas{max-height:280px}
        escolher um gerente encolhe a lista de Sup./Exec. Projeto, UF e as
        buscas de Bandeira/SKU seguem fora (bandeira e SKU sao dimensoes das
        abas, com busca propria desde a D-66). -->
-  <div class="frow" id="frowGer"><div class="flab">Gerente</div><div class="chips hier-wrap" id="fGer"></div></div>
-  <div class="frow" id="frowSup"><div class="flab">Sup./Exec.</div><div class="chips hier-wrap" id="fSup"></div></div>
-  <div class="frow" id="frowVend"><div class="flab">Vend./RCA</div><div class="chips hier-wrap" id="fVend"></div></div>
+  <!-- Decisao do Douglas (04/09): LISTA SUSPENSA de escolha unica para os
+       tres niveis (55 sup./exec. e 154 vendedores no Full nao cabem em
+       chips; o caso de uso e "um subordinado por vez"). Canal, Categoria e
+       Head seguem em chips. -->
+  <div class="frow" id="frowGer"><div class="flab">Gerente</div><select class="lista" id="fGer"></select></div>
+  <div class="frow" id="frowSup"><div class="flab">Sup./Exec.</div><select class="lista" id="fSup"></select></div>
+  <div class="frow" id="frowVend"><div class="flab">Vend./RCA</div><select class="lista" id="fVend"></select></div>
   <!-- D-54: sem nenhum filtro de dimensao ativo nao ha o que limpar — a linha
        inteira sai da tela (nunca acinzentada, regra global da D-51). -->
   <div class="frow" id="frowLimpar">
@@ -1122,14 +1131,29 @@ function montarFiltros(){
   const rotulos=[...D.perfil];
   const lista=(pos,so)=>[...new Set(rotulos.filter(so||(()=>true)).map(p=>p[pos]))]
     .sort(ausenciaPorUltimo());
-  chips("fGer",  "frowGer",  lista(P_GER),  g=>OPC.ger.has(g),  g=>F.ger.has(g),  g=>g, g=>EXIBE(g));
-  chips("fSup",  "frowSup",  lista(P_SUP),  s=>OPC.sup.has(s),  s=>F.sup.has(s),  s=>s, s=>EXIBE(s));
+  listaSuspensa("fGer",  "frowGer",  lista(P_GER),  OPC.ger,  F.ger);
+  listaSuspensa("fSup",  "frowSup",  lista(P_SUP),  OPC.sup,  F.sup);
   // D-71: vendedor que e o proprio Sup./Exec. nao e opcao — escolher o
   // Sup./Exec. ja e escolher ele.
-  chips("fVend", "frowVend", lista(P_VEND, p=>!vendEhSup(p)),
-        v=>OPC.vend.has(v), v=>F.vend.has(v), v=>v, v=>EXIBE(v));
+  listaSuspensa("fVend", "frowVend", lista(P_VEND, p=>!vendEhSup(p)), OPC.vend, F.vend);
   montarTop();
   el("frowLimpar").hidden = !TEM_FILTRO_DIM();
+}
+/* D-69 (04/09/2026, decisao do Douglas): lista suspensa de escolha unica
+   para os niveis hierarquicos. Mesmas regras dos chips (D-54): so opcoes com
+   dado no recorte atual; a ja selecionada fica mesmo sem dado, marcada
+   "(0)"; a linha some com menos de duas opcoes. "Todos" = sem filtro. O
+   estado continua um Set (vazio ou com um item), entao passaPerfil, o
+   recorte salvo e o export nao mudaram. */
+function listaSuspensa(idSel, idLinha, itens, comDado, sel){
+  const atual = [...sel][0];
+  const vis = itens.filter(x=>comDado.has(x) || x===atual);
+  const s = el(idSel);
+  s.innerHTML = '<option value="">Todos</option>' + vis.map(x=>
+    `<option value="${_xml(x)}"${x===atual?" selected":""}>${
+      _xml(EXIBE(x))}${comDado.has(x)?"":" (0)"}</option>`).join("");
+  s.classList.toggle("on", !!atual);
+  el(idLinha).hidden = vis.length < 2;
 }
 // D-69: um lugar so diz quais sao os filtros de dimensao (estado, limpar, nome
 // do export).
@@ -2113,9 +2137,12 @@ function ligar(){
   ligarChips("fCat", k=>{ alterna(F.cat,+k); montarFiltros(); });
   ligarChips("fCanal", k=>{ alterna(F.can,k); montarFiltros(); });
   ligarChips("fHead", k=>{ alterna(F.head,k); montarFiltros(); });
-  ligarChips("fGer",  k=>{ alterna(F.ger,k);  montarFiltros(); });   // D-69
-  ligarChips("fSup",  k=>{ alterna(F.sup,k);  montarFiltros(); });
-  ligarChips("fVend", k=>{ alterna(F.vend,k); montarFiltros(); });
+  // D-69: listas suspensas de escolha unica — "" = Todos.
+  const ligarLista=(id, campo)=> el(id).addEventListener("change", e=>{
+    F[campo] = new Set(e.target.value ? [e.target.value] : []);
+    montarFiltros(); render();
+  });
+  ligarLista("fGer","ger"); ligarLista("fSup","sup"); ligarLista("fVend","vend");
   ligarChips("topBan", k=>{ F.topBan=+k; montarFiltros(); });
   /* v3 (F1-A): delegacao no container, que montarPeriodo() nunca substitui.
      L3-B: sobrou so o "Ver por" (muda a granularidade da exibicao). */

@@ -2104,11 +2104,16 @@ para o nome do arquivo exportado; "Limpar filtros" limpa os seis filtros.
 universo de 3.415 do arquivo N2, cascata Sup./Exec. 57 → 4 e Vend./RCA
 197 → 25. Arquivo N3 RS/SC: Gerente e Sup./Exec. ocultos, 21 vendedores.
 
-**Em aberto: botão (chip) ou lista suspensa.** Implementado com chips, o mesmo
-componente dos outros filtros; o Douglas pediu avaliação. Medido no Full:
-13 gerentes (+2 Σ), 55 Sup./Exec., 203 Vend./RCA, em linhas com rolagem
-interna. Comparação e escolha na conversa de 04/09; a troca é só na camada de
-desenho (`chips` → `<select>`), o estado e o filtro não mudam.
+**Chip ou lista suspensa: lista suspensa (decisão do Douglas, 04/09).**
+Primeiro saiu com chips; medido no Full eram 13 gerentes (+2 Σ), 55 Sup./Exec.
+e 154 Vend./RCA (depois da D-71) em linhas com rolagem, e o caso de uso é um
+subordinado por vez. Os três níveis viraram `<select>` de escolha única com
+"Todos" no topo (`listaSuspensa`), com as mesmas regras dos chips: só opções
+com dado no recorte, a selecionada fica mesmo sem dado marcada "(0)", linha
+some com menos de duas opções, cascata pelo dado. O estado continua um Set
+(vazio ou um item), então `passaPerfil`, o recorte salvo e o export não
+mudaram. Canal, Categoria e Head seguem em chips (poucas opções, escolha
+múltipla útil).
 
 **Onde.** `template_v4.html` (`passaPerfil`, `TEM_PERFIL`, `DIMS_FILTRO`,
 linhas `frowGer/frowSup/frowVend`, `atualizarOpcoes`, `montarFiltros`,

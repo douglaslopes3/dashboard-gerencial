@@ -21,9 +21,9 @@ no template.
 | **Canal** | `DIM_CLIENTE.CANAL` | N | de `bases/Canais/Canais.xlsx`, 100% de cobertura (D-19) |
 | **Categoria** | `DIM_PRODUTO.CATEGORIA` | N | |
 | **Head** | `DIM_CLIENTE.HEAD` | N | seletor de escopo do **Template Full**; não existe nos arquivos por colaborador (D-52) |
-| **Gerente** | perfil do cubo (N2) | N | D-69: vale nas três abas; cascata pelo dado; some no arquivo em que só há uma opção |
-| **Sup./Exec.** | perfil do cubo (N3) | N | idem |
-| **Vend./RCA** | perfil do cubo (N4) | N | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível. Vendedor que é o próprio Sup./Exec. (mesma pessoa, D-71) não é opção |
+| **Gerente** | perfil do cubo (N2) | 1 (lista suspensa) | D-69: vale nas três abas; cascata pelo dado; some no arquivo em que só há uma opção |
+| **Sup./Exec.** | perfil do cubo (N3) | 1 (lista suspensa) | idem |
+| **Vend./RCA** | perfil do cubo (N4) | 1 (lista suspensa) | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível. Vendedor que é o próprio Sup./Exec. (mesma pessoa, D-71) não é opção |
 
 Saíram na D-51 (Q9) e não voltaram: Projeto e UF (o eixo UF saiu dos cubos,
 Q10; projeto continua no perfil do cubo, sem filtro na tela). Bandeira e SKU

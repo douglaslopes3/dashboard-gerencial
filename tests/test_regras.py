@@ -833,8 +833,10 @@ def test_d69_filtro_hierarquico_vale_nos_dois_cubos():
                   "F.vend.has(p[P_VEND])", "ger:[...F.ger]",
                   'DIMS_FILTRO = ["cat","can","head","ger","sup","vend"]'):
         assert termo in corpo, f"template v4 perdeu o filtro hierarquico: {termo}"
-    # a lista de chips nao pode ser nominal (D-54): sai do perfil do cubo
+    # lista suspensa (decisao de 04/09), alimentada pelo perfil do cubo (D-54)
+    assert "function listaSuspensa" in corpo
     assert "lista(P_GER)" in corpo and "lista(P_VEND, p=>!vendEhSup(p))" in corpo
+    assert '<select class="lista" id="fGer">' in corpo
 
 
 def test_d71_vendedor_que_e_o_proprio_sup_nao_desce_um_nivel():

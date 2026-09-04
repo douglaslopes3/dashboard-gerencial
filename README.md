@@ -97,7 +97,7 @@ FILTRO HIERARQUICO (D-69)    Gerente, Sup./Exec. e Vend./RCA no painel de
                              filtros, valendo nas 3 abas (o head ve um
                              subordinado especifico em Bandeiras/Categorias);
                              so opcoes com dado, cascata, some onde ha 1 opcao.
-                             Chip ou lista suspensa: em avaliacao (04/09)
+                             Lista suspensa de escolha unica (decisao 04/09)
 SEM RODAPE NOS CARDS (D-70)  as notas explicativas sob grafico e matrizes
                              sairam; contagens ficam na propria tabela
 SUP = VENDEDOR (D-71)        Sup./Exec. que e o proprio Vend./RCA (mesma
