@@ -1028,6 +1028,58 @@ Full (matriz hierarquica)        ultimas linhas: "Sem estrutura comercial" e
 unitario                         texto vem do config, nao do template
 ```
 
+## Rodada de 04/09/2026 (D-69 a D-71) e publicacao
+
+```
+unitarios                        63/63
+pipeline (20260904-001046)       exit 0 · perfis 517 com 7 elementos (flag D-71)
+                                 · 88 perfis "vendedor = sup" · cubos 495.037 /
+                                 680.530 · 10.348 bandeiras
+geracao + publicacao             73 arquivos em 28 s · particionamento N1 = N2 =
+                                 N3 ao centavo (2.325.132.314,95) · 72 pastas +
+                                 Full na raiz, MD5 conferido (Full bf487afd...)
+                                 · publicacao religada com o ok do Douglas
+navegador                        Full, N1 Distribuicao, N2 Sul/CO, N3 RS/SC,
+                                 N3 Deodato Carmo: console zero erros
+```
+
+## T-56 · Filtro hierarquico em lista suspensa (D-69)
+
+```
+Full, Sup./Exec. = RS/SC          KPI R$ 67,7 mi (o mesmo do arquivo N3 dele);
+                                 lista de Gerente 16 -> 2 opcoes (Todos + o
+                                 dele); Vend./RCA 155 -> 22; matriz so com o
+                                 ramo; Bandeiras com as 2.930 do escopo dele
+Full, Gerente = Sul/CO (chips,   KPI R$ 129,6 mi = arquivo N2; Sup./Exec.
+antes da troca para lista)       57 -> 4; Bandeiras universo 3.415
+N3 RS/SC                         linhas Gerente e Sup./Exec. ocultas; Vend./RCA
+                                 com 21 opcoes
+unitario                         passaPerfil, listas, DIMS_FILTRO, recorte
+```
+
+## T-57 · Sem notas de rodape (D-70)
+
+```
+DOM                              0 elementos .note nos 73 arquivos (medido no
+                                 Full); notaMatriz ausente do template
+unitario                         guarda textual
+```
+
+## T-58 · Vend./RCA = Sup./Exec. nao desce um nivel (D-71)
+
+```
+base                             0 pares com rotulo igual · 0 com codigo igual ·
+                                 43 de 203 com o mesmo NOME · 37 de 55 sups com
+                                 um unico vendedor (ele mesmo) · 88 perfis
+N3 Deodato Carmo                 matriz de UMA linha sem expansor; Gerente,
+                                 Sup./Exec. e Vend./RCA ocultos
+Full                             gerente Sudeste aberto: os 5 Sup./Exec. sem
+                                 expansor; lista Vend./RCA 197 -> 154
+unitario                         flag na posicao 6; "[VAGO - JOAO 1]" com " - "
+                                 dentro dos colchetes casa; rotulos de ausencia
+                                 e nomes diferentes nao casam
+```
+
 ## T-49 · Cliente RTM herda a bandeira do distribuidor (D-59)
 
 ```

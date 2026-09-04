@@ -12,7 +12,7 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 
 ---
 
-## Estado atual — medido em 03/09/2026 (execucao 20260903-155531; ago/26 fechado + set/26 parcial)
+## Estado atual — medido em 04/09/2026 (execucao 20260904-001046; ago/26 fechado + set/26 parcial)
 
 ```
 29 arquivos de Sell In       3.130.712 linhas de origem   25 meses (2024-09 a 2026-09)
@@ -347,13 +347,34 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 08 | [Especificação funcional](docs/08_ESPECIFICACAO_FUNCIONAL_DASHBOARD.md) |
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
-| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-55 |
+| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-58 |
 | 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-71, com o porquê |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
 | — | [AUDIT.md](AUDIT.md) — auditoria de 5 camadas com medição; achados, correções (✔) e o que ficou aberto |
 | — | [docs/pedidos/](docs/pedidos/) — material pronto para encaminhar ao Comercial e ao BI |
+
+## Roadmap — fechamento de 04/09/2026
+
+**Feito em 03 e 04/09 (D-54 a D-71, tudo publicado em 04/09 ~00:25):**
+visibilidade dinâmica dos botões · formatação única · desempate N4 na origem ·
+nomes sem sufixo · RTM herda bandeira · pasta `ferramentas/` · incidente da
+cobertura registrado · pedido Q5 gerado · abertura no FY até o último mês
+fechado · todas as bandeiras no arquivo com corte só de exibição · busca por
+bandeira e SKU · colunas de decisão primeiro · rótulos Σ de leitor · filtro
+hierárquico em lista suspensa · sem notas de rodapé · Sup./Exec. que é o
+próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
+
+**Próximo passo, por responsável:**
+
+| Quem | O quê | Quando |
+|---|---|---|
+| **Douglas** | compartilhar as 72 pastas de `Painéis Comerciais\Gerencial\` com os colaboradores (P7) | 04/09, após a apresentação |
+| **Douglas → Comercial** | enviar `docs/pedidos/pedido_Q5_hierarquia_158.{xlsx,md}` (P8) e cobrar os 117 sem estrutura (P1) | esta semana |
+| **Douglas → BI** | confirmar o recorte de extração oficial do Sell In (P9) | esta semana |
+| **Próxima rodada do painel** (decisão do Douglas antes de abrir) | cubo de **cliente** só nos arquivos N2/N3 (medido: N3 mediana 4.447 linhas, RS/SC 139.653; inviável no Atacado); quebra por **canal** como dimensão (hoje só filtro); Vendedor × Bandeira para o executivo | quando ele pedir |
+| **Operação diária** | `python run_pipeline.py` + `python run_dashboard.py` (publica sozinho); ver docs/10 | todo dia |
 
 ## Pendências abertas no encerramento — e de quem dependem
 
@@ -367,7 +388,8 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | P4 | Caixas na devolução: pedir `Qtde` negativa ao BI (opção A), estimar pelo fator kg/caixa (B, cobre 98,6%) ou manter bruta (C, atual) | **Douglas decide** + BI | 0,28% das caixas | GAP-04 e a tabela de opções na conversa de 26/08 |
 | P5 | 4 SKUs fora do `Produtos.xlsx` (eram 7) | **Cadastro de Produtos** | R$ 1,04 mi (0,04%) | `data/quality/skus_sem_cadastro.csv` |
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
-| P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática) | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
+| P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática). Os 73 arquivos publicados em 04/09 ~00:25 já são os da rodada D-63 a D-71 | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
+| P10 | Próxima rodada do painel: cubo de cliente (N2/N3), canal como dimensão, Vendedor × Bandeira | **Douglas decide** | ver Roadmap acima | crítica de 03/09 (docs/12 D-63 a D-71) |
 
 ---
 
