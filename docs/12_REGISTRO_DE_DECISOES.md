@@ -1659,3 +1659,37 @@ posterior a ele), então o balde lá é sempre o global — que é o número cer
 o arquivo único que ele produz.
 
 **Rollback.** git (commit da D-56).
+
+
+---
+
+## D-58 · "_Canais_v4" sai dos nomes de arquivo (03/09/2026)
+
+**Pedido do Douglas.** Os entregáveis passam a se chamar:
+
+| Antes | Agora |
+|---|---|
+| `Dashboard_Gerencial_Canais_v4.html` | `Dashboard_Gerencial.html` |
+| `Dashboard_Gerencial_Canais_v4_N1_10-distribuicao-michel-meira.html` | `Dashboard_Gerencial_N1_10-distribuicao-michel-meira.html` |
+
+**Como.** Dois parâmetros do `config/config.yaml` (`dashboard.arquivo_saida` e
+`dashboard.por_nivel.prefixo`) mais o valor de fallback em `run_dashboard.py`,
+que existe só para o caso de a chave sumir do config. **Nenhuma linha de lógica
+mudou**; o nome do arquivo nunca foi hardcode.
+
+**Por quê faz sentido.** Sufixo de versão no nome do entregável envelhece: o
+leitor não precisa saber que template gerou o painel dele, e a versão já é
+rastreada onde importa: em `dashboard.template` no config e no git.
+
+**Consequência operacional (atenção).** A publicação copia **substituindo pelo
+mesmo nome**, e a geração **não apaga o que ela não criou** (D-52). Então, na
+primeira execução com os nomes novos, cada uma das 72 pastas de usuário ficou com
+**dois** arquivos: o novo e o `..._Canais_v4...` antigo, congelado nos dados de
+03/09/2026. O recolhimento dos antigos é tratado na D-60.
+
+**Links já compartilhados apontam para o nome antigo** e passariam a servir um
+arquivo que nunca mais se atualiza. Como as 72 pastas ainda não haviam sido
+compartilhadas (pendência aberta desde a D-52), este é o momento de menor custo
+para renomear; depois de distribuídos, os links quebrariam.
+
+**Rollback.** Devolver as duas strings no config; nada mais muda.

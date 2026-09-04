@@ -261,7 +261,11 @@ dashboard:
   # hierarquica). O template_v3.html fica na pasta como retorno rapido, com a
   # ressalva: ele le cubos COM o eixo UF — para reativa-lo e preciso voltar
   # tambem o pipeline (git checkout do commit da D-50 ou anterior).
-  arquivo_saida: "Dashboard_Gerencial_Canais_v4.html"
+  # D-58 (03/09/2026, pedido do Douglas): "_Canais_v4" saiu dos nomes de
+  # arquivo. O sufixo de versao no nome do entregavel envelhece — a versao do
+  # template ja e rastreada no config (`template:`) e no git. Nomes novos:
+  # Dashboard_Gerencial.html e Dashboard_Gerencial_<NIVEL>_<colaborador>.html
+  arquivo_saida: "Dashboard_Gerencial.html"
   template: "dashboard/template_v4.html"
   pasta_saida: "dashboard/build"
   libs:
@@ -297,7 +301,7 @@ dashboard:
       N1: 0
       N2: 1
       N3: 2
-    prefixo: "Dashboard_Gerencial_Canais_v4_"
+    prefixo: "Dashboard_Gerencial_"
 
   # D-52 + Q13 (decisao do Douglas, 02/09/2026): publicar SUBSTITUINDO nas
   # pastas por usuario em Paineis Comerciais\Gerencial\ — o Douglas

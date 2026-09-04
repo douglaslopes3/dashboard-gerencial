@@ -349,7 +349,7 @@ def main() -> int:
         sem_estrutura = CFG["dimensoes"]["rotulo_sem_estrutura"]
         rotulo_inativo = CFG["dimensoes"].get("rotulo_inativo")
         fora = {sem_estrutura, rotulo_inativo}
-        prefixo = pn.get("prefixo", "Dashboard_Gerencial_Canais_v4_")
+        prefixo = pn.get("prefixo", "Dashboard_Gerencial_")
         pub = _DASH.get("publicacao") or {}
         destino = caminho(pub["destino"]) if pub.get("ativo") else None
         rec_total = sum(l[4] for l in pacote["cubo"])      # centavos, exato
