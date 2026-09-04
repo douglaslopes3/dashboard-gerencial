@@ -297,6 +297,10 @@ h1 span{color:var(--azul)}
 .busca{border:1px solid #bfd3e6;border-radius:5px;padding:4px 9px;font-size:12px;
   min-width:280px;background:#fff;color:var(--txt)}
 .busca:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 2px rgba(0,83,159,.15)}
+/* a linha de busca mora dentro do card da matriz: sem a divisoria tracejada
+   do painel de filtros, com respiro antes da tabela */
+.card .busca-linha{border-bottom:0;padding:0 0 8px;margin-top:-4px}
+.card .busca-linha .flab{padding-top:5px}
 .mini{border:1px solid #bfd3e6;background:#f7fafd;border-radius:5px;
   padding:3px 9px;font-size:11px;cursor:pointer;color:var(--txt2)}
 .mini:hover{border-color:var(--azul);color:var(--azul);background:#fff}
@@ -537,12 +541,6 @@ canvas{max-height:280px}
 </div>
 
 <div class="panel" id="band">
-  <!-- D-66: busca por bandeira. Acha qualquer bandeira do escopo, inclusive
-       as que o corte de exibicao (Top) somou na linha Σ. -->
-  <div class="frow" id="frowBuscaBan">
-    <div class="flab">Buscar</div>
-    <input class="busca" id="bBan" placeholder="bandeira… (qualquer uma do escopo, mesmo fora do Top)" autocomplete="off">
-  </div>
   <div class="frow" id="frowTop" style="margin-bottom:10px">
     <div class="flab">Top</div><div class="chips" id="topBan"></div>
   </div>
@@ -554,6 +552,13 @@ canvas{max-height:280px}
   </div>
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Bandeiras <small id="sBan"></small></h3>
+      <!-- D-66: a busca fica DENTRO do card, colada na matriz que ela filtra
+           (pedido do Douglas, 03/09). Acha qualquer bandeira do escopo,
+           inclusive as que o corte de exibicao (Top) somou na linha Σ. -->
+      <div class="frow busca-linha" id="frowBuscaBan">
+        <div class="flab">Buscar</div>
+        <input class="busca" id="bBan" placeholder="bandeira… (qualquer uma do escopo, mesmo fora do Top)" autocomplete="off">
+      </div>
       <div class="scroll"><table id="tabBan"></table></div>
       <div class="note" id="nBan"></div></div>
   </div>
@@ -563,12 +568,6 @@ canvas{max-height:280px}
      (Step 2.4), com a dimensao trocada: analise por CATEGORIA e matriz
      expansivel Categoria > SKU. Sem seletor "Top": sao 12 categorias. -->
 <div class="panel" id="catg">
-  <!-- D-66: busca por SKU (codigo ou descricao). A categoria do SKU achado
-       abre sozinha enquanto a busca estiver ativa. -->
-  <div class="frow" id="frowBuscaSku" style="margin-bottom:10px">
-    <div class="flab">Buscar</div>
-    <input class="busca" id="bSku" placeholder="SKU… (código ou descrição)" autocomplete="off">
-  </div>
   <div class="grid" style="grid-template-columns:1fr 1fr">
     <div class="card"><h3 style="color:var(--gd)">▲ Maiores ganhos <small id="sGanhoC"></small></h3>
       <div id="ganhoCat"></div></div>
@@ -577,6 +576,12 @@ canvas{max-height:280px}
   </div>
   <div class="grid" style="grid-template-columns:1fr">
     <div class="card"><h3>Categorias <small id="sCat"></small></h3>
+      <!-- D-66: busca por SKU (codigo ou descricao), dentro do card, colada na
+           matriz. A categoria do SKU achado abre sozinha. -->
+      <div class="frow busca-linha" id="frowBuscaSku">
+        <div class="flab">Buscar</div>
+        <input class="busca" id="bSku" placeholder="SKU… (código ou descrição)" autocomplete="off">
+      </div>
       <div class="scroll"><table id="tabCat"></table></div>
       <div class="note" id="nCat"></div></div>
   </div>

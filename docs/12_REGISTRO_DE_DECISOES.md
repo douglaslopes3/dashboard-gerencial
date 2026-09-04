@@ -2006,8 +2006,11 @@ exibição". Busca por bandeira e por SKU: D-66.
 Com todas as bandeiras no arquivo (D-65) e 157 a 9.490 linhas possíveis no
 Atacado, "achar uma bandeira específica" voltou a ser pedido do Douglas.
 
-**Decisão.** Campo de busca no topo da aba **Bandeiras** (por nome de
-bandeira) e da aba **Categorias** (por código ou descrição de SKU). Regras:
+**Decisão.** Campo de busca **dentro do card da matriz**, logo acima da
+tabela, na aba **Bandeiras** (por nome de bandeira) e na aba **Categorias**
+(por código ou descrição de SKU). Primeiro ficou no topo da aba, antes dos
+destaques; o Douglas pediu mais perto da matriz que ele filtra (03/09, noite).
+Regras:
 
 - sem acento e sem caixa ("confianca" acha "CONFIANÇA");
 - **ignora o corte de exibição**: o que se procura aparece nominalmente,
