@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""DIAGNOSTICO da queda de cobertura da estrutura comercial (03/09/2026).
+"""DIAGNOSTICO da queda de cobertura da estrutura comercial (03/09/2026, D-61).
 
-    python diagnostico_cobertura.py
+    python ferramentas/diagnostico_cobertura.py
 
-Script TEMPORARIO de investigacao. NAO altera base, config, cubo nem Parquet:
-so le, mede e escreve DUAS listas novas em data/quality/ para o Comercial.
-Pode ser apagado depois — nada do pipeline depende dele.
+Ferramenta de investigacao (nao e etapa do pipeline). NAO altera base, config,
+cubo nem Parquet: so le, mede e escreve DUAS listas novas em data/quality/
+para o Comercial. Rode sempre que o pipeline abortar no piso de cobertura da
+estrutura depois de uma edicao da Hierarquia_Consolidada.xlsx.
 
 POR QUE ELE EXISTE
 ------------------
@@ -37,6 +38,11 @@ mesmas funcoes — nenhuma regra e reimplementada aqui.
 from __future__ import annotations
 
 import sys
+from pathlib import Path
+
+# O script mora em ferramentas/, fora da raiz: a raiz entra no path para os
+# imports de src/ funcionarem de qualquer pasta.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 for _fluxo in (sys.stdout, sys.stderr):
     try:

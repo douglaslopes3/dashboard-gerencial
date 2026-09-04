@@ -1763,3 +1763,90 @@ lugares): docstring de `saneamento.py`, comentário `fontes.rtm_transicao` do
 config, `docs/05 §2b`, `docs/06 §2.3` e o §7b do relatório de qualidade.
 
 **Rollback.** `rtm_herda_bandeira: false` no config + reprocessamento. Sem git.
+
+
+---
+
+## D-60 · Recolhimento dos painéis antigos da publicação: ferramenta, não regra do gerador (03/09/2026)
+
+**Contexto.** A D-58 renomeou as saídas e a publicação copia substituindo pelo
+mesmo nome; a geração **não apaga o que ela não criou** (D-52, deliberado: um
+script que apaga arquivo na pasta de outra pessoa é um script que um dia apaga
+o errado). Resultado medido às 15:08 de 03/09: cada uma das 72 pastas de usuário
+com **dois** painéis, o novo e o `..._Canais_v4...` congelado.
+
+**Decisão.** O gerador continua sem apagar nada. O recolhimento vira uma
+**ferramenta separada**, `ferramentas/limpar_paineis_antigos.py`, com três
+propriedades:
+
+- decide o que é "antigo" **calculando** a lista que a geração atual produz
+  (mesmo config, mesmo `cubos.json`, mesmas funções de nome do gerador), e não
+  por lista de nomes nem por "contém `_Canais_v4`": assim pega também restos de
+  versões anteriores e de colaboradores que saíram da estrutura;
+- **não apaga**: move para `_ANTIGOS_PARA_APAGAR/` dentro do próprio destino,
+  preservando de qual pasta cada arquivo veio (mesmo padrão da `_arquivo/`,
+  D-53); apagar a quarentena é ato humano;
+- **guarda**: se faltar qualquer painel da geração atual no destino, aborta sem
+  mover nada. Arquivo esperado faltando significa que a geração não rodou
+  depois da renomeação, e nesse estado o "antigo" pode ser o único painel que a
+  pessoa tem.
+
+**O que aconteceu em 03/09.** O script rodou em modo de listagem (73 antigos,
+41 MB) e o Douglas **apagou os 73 à mão** na sequência; a publicação das 15:56
+já saiu limpa: 73 arquivos, zero `_Canais_v4`, zero quarentena (medido). O
+pendente da D-52 ("apagar os v3 de 01/09 na raiz") também já estava resolvido
+desde 02/09 à noite.
+
+**Quando rodar.** Depois de `python run_dashboard.py`, sempre que
+`dashboard.arquivo_saida` ou `dashboard.por_nivel.prefixo` mudar, ou quando um
+colaborador sair da estrutura (a pasta dele fica com um painel que ninguém mais
+gera). Registrado em `docs/10` e `docs/14`.
+
+**Rollback.** Não há: a ferramenta não altera o gerador.
+
+
+---
+
+## D-61 · Cobertura despencou para 75,40% depois de uma edição da hierarquia: a cascata do RTM (03/09/2026)
+
+**O que aconteceu.** Para incorporar o desempate dos vendedores N4 na origem
+(D-56), o Douglas ajustou a `Hierarquia_Consolidada.xlsx` (11:54; 14.054 →
+13.427 linhas) e, no ajuste, os **distribuidores ficaram de fora** da base. A
+execução `20260903-134305` abortou no piso:
+
+```
+cobertura de estrutura comercial sobre a receita: 75.40% (piso: 95%)
+```
+
+A execução anterior (`20260902-220859`) media 97,65% sobre a **mesma fato**; só
+a hierarquia tinha mudado. O Douglas restaurou os distribuidores (14:06) e o
+pipeline voltou a 97,64% (`20260903-150325`), depois 97,65% com a carga nova de
+set/26 (`20260903-155531`; base final 13.516 clientes na hierarquia).
+
+**Por que um punhado de códigos derruba um quarto da receita.** O saneamento
+faz o cliente RTM herdar do distribuidor a hierarquia **e o `NA_ESTRUTURA`**
+(`_HERDA_DO_DISTRIBUIDOR`, D-50). Se um distribuidor sai da hierarquia, **todos
+os clientes que apontam para ele caem junto**: os 27 distribuidores carregam,
+além do próprio faturamento, os 1.596 clientes RTM (R$ 82,76 mi). É a cascata
+funcionando como desenhada, e o piso de 95% abortando como desenhado: ele
+existe exatamente para não publicar um painel com um quarto da receita num
+balde de "NÃO ATRIBUÍDO".
+
+**Decisão.** Nenhuma regra muda. O que muda é o **diagnóstico**, que passou a
+existir como ferramenta (`ferramentas/diagnostico_cobertura.py`, que repete o
+caminho do pipeline até a DIM_CLIENTE com as mesmas funções): mede o tamanho do
+buraco, lista quem ficou fora, testa a hipótese da cascata (distribuidores do
+de-para RTM sem linha na hierarquia, e quanto cada um arrasta) e separa causa
+de conteúdo (linhas removidas) de causa técnica (chave zero-preenchida que
+parou de casar). A tabela de erros do `docs/10` e a ficha da
+`Hierarquia_Consolidada` no `docs/14 §2.2` passam a apontar para ele; o
+texto antigo mandava conferir o `Hierarquia_Complemento`, aposentado na D-49.
+
+**Lição operacional, para quem editar a hierarquia.** Antes de salvar a
+`Hierarquia_Consolidada.xlsx`, conferir que os códigos dos **27 distribuidores**
+do `RTM_DePara_Transicao.xlsx` continuam nela. Depois de salvar, rodar o
+pipeline; se abortar no piso, rodar o diagnóstico antes de mexer em
+`validacao.cobertura_minima_head` (afrouxar o piso aqui seria esconder o erro,
+não corrigi-lo).
+
+**Rollback.** Não se aplica: nada foi alterado no pipeline.
