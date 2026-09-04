@@ -348,7 +348,7 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-58 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-71, com o porquê |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-71, com o porquê; ao fim, a proposta em aberto de 04/09 (aba Bandeiras por cliente) |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
@@ -389,7 +389,7 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 | P5 | 4 SKUs fora do `Produtos.xlsx` (eram 7) | **Cadastro de Produtos** | R$ 1,04 mi (0,04%) | `data/quality/skus_sem_cadastro.csv` |
 | P6 | Drill Canal/Projeto → **Cliente** (bloqueios B1/B3: cliente não é dimensão de cubo; embutir multiplica o HTML × carregar sob demanda quebra o "um arquivo") | **Douglas decide** | ver D-30 | docs/12 |
 | P7 | **Compartilhar as 72 pastas** de `Painéis Comerciais\Gerencial\` com os respectivos colaboradores (modelo D-52/Q13; as 5 decisões D-a a D-e foram superadas ou resolvidas na prática). Os 73 arquivos publicados em 04/09 ~00:25 já são os da rodada D-63 a D-71 | **Douglas** (04/09/2026, após a apresentação) | 72 pastas | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
-| P10 | Próxima rodada do painel: cubo de cliente (N2/N3), canal como dimensão, Vendedor × Bandeira | **Douglas decide** | ver Roadmap acima | crítica de 03/09 (docs/12 D-63 a D-71) |
+| P10 | Próxima rodada do painel: cubo de cliente (N2/N3), canal como dimensão, Vendedor × Bandeira. **Em 04/09 à tarde a abertura por cliente na aba Bandeiras foi analisada e medida (opção A: cliente no cubo principal, RTM acumulado sob o distribuidor); está registrada como proposta em aberto no docs/12, com 6 decisões pendentes** | **Douglas decide** | ver Roadmap acima e a proposta | crítica de 03/09 (docs/12 D-63 a D-71) e proposta em aberto (docs/12, fim) |
 
 ---
 

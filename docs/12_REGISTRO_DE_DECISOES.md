@@ -2180,3 +2180,196 @@ do pipeline. Rótulos de ausência nunca casam (teste).
 Sup./Exec. já incluía as vendas dele.
 
 **Rollback.** git.
+
+---
+
+## PROPOSTA EM ABERTO (04/09/2026) · Aba Bandeiras com o nível Cliente e a linha RTM acumulada
+
+**Estado: analisada e medida, SEM decisão. Nada foi implementado.** Quando o
+Douglas decidir, vira D-72 com as respostas às perguntas do fim desta seção.
+A maquete estática (CSS do template, números reais de FY2026) foi apresentada
+em 04/09 à tarde; é só desenho, não está no repositório.
+
+**Pedido do Douglas.** "Avalie a possibilidade de, na aba Bandeiras, ter a
+abertura por cliente na matriz hierárquica." Depois de ver a maquete: "os
+clientes RTM não devem aparecer na matriz de bandeira do canal de
+Distribuição; talvez seja interessante trazer acumulado: DIST. CLAUMAR ->
+CLAUMAR 23,9 mi + RTM (soma dos clientes)". E: "gostei muito da opção, mas
+preciso mapear os riscos, lembrando que os dashboards já estão compartilhados".
+
+### O que existe e o que falta
+
+A matriz da aba Bandeiras é a mesma `matrizNiveis` da Visão Geral, que aceita
+N níveis e já renderiza quatro. Trocar `["Bandeira","Categoria"]` por
+`["Bandeira","Cliente","Categoria"]` é só o `pathFn`. O bloqueio é o dado:
+cliente não é eixo de nenhum cubo (D-30, mantido até hoje). Para abrir por
+cliente, o cliente tem de entrar no cubo principal.
+
+### Medido em 04/09/2026 (execução 20260904-131459, 3.131.629 linhas de fato)
+
+Cardinalidade: **9.611 das 10.350 bandeiras têm um único cliente** (a
+bandeira é o próprio cliente; R$ 919,6 mi, 39,5% da receita). Só 739 têm mais
+de um (R$ 1.407,3 mi). Por escopo:
+
+| Escopo | Bandeiras | Com mais de 1 cliente | Receita nessas |
+|---|---|---|---|
+| N1 Atacado | 9.489 | 542 | 30% |
+| N1 Distribuição | 66 | 36 | 69% |
+| N2 Sul/CO | 3.415 | 233 | 26% |
+| N3 RS/SC | 2.930 | 180 | 24% |
+
+Logo, a regra da D-71 tem de valer aqui: **bandeira com um filho só não ganha
+expansor**, senão 93% das linhas abrem para repetir a si mesmas.
+
+Custo no dado (gzip+base64, como viaja no HTML):
+
+| Escopo | Cubo hoje | A: cliente no cubo principal | A com RTM acumulado | B: cubo de cliente à parte, sem categoria | Nomes |
+|---|---|---|---|---|---|
+| Full | 495.628 linhas, 7,19 MB | 831.155, 11,93 MB | 724.744 (cerca de 10,4 MB) | 157.761, 2,66 MB | 0,25 MB (16.140) |
+| N1 Atacado | 437.993, 6,23 MB | 503.215, 7,47 MB | idem (sem RTM) | 101.914, 1,70 MB | 0,19 MB (11.147) |
+| N1 Distribuição | 12.770, 0,21 MB | 119.552, 1,53 MB | 18.654 | 20.140, 0,32 MB | 0,03 MB (1.684) |
+| N2 Sul/CO | 156.269, 2,11 MB | 184.312, 2,58 MB | idem | 36.550, 0,59 MB | 0,07 MB (4.094) |
+| N3 RS/SC | 128.303, 1,70 MB | 139.763, 1,95 MB | idem | 28.901, 0,46 MB | 0,06 MB (3.339) |
+
+RTM (só existe no head de Distribuição: 1.596 clientes com fato; os 166 sem
+distribuidor estão fora da hierarquia): 25 das 66 bandeiras têm RTM; a soma
+RTM é R$ 39,7 mi dos R$ 278,7 mi do head no FY2026; só 14 bandeiras têm mais
+de um CNPJ próprio. Os pontos migrados ainda faturam direto cerca de R$ 3 mi
+por mês até ago/26.
+
+| Bandeira | CNPJs próprios | Clientes RTM | Próprio FY26 | RTM FY26 |
+|---|---|---|---|---|
+| DIST. CLAUMAR | 1 | 109 | 20,9 mi | 3,1 mi |
+| DIST. LOBO | 1 | 0 | 15,7 mi | 0 |
+| DIST. CENTRAL | 1 | 1 | 14,9 mi | 0,1 mi |
+| DIST. DISO | 1 | 355 | 0,8 mi | 8,5 mi |
+| DIST. CHUA | 2 | 2 | 9,1 mi | 0 |
+| DIST. PELLAH | 1 | 280 | 0,5 mi | 8,5 mi |
+
+Carga do Full publicado, medida no navegador em 04/09, e projeção proporcional
+às linhas da opção A com RTM acumulado:
+
+| Full | Hoje | Opção A (projeção) |
+|---|---|---|
+| Linhas do cubo principal | 495.628 | 724.744 (+46%) |
+| Arquivo | 14,96 MB | cerca de 18,4 MB |
+| Abertura | 1,15 s | cerca de 1,5 s |
+| Memória do navegador (heap) | 170 MB | cerca de 230 MB |
+| Renderizar a aba Bandeiras | 0,68 s | cerca de 1,0 s |
+| Folga até o teto de 25 MB (D-48), a 4% ao mês | 13 meses | 8 meses |
+
+Arquivos compartilhados: Atacado 11,1 para cerca de 12,4 MB; Distribuição
+1,25 para 1,5; Sul/CO 3,8 para 4,3; RS/SC 3,1 para 3,4. O teto de 25 MB foi
+fixado na D-48 por duplo clique em máquina corporativa e anexo de e-mail; só
+o Full chega perto, e o Full não é compartilhado.
+
+### Como ficaria (opção A, a preferida na análise)
+
+- **Nível 0, bandeira**: igual a hoje (Top N + Σ no Full e N1, todas no N2 e
+  N3, busca, ganhos/quedas). Ganha o expansor ▸ só quando tem mais de um filho.
+- **Nível 1, cliente**: rótulo `código - nome` (o nome vem truncado em 35
+  caracteres do Sell In; há nomes iguais com códigos diferentes, por isso o
+  código). Na Distribuição, sob o distribuidor ficam os CNPJs próprios dele e
+  **uma** linha Σ "RTM (soma de N clientes)" com o histórico direto dos pontos
+  migrados; nenhum cliente RTM aparece nominalmente. A linha RTM abre por
+  categoria como as outras e fica por último entre os filhos.
+- **Nível 2, categoria**: o que cada cliente compra.
+- Pai = soma dos filhos por construção, Total geral = KPI, exportação das
+  linhas visíveis, como hoje. **Nenhum número do nível bandeira muda.**
+
+Quando os RTM pararem de comprar direto: a linha RTM vai a "–" nos meses
+novos e aparece com queda contra o ano anterior; o CNPJ do distribuidor sobe;
+a bandeira soma os dois e é o número comparável (é o propósito da D-59). Os
+ganhos/quedas da aba são por bandeira, então não há queda falsa. O cliente
+RTM **nunca é inativado pelo saneamento** (a regra RTM tem precedência sobre a
+base Faltando, `saneamento.py`), então o histórico não vai para "Inativos".
+Quando período e LY ficarem sem faturamento direto, a linha some sozinha, sem
+limpeza manual (a matriz só cria nó a partir de linhas dos meses
+selecionados). Condição: a base RTM_DePara_Transicao tem de continuar com
+esses clientes; tirar um de lá devolve o histórico dele à bandeira original e,
+como não está na Consolidada, a "Sem estrutura comercial".
+
+Rotas alternativas medidas: **B**, cubo de cliente à parte sem categoria (+2,9
+MB no Full, mas só Bandeira → Cliente e a aba precisaria de um seletor "abrir
+por Categoria ou por Cliente", dois cubos para reconciliar); **C**, opção A só
+nos arquivos N2/N3 (o P10 original), reagregando sem cliente para Full e N1,
+que deixa de fora o head da Distribuição, quem mais ganharia.
+
+### Riscos mapeados
+
+Para quem já tem o link:
+
+1. **Publicação sem homologação.** Qualquer `run_dashboard.py` com o código
+   novo substitui os 73 arquivos na hora. Mitigação (a da D-63): desligar
+   `dashboard.publicacao.ativo` durante a rodada, gerar em `dashboard/build`,
+   conferir, religar só com o ok do Douglas.
+2. **Rollback**: `git revert` + gerador republica a versão anterior em cerca
+   de 12 s; o SharePoint guarda o histórico de versões como segundo caminho.
+   Quem estiver com o arquivo aberto segue na versão antiga até reabrir.
+3. **Mudança de hábito.** Na ordem Bandeira → Cliente → Categoria a categoria
+   desce um clique. A ordem Bandeira → Categoria → Cliente mantém o de hoje
+   intacto e só acrescenta um nível abaixo, mas separa a cesta do cliente por
+   categoria. O grão da opção A serve às duas; é a decisão de maior impacto no
+   usuário.
+4. **Nada guardado no navegador quebra**: a chave `dashDoriCanais.recorte.v5`
+   guarda só filtros; a expansão (`EXP`) vive em memória. Não precisa trocar a
+   chave.
+5. **Nomes de cliente em arquivo compartilhado**: dado novo. O N1 Atacado
+   levaria 11.147 razões sociais; o recorte físico da D-52 garante que cada
+   arquivo leva só os clientes do próprio escopo, e são clientes que essas
+   pessoas já veem no ERP. Decisão do Douglas mesmo assim.
+6. **Arquivo maior no SharePoint**: +1,3 MB no Atacado, menos de 0,5 MB nos
+   demais.
+
+Dado e regra de negócio:
+
+7. **RTM acumulado depende** de `saneamento.rtm_herda_bandeira: true` (senão o
+   RTM não está sob o distribuidor) e da base RTM continuar com os clientes.
+   A regra tem de ser "acumula só quando herdou a bandeira".
+8. Os **166 RTM sem distribuidor** ficam nominais sob a própria bandeira, e só
+   no Full (não entram em arquivo de nível nenhum).
+9. **Identidade do cliente**: nome truncado em 35 caracteres; mesmo nome com
+   dois códigos aparece em duas linhas. Rótulo = código + nome.
+10. **Um filho só não abre** (regra da D-71, genérica na matriz) e a **linha Σ
+    RTM fica por último** entre os filhos (hoje só o nível 0 tem essa ordem).
+11. **Reconciliação**: o pipeline continua abortando se o cubo não fechar com
+    a fato; o desvio de arredondamento cresce com os grupos (de 26 para uns
+    40 centavos), dentro da tolerância de 1e-6. Caixas nulas viram 0 por
+    grupo (A13), mais grupos, mesmo total.
+
+Técnico:
+
+12. **Layout do cubo**: um índice a mais por linha. Colocado DEPOIS do perfil,
+    as posições 1 (bandeira), 2 (categoria) e 3 (perfil) que o template lê
+    não mudam; só as métricas deslocam uma casa (`BASE_MET` 4 → 5, base da
+    reconciliação 4 → 5). Toca `cubos.py` (grão + flag RTM lida da
+    DIM_CLIENTE, que já a tem), `filtrar_por_nivel` (reindexar cliente e
+    nomes por arquivo), o template em três pontos (`pathFn`, `rotNo`, regra
+    de filho único/Σ por último), cerca de 15 asserts posicionais em
+    `tests/test_regras.py` e os cenários sintéticos. `VERSAO_CACHE` não muda
+    (o cache cobre a leitura dos Excel).
+13. **Tempo**: segundos a mais no groupby do pipeline; geração dos 73
+    arquivos de 12 para uns 15 s.
+14. **Docs** no mesmo turno: 05, 06, 08, 09, 12, 13 e README.
+
+### Rodada sugerida (sem executar nada agora)
+
+Desligar a publicação; implementar; 63/63 + cenários; gerar os 73 em build;
+script que compare os totais por bandeira de cada arquivo novo com o publicado
+hoje, ao centavo; abrir Full, Atacado, Sul/CO e RS/SC no navegador e medir
+carga; ok do Douglas; religar e publicar; aviso de uma linha aos usuários
+("a bandeira agora abre por cliente").
+
+### Decisões pendentes (viram a D-72)
+
+1. Rota: A (recomendada), B ou C.
+2. Ordem dos níveis: Bandeira → Cliente → Categoria ou Bandeira → Categoria →
+   Cliente.
+3. Nome de cliente pode ir nos arquivos N1 (Atacado com 11.147 nomes)?
+4. Contagem no rótulo "RTM (soma de N clientes)": fixa (histórica, como o "N
+   bandeiras" do Σ) ou do período selecionado.
+5. A busca da aba também acha cliente?
+6. Folga menor até o teto de 25 MB no Full (8 meses a 4% ao mês): aceitar, ou
+   rever o teto, já que a distribuição é por SharePoint e não por e-mail.
+
+**Rollback.** Não se aplica (nada implementado).
