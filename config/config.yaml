@@ -372,7 +372,9 @@ dashboard:
     # aba Bandeiras): os 73 arquivos ja estao compartilhados e toda geracao
     # substitui. Religada em 04/09 a noite com o ok do Douglas, depois da
     # conferencia publicado x build (ferramentas/comparar_paineis.py).
-    ativo: true
+    # DESLIGADA em 08/09/2026 para a rodada D-74 (metas FY27 por cliente):
+    # religar so com o ok do Douglas depois da conferencia.
+    ativo: false
     destino: "../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
     # destino e passa a ser gravado nesta subpasta, porque ele precisou
