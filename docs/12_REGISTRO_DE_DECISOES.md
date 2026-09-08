@@ -2607,8 +2607,21 @@ soma da bandeira na categoria fica negativa em 366 e a da bandeira inteira
 em 204 (102 bandeiras por mês, a pior UMBELINO DA SILVA REIS ME em
 R$ −1.777). 78/78 unitários (9 novos), 6/6 cenários.
 
-**Fica para a segunda onda (decisão dele):** barra Meta na Evolução;
-busca por cliente; meta de caixas e por SKU (não existem na base).
+**Segunda onda, no mesmo dia (pedido dele: "no gráfico de Evolução
+precisamos exibir a meta e o atingimento").** Barra **Meta** (âmbar, à
+direita do Atual: passado, presente, alvo) só nos grupos que têm mês com
+meta; grupo sem meta fica sem barra (null, nunca zero). Por grupo, a meta é
+a soma dos meses do grupo que têm meta e o atingimento é o realizado desses
+meses ÷ meta (mesma regra dos cards e matrizes). Rótulo da barra: valor em
+cima e atingimento em negrito embaixo; tooltip "Meta: … · Ating.: …%", com
+"(meta de k de n meses)" quando a meta cobre parte do grupo e "(parcial)"
+quando há mês não fechado. A série (e a legenda) só existe quando o período
+tem meta e a métrica não é Caixas. Verificado: FY2027 por mês, set/26 barra
+Meta R$ 122,3 mi · 4,8% e out/26 R$ 120 mi · n/d (sem sell-in); por ano,
+uma barra FY2027 R$ 242,2 mi · 4,8%; FY2026 sem barra nem legenda de meta.
+
+**Fica para depois (decisão dele):** busca por cliente; meta de caixas e
+por SKU (não existem na base).
 
 **Onde.** `config/config.yaml` (`fontes.metas`, `dashboard.teto_mb`),
 `src/extract/metas.py` (novo), `src/transform/dimensoes.py`,

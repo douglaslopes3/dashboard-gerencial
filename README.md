@@ -26,8 +26,9 @@ publicacao DESLIGADA)        (cliente x categoria x mes, set/26 R$ 122,28 mi e
                              cubo_meta com os MESMOS indices do cubo principal;
                              a meta herda bandeira/hierarquia/canal/RTM pelo
                              join com a DIM_CLIENTE. Na tela: "Meta · Ating."
-                             nos cards Valor e Volume e colunas META / ATING. %
-                             nas 3 matrizes, so quando o periodo tem meta.
+                             nos cards Valor e Volume, colunas META / ATING. %
+                             nas 3 matrizes e barra Meta na Evolucao (com o
+                             atingimento), so quando o periodo tem meta.
                              Calendario ate out/26 (26 meses, FY2027). Full
                              19,46 MB (teto subiu para 35 MB, Q7-a), abertura
                              3,7 s, heap 200 MB. 78/78 + 6/6. Decisoes Q1-Q10
@@ -400,7 +401,7 @@ revisões · 9 testes novos · docs 05/06/08/10/11/12.
 | **Douglas** | abrir o build (`dashboard/build/`) e dar o ok; aí `publicacao.ativo: true`, `python run_dashboard.py`, commit de publicação | hoje |
 | **Douglas** | analisar `data/quality/metas_negativas_por_bandeira.csv` (Q1): 204 pares bandeira×mês ficam negativos no total da bandeira; decidir se volta ao Comercial | esta semana |
 | **Douglas** | aviso de uma linha aos usuários: "o painel agora traz a meta FY27 por cliente" (junto com o aviso pendente da D-72) | na publicação |
-| **Próxima rodada** (decisão dele) | segunda onda da meta: barra Meta na Evolução; busca por cliente; canal como dimensão; Vendedor × Bandeira | quando ele pedir |
+| **Próxima rodada** (decisão dele) | busca por cliente; canal como dimensão; Vendedor × Bandeira (a barra Meta na Evolução saiu no mesmo dia, a pedido dele) | quando ele pedir |
 
 **Feito em 03 e 04/09 (D-54 a D-71, tudo publicado em 04/09 ~00:25):**
 visibilidade dinâmica dos botões · formatação única · desempate N4 na origem ·

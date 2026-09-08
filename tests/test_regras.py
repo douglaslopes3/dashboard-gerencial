@@ -1344,7 +1344,10 @@ def test_d74_template_mostra_meta_so_quando_o_periodo_tem():
                   "const MOSTRA_META = p => TEM_META && p.meta && p.meta.length>0 && METRICAS[F.metrica].col<=1",
                   "function ating(real, meta)", "mapAM = mostraMeta ? soma(p.meta)",
                   "pathMeta:l=>[l[2]]", "OPC.mesMeta.has(i)", "metaParcial",
-                  "performance.now()", 'class="cmp meta"', "DB.cubo_meta"):
+                  "performance.now()", 'class="cmp meta"', "DB.cubo_meta",
+                  # segunda onda: barra Meta na Evolucao, so com meta no periodo
+                  'const dsMeta = mostraMeta ? [', 'label:"Meta",data:metaSerie',
+                  'const ehMeta=ds.label==="Meta"', "atingSerie[c.dataIndex]"):
         assert termo in corpo, f"template v4 perdeu a D-74: {termo}"
 
 

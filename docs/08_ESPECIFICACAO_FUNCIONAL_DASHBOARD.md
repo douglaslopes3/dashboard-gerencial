@@ -101,7 +101,10 @@ drill-down nem "voltar".
   (desenhado à mão no `afterDatasetsDraw`, sem plugin externo: zero rede) e a
   **linha laranja de Δ%** de cada período contra o LY (eixo à direita). Período
   sem par no LY fica **sem a barra clara e sem o ponto de Δ%**, nunca zero. A
-  granularidade é o "Ver por"; grupo incompleto sai **(parcial)**.
+  granularidade é o "Ver por"; grupo incompleto sai **(parcial)**. **Meta
+  (D-74):** barra âmbar à direita do Atual só nos grupos com mês de meta,
+  com o valor e o atingimento do grupo (realizado dos meses com meta ÷ meta)
+  no rótulo e no tooltip; sem meta no período, a série não existe.
 * **Matriz hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA
   (D-51). Colunas, na ordem da D-67 (igual nas três matrizes e na exportação):
   nome · **ATUAL · [META · ATING. %] · ANT. · Δ · Δ% · Part. %** · série de

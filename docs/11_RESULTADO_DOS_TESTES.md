@@ -1207,4 +1207,10 @@ navegador, Full                  abertura 3,7 s · heap 200 MB · zero erro ·
 navegador, N3 RS/SC              abertura 1,1 s · heap 43 MB · KPI "Meta R$ 12,8
                                  mi · Ating. 6,0% (parcial)" = linha do
                                  executivo = Total geral · 855 t
+Evolucao (2a onda, mesmo dia)    serie "Meta" so com meta no periodo: FY2027
+                                 por mes (Volume t): set/26 meta 7.824 t x
+                                 atual 769 t, out/26 meta 7.693 t x atual 0;
+                                 por ano: FY2027 (parcial) meta 15.518 t; FY2026
+                                 sem serie nem legenda de meta; rotulo com
+                                 valor + atingimento; zero erro no console
 ```
