@@ -2713,3 +2713,35 @@ tooltip da barra Atual traz o Δ%; zero erro no console. 78/78.
 
 **Onde.** `dashboard/template_v4.html` (`renderEvolucao`, `rotuloBarras`),
 `tests/test_regras.py`, docs/08, README.
+
+---
+
+## D-77 · Os dois percentuais do gráfico dizem o que são (08/09/2026)
+
+**Pedido do Douglas.** "Ficou confuso, precisamos ter a indicação do que é
+cada percentual no gráfico: Δ% LY e % ating. Como podemos fazer? Marcador +
+legenda? Descrição no rótulo? Não mude nada ainda." Quatro formas foram
+mostradas lado a lado (texto no rótulo; marcador + legenda; percentuais na
+segunda linha do eixo; faixa acima do grupo) com prós e contras medidos na
+largura das barras; ele escolheu **"opção 1 com abreviação inteligente"**.
+
+**Decisão.** A segunda linha do rótulo **nomeia** o percentual: "Δ LY
+−88,7%" na barra Atual e "ating. 9,6%" na barra Meta. O desenhador mede
+(`measureText`) se o texto mais largo do gráfico cabe no espaço de uma
+barra (largura da área ÷ grupos ÷ séries visíveis, menos 4 px); quando não
+cabe (tipicamente 12 meses com 3 barras), todos os rótulos caem para a forma
+curta com marcador ("▼ −88,7%", "◎ 9,6%") e o título do gráfico ganha a
+explicação "▲▼ Δ% vs ano anterior · ◎ % da meta". A decisão é por largura
+real, nunca por contagem de meses: trimestre, semestre e ano têm barras
+largas e ficam por extenso. O tooltip diz por extenso nos dois casos.
+
+**Verificado.** Full, Valor, tela de 1600 px (área do gráfico 1.452 px):
+FY2027 por mês (2 grupos, 3 séries), FY2026 por mês (12 grupos, 2 séries)
+e FY2026 por trimestre ficam **por extenso**, sem sufixo no título. Tela
+de 800 px (área 240 px): os três casos caem para o marcador e o título
+ganha "▲▼ Δ% vs ano anterior · ◎ % da meta". Com 12 meses e 3 séries a
+1600 px o espaço por barra é 40 px e a forma curta entra. Zero erro no
+console. 78/78.
+
+**Onde.** `dashboard/template_v4.html` (`rotuloBarras`),
+`tests/test_regras.py`, docs/08, README.

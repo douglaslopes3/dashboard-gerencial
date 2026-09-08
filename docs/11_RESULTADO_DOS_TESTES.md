@@ -1248,3 +1248,18 @@ navegador, Full FY2027           3 series na legenda, 1 eixo; set/26 LY R$ 103,5
                                  R$ 120 mi "n/d"; FY2026 sem Meta; tooltip do
                                  Atual com Δ%; zero erro no console
 ```
+
+## T-62 · D-77: percentuais nomeados com abreviacao inteligente (08/09/2026)
+
+```
+unitarios                        78 de 78 (guarda: measureText/slot, "Δ LY",
+                                 "ating.", flag abrevRotulos, sufixo do titulo)
+navegador 1600 px (area 1452)    FY2027 mes (2 grupos x 3 series), FY2026 mes
+                                 (12 x 2) e FY2026 trimestre: por extenso
+                                 ("Δ LY +7,6%", "ating. 9,6%"), titulo sem
+                                 sufixo
+navegador 800 px (area 240)      os mesmos tres recortes: marcador ("▼ −88,7%",
+                                 "◎ 9,6%") e titulo "Evolucao · Valor (R$) ·
+                                 Mes · ▲▼ Δ% vs ano anterior · ◎ % da meta";
+                                 zero erro no console
+```

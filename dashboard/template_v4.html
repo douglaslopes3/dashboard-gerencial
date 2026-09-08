@@ -1591,6 +1591,30 @@ function renderEvolucao(p){
   const rotuloBarras={id:"rotuloBarras",afterDatasetsDraw(c){
     const g=c.ctx; g.save();
     g.textAlign="center";
+    const normal="9.5px 'Segoe UI',Arial", negrito="600 "+normal;
+    /* D-77 (08/09/2026, opcao 1 com abreviacao inteligente): a segunda
+       linha do rotulo DIZ o que o percentual e — "Δ LY −88,7%" na barra
+       Atual, "ating. 9,6%" na Meta — enquanto cabe na largura que cada
+       barra tem na tela (um "slot" = largura da area / grupos / series
+       visiveis). Quando nao cabe (12 meses, 3 barras), cai para a forma
+       curta com marcador (▲▼ para o Δ%, ◎ para o atingimento) e o titulo
+       do grafico passa a explicar os marcadores. Medido com measureText,
+       nunca por contagem de meses: trimestre/semestre/ano tem barras
+       largas e ficam com o texto por extenso. */
+    const visiveis=c.data.datasets.filter((d,i)=>!c.getDatasetMeta(i).hidden).length||1;
+    const slot=(c.chartArea.right-c.chartArea.left)/Math.max(c.data.labels.length,1)/visiveis;
+    g.font=negrito;
+    const cabe=txt=>g.measureText(txt).width<=slot-4;
+    const maisLargo=[...variacao.filter(v=>v!==null&&v!==undefined).map(v=>"Δ LY "+fmtVar(v)),
+                     ...atingSerie.filter(v=>v!==null&&v!==undefined).map(v=>"ating. "+fmtNum(v*100,1)+"%")];
+    const curto=maisLargo.length>0 && !maisLargo.every(cabe);
+    c.abrevRotulos=curto;
+    const sufixo=curto?" · ▲▼ Δ% vs ano anterior · ◎ % da meta":"";
+    const tituloBase=`Evolução · ${m.rot} · ${GRANS[F.gran]}`;
+    if(el("tEvo").textContent!==tituloBase+sufixo) el("tEvo").textContent=tituloBase+sufixo;
+    const rotDelta=d=> curto ? (d>0?"▲ ":(d<0?"▼ ":"■ "))+fmtVar(d) : "Δ LY "+fmtVar(d);
+    const rotAting=a=> a===null ? (curto?"◎ n/d":"ating. n/d")
+                     : (curto?"◎ ":"ating. ")+fmtNum(a*100,1)+"%";
     c.data.datasets.forEach((ds,di)=>{
       const meta=c.getDatasetMeta(di);
       if(meta.hidden) return;
@@ -1599,7 +1623,6 @@ function renderEvolucao(p){
       // negrito a barra errada.
       const ehAtual=ds.label==="Atual";
       const ehMeta=ds.label==="Meta";           // D-74
-      const normal="9.5px 'Segoe UI',Arial", negrito="600 "+normal;
       meta.data.forEach((elb,i)=>{
         const v=ds.data[i];
         if(v===null||v===undefined) return;
@@ -1614,18 +1637,19 @@ function renderEvolucao(p){
         };
         if(ehMeta){
           // D-74: valor da meta e, embaixo, o atingimento do grupo
-          // (realizado dos meses com meta / meta).
-          const a=atingSerie[i];
-          duas(abrev(v, m.un), "#8a5a00", a===null?"n/d":fmtNum(a*100,1)+"%", "#8a5a00");
+          // (realizado dos meses com meta / meta). D-77: dito por extenso
+          // ("ating.") ou com o marcador ◎ quando nao cabe.
+          duas(abrev(v, m.un), "#8a5a00", rotAting(atingSerie[i]), "#8a5a00");
         }else if(ehAtual){
           // D-76: a linha de Δ% vs LY SAIU do grafico (e do eixo direito);
           // o Δ% do grupo vira a segunda linha do rotulo da barra Atual,
-          // verde/vermelho, so onde o par no LY e completo.
+          // verde/vermelho, so onde o par no LY e completo. D-77: "Δ LY"
+          // por extenso, ou ▲▼ quando nao cabe.
           const d=variacao[i];
           if(d===null||d===undefined){
             g.font=negrito; g.fillStyle="#003a70";
             g.fillText(abrev(v, m.un), elb.x, v<0?elb.y+3:elb.y-3);
-          }else duas(abrev(v, m.un), "#003a70", fmtVar(d),
+          }else duas(abrev(v, m.un), "#003a70", rotDelta(d),
                      d>0?"#1a7f4b":(d<0?"#c0392b":"#5b6b7c"));
         }else{
           g.font=normal; g.fillStyle="#3f6e9b";

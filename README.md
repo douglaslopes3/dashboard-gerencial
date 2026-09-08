@@ -403,7 +403,9 @@ exibidas). Ordenação e exportação seguem o YTD.
 **Também em 08/09 (D-76):** cores do gráfico de Evolução trocadas pela
 opção A validada (LY azul médio, Atual azul Dori, Meta laranja queimado); a
 linha de Δ% e o eixo direito saíram, o Δ% virou a segunda linha do rótulo
-da barra Atual e entra no tooltip.
+da barra Atual e entra no tooltip. **D-77:** os percentuais dizem o que são
+("Δ LY", "ating.") enquanto cabem na barra; senão viram marcador (▲▼, ◎)
+explicado no título do gráfico.
 
 **Próximo passo, por responsável (08/09):**
 

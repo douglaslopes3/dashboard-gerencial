@@ -1364,6 +1364,12 @@ def test_d74_template_mostra_meta_so_quando_o_periodo_tem():
     for termo in ('backgroundColor:"#5e94c9"', 'backgroundColor:"#00539f"',
                   'backgroundColor:"#c97b12"', "const d=variacao[c.dataIndex];"):
         assert termo in corpo, f"template v4 perdeu a D-76: {termo}"
+    # D-77: o percentual diz o que e ("Δ LY", "ating.") enquanto cabe na
+    # barra (measureText); senao marcador (▲▼, ◎) + explicacao no titulo
+    for termo in ("const cabe=txt=>g.measureText(txt).width<=slot-4;",
+                  '"Δ LY "+fmtVar(', '"ating. "', "c.abrevRotulos=curto;",
+                  "▲▼ Δ% vs ano anterior · ◎ % da meta"):
+        assert termo in corpo, f"template v4 perdeu a D-77: {termo}"
 
 
 # ================================================================== runner

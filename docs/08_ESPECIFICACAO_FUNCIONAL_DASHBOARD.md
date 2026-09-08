@@ -101,7 +101,10 @@ drill-down nem "voltar".
   (desenhado à mão no `afterDatasetsDraw`, sem plugin externo: zero rede). O
   **Δ% de cada período contra o LY** é a segunda linha do rótulo da barra
   Atual (verde/vermelho) e entra no tooltip dela; a linha de Δ% e o eixo
-  direito saíram na **D-76** (um eixo só). Cores (opção A, validadas): LY
+  direito saíram na **D-76** (um eixo só). **D-77:** a segunda linha nomeia
+  o percentual ("Δ LY −88,7%", "ating. 9,6%") enquanto cabe na largura da
+  barra; quando não cabe, vira marcador ("▼ −88,7%", "◎ 9,6%") e o título
+  do gráfico explica os marcadores. Cores (opção A, validadas): LY
   azul médio `#5e94c9`, Atual azul Dori `#00539f`, Meta laranja queimado
   `#c97b12`. Período sem par no LY fica **sem a barra clara e sem o Δ%**,
   nunca zero. A granularidade é o "Ver por"; grupo incompleto sai
