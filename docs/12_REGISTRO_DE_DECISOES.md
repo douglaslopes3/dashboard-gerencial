@@ -2603,9 +2603,11 @@ Na tela (FY2027, set+out/26): KPI "Meta R$ 242,2 mi · Ating. 4,8% (parcial)",
 head Atacado R$ 96,7 mi, categoria AMENDOIM R$ 75,5 mi, bandeira LASA
 R$ 15,7 mi, Total geral = KPI nas três abas; executivo RS/SC R$ 12,8 mi.
 Negativas: 568 pares bandeira×categoria×mês com algum cliente negativo; a
-soma da bandeira na categoria fica negativa em 366 e a da bandeira inteira
-em 204 (102 bandeiras por mês, a pior UMBELINO DA SILVA REIS ME em
-R$ −1.777). 78/78 unitários (9 novos), 6/6 cenários.
+soma da bandeira na categoria fica negativa em 366; 300 bandeiras×mês têm
+algum cliente negativo e em 96 a soma da bandeira inteira fica negativa (a
+pior UMBELINO DA SILVA REIS ME, R$ −1.849 em out/26; a contagem "204"
+publicada no primeiro relatório somava linhas por categoria, corrigida em
+08/09 à tarde). 78/78 unitários (9 novos), 6/6 cenários.
 
 **Segunda onda, no mesmo dia (pedido dele: "no gráfico de Evolução
 precisamos exibir a meta e o atingimento").** Barra **Meta** (âmbar, à

@@ -484,11 +484,15 @@ def _secao_metas(linha, fato_meta, dim_cliente, meta_metas: dict,
           f"{_fmt(float(neg['META_PESO_KG'].sum()) / 1000, 3)} t")
     if len(negb):
         n_cat_neg = int((~negb["fica_positiva_na_categoria"]).sum())
-        n_ban_neg = int((~negb["fica_positiva_na_bandeira"]).sum())
+        ban_mes = negb[["ANO_MES", "BANDEIRA", "fica_positiva_na_bandeira"]].drop_duplicates()
+        ban_neg = ban_mes[~ban_mes["fica_positiva_na_bandeira"]]
         linha(f"- Pares bandeira×categoria×mês com algum cliente negativo: "
               f"**{len(negb):,}**; a soma da bandeira na categoria fica "
-              f"NEGATIVA em **{n_cat_neg:,}**; a soma da bandeira inteira fica "
-              f"NEGATIVA em **{n_ban_neg:,}**")
+              f"NEGATIVA em **{n_cat_neg:,}** deles")
+        linha(f"- Bandeiras×mês com algum cliente negativo: **{len(ban_mes):,}**; "
+              f"a soma da bandeira INTEIRA fica NEGATIVA em **{len(ban_neg):,}** "
+              f"({ban_neg['BANDEIRA'].nunique():,} bandeiras distintas; pior: "
+              f"R$ {_fmt(float(negb.loc[~negb['fica_positiva_na_bandeira'], 'meta_total_bandeira_rs'].min()))})")
     linha("- Listas: `metas_negativas.csv` (par a par) e "
           "`metas_negativas_por_bandeira.csv` (soma por bandeira)")
     linha()
