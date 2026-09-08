@@ -210,6 +210,12 @@
   D-67 (03/09/2026) — COLUNAS DE DECISAO PRIMEIRO nas tres matrizes:
     nome | ATUAL | ANT. | Δ | Δ% | Part. % || serie (ate 12) | TOTAL.
     A exportacao segue a mesma ordem.
+  D-75 (08/09/2026) — NOMES das colunas de decisao (pedido do Douglas):
+    ATUAL vira o ANO selecionado ("FY2027", ou "2026" na base calendario;
+    com "(k m.)" quando a selecao nao e o ano inteiro), ANT. vira LY, e a
+    ultima coluna vira "YTD <ano>": o ACUMULADO do ano selecionado ate o
+    ultimo mes escolhido (ytdFiscal/ytdCalendario) — nao mais a soma das
+    12 colunas exibidas. A ordenacao padrao e a exportacao seguem o YTD.
 
   D-68 (03/09/2026) — ROTULOS DE LEITOR para as linhas sintese Σ (sem
     estrutura / inativos), via DB.rotulos_exibicao, que vem do config
@@ -991,6 +997,14 @@ function montarPeriodo(){
 
 // true quando HA comparativo mas nem todo mes selecionado tem par no LY
 function parcialLy(p){ return p.ly.length>0 && p.pareado.length<p.atual.length; }
+/* D-75 (08/09/2026): rotulo do ANO selecionado ("FY2027" na base fiscal,
+   "2026" na base calendario) e os meses do YTD desse ano ate o ultimo mes
+   selecionado (`ref`), pela MESMA juncao que o "Comparar" ja usa. */
+function rotuloAnoSel(){ return F.base==="fis" ? String(F.fy) : String(F.ano); }
+function mesesYtd(p){
+  if(p.ref===null||p.ref===undefined) return [];
+  return (F.base==="fis" ? ytdFiscal(p.ref) : ytdCalendario(p.ref))[0];
+}
 /* YTD (D-32): o lado LY e derivado por ANO_MES_LY — juncao mes a mes — e o
    comparativo usa so os meses PAREADOS. Antes, "YTD Calendario 2025" somava
    os 12 meses de 2025 e comparava com os 4 meses de 2024 que existem na
@@ -1793,6 +1807,12 @@ function matrizNiveis(cfg){
   const pathM = cfg.pathMeta||cfg.pathFn;
   const mapM = mostraMeta ? somarMeta(p.meta, l=>pathM(l).join(SEP), cfg.ignorar) : new Map();
   const mapAM = mostraMeta ? soma(p.meta) : new Map();
+  /* D-75 (08/09/2026, pedido do Douglas): a ultima coluna e o YTD — o
+     acumulado do ANO selecionado (fiscal ou calendario, conforme "Comparar")
+     ate o ultimo mes escolhido — e nao mais a soma das 12 colunas exibidas
+     da serie. A ordenacao padrao segue essa coluna. */
+  const ytd = mesesYtd(p);
+  const mapY = soma(ytd);
   // ---- arvore com acumuladores por no
   const raiz={filhos:new Map()};
   function no(path){
@@ -1800,7 +1820,7 @@ function matrizNiveis(cfg){
     for(const k of path){
       let f=n.filhos.get(k);
       if(!f){ f={k, filhos:new Map(), serie:cols.map(()=>0),
-              a:0, aP:0, l:0, temL:false, m:0, temM:false, aM:0}; n.filhos.set(k,f); }
+              a:0, aP:0, l:0, temL:false, m:0, temM:false, aM:0, y:0}; n.filhos.set(k,f); }
       n=f;
     }
     return n;
@@ -1816,6 +1836,7 @@ function matrizNiveis(cfg){
   porCol.forEach((m,ci)=>acum(m,(n,x)=>{ n.serie[ci]+=x; }));
   acum(mapA,(n,x)=>{ n.a+=x; });
   acum(mapAP,(n,x)=>{ n.aP+=x; });
+  acum(mapY,(n,x)=>{ n.y+=x; });                     // D-75: YTD
   if(temLy) acum(mapL,(n,x)=>{ n.l+=x; n.temL=true; });
   if(mostraMeta){
     // a meta usa a propria conversao (metMeta), o realizado dos meses com
@@ -1826,8 +1847,10 @@ function matrizNiveis(cfg){
     });
     acum(mapAM,(n,x)=>{ n.aM+=x; });
   }
-  const tot=n=>n.serie.reduce((s,v)=>s+v,0);
-  // ---- nivel 0: ordena por total; sintese/balde por ultimo; topN
+  // D-75: `tot` e o YTD do no (era a soma da serie exibida) — ordena e
+  // fecha a ultima coluna.
+  const tot=n=>n.y;
+  // ---- nivel 0: ordena por YTD; sintese/balde por ultimo; topN
   const fora=cfg.foraSet||new Set();
   let n0=[...raiz.filhos.values()].sort((x,y)=>tot(y)-tot(x));
   const sintese=n0.filter(n=>fora.has(n.k)||n.k===cfg.baldeK);
@@ -1863,10 +1886,10 @@ function matrizNiveis(cfg){
     const cortadas=normais.slice(cfg.topN);
     normais=normais.slice(0,cfg.topN);
     resto={k:"__resto__", filhos:new Map(), serie:cols.map(()=>0),
-           a:0, aP:0, l:0, temL:false, m:0, temM:false, aM:0, n:cortadas.length};
+           a:0, aP:0, l:0, temL:false, m:0, temM:false, aM:0, y:0, n:cortadas.length};
     cortadas.forEach(x=>{
       x.serie.forEach((v,i)=>{ resto.serie[i]+=v; });
-      resto.a+=x.a; resto.aP+=x.aP;
+      resto.a+=x.a; resto.aP+=x.aP; resto.y+=x.y;
       if(x.temL){ resto.l+=x.l; resto.temL=true; }
       if(x.temM){ resto.m+=x.m; resto.temM=true; }
       resto.aM+=x.aM;
@@ -1897,10 +1920,23 @@ function matrizNiveis(cfg){
   const rotAting = mostraMeta ? "ATING. %"+(p.metaParcial?" (parcial)":"") : null;
   const colsMeta = mostraMeta
     ? [{v:rotMeta}, {v:rotAting}] : [];
+  /* D-75: nomes das colunas de decisao. ATUAL vira o ANO selecionado
+     ("FY2027" ou "2026", conforme "Comparar"), com a contagem de meses
+     quando a selecao nao e o ano inteiro oferecido; ANT. vira LY; a
+     ultima coluna vira "YTD <ano>". O texto da exportacao e o mesmo, sem
+     HTML. */
+  const anoRot = rotuloAnoSel();
+  const nSel = p.atual.length, nAno = mesesOferecidos().length;
+  const txtAtual = anoRot + (nSel<nAno ? ` (${nSel} m.)` : "");
+  const perAtual = `${CAL[p.atual[0]][C_ROT]} a ${CAL[p.atual[nSel-1]][C_ROT]} (${nSel} ${nSel===1?"mês":"meses"})`;
+  const txtYtd = "YTD "+anoRot;
+  const perYtd = `acumulado de ${CAL[ytd[0]][C_ROT]} a ${CAL[ytd[ytd.length-1]][C_ROT]} (${ytd.length} ${ytd.length===1?"mês":"meses"})`;
+  const rotAtual = `<span title="${perAtual}">${txtAtual}</span>`;
+  const rotYtd = `<span title="${perYtd}">${txtYtd}</span>`;
   const cabec=[{v:cfg.niveis.join(" › "),t:1},
-               {v:"ATUAL"}].concat(colsMeta).concat([{v:"ANT."},{v:"Δ"},{v:"Δ%"},{v:"Part. %"}])
+               {v:rotAtual}].concat(colsMeta).concat([{v:"LY"},{v:"Δ"},{v:"Δ%"},{v:"Part. %"}])
     .concat(cols.map((c,i)=>({v:rotCol(c),c:"serie"+(i?"":" corte")})))
-    .concat([{v:"TOTAL",c:"serie corte"}]);
+    .concat([{v:rotYtd,c:"serie corte"}]);
   const celMeta = n => mostraMeta
     ? [{v:n.temM?fmtMetrica(n.m):ND}, {v:n.temM?fmtAting(ating(n.aM,n.m)):ND}] : [];
   const rawMeta = n => mostraMeta
@@ -1944,9 +1980,9 @@ function matrizNiveis(cfg){
   sintese.forEach(n=>linhaDo(n,0,String(n.k),true));
   // ---- rodape: TOTAL GERAL = todos os nos do nivel 0 (exibidos ou nao) —
   //      e o numero que fecha com os cards da Visao Geral.
-  const g={serie:cols.map(()=>0), a:0, aP:0, l:0, temL:false, m:0, temM:false, aM:0};
+  const g={serie:cols.map(()=>0), a:0, aP:0, l:0, temL:false, m:0, temM:false, aM:0, y:0};
   n0.forEach(n=>{ n.serie.forEach((v,i)=>g.serie[i]+=v);
-    g.a+=n.a; g.aP+=n.aP; if(n.temL){g.l+=n.l; g.temL=true;}
+    g.a+=n.a; g.aP+=n.aP; g.y+=n.y; if(n.temL){g.l+=n.l; g.temL=true;}
     if(n.temM){g.m+=n.m; g.temM=true;} g.aM+=n.aM; });
   const gSemLy=!temLy||!g.temL;
   const rodape=[{v:`<b>Total geral</b>${
@@ -1958,20 +1994,20 @@ function matrizNiveis(cfg){
              {v:fmtPct(varPct(gSemLy?null:g.aP,gSemLy?null:g.l))},
              {v:cfg.den?fmtParte(g.a/cfg.den):"n/d"}])
     .concat(g.serie.map((v,i)=>({v:num(v),c:"serie"+(i?"":" corte")})))
-    .concat([{v:"<b>"+num(g.serie.reduce((s,v)=>s+v,0))+"</b>",c:"serie corte"}]);
+    .concat([{v:"<b>"+num(g.y)+"</b>",c:"serie corte"}]);      // D-75: YTD
   raw.push(["Total geral", nr(g.a)].concat(rawMeta(g)).concat([
             gSemLy?null:nr(g.l), gSemLy?null:nr(g.aP-g.l),
             nr(pctNum(varPct(gSemLy?null:g.aP,gSemLy?null:g.l))),
             cfg.den?nr(g.a/cfg.den*100):null])
     .concat(g.serie.map(v=>nr(v)))
-    .concat([nr(g.serie.reduce((s,v)=>s+v,0))]));
+    .concat([nr(g.y)]));
   const tb=el(cfg.idTab);
   tb.classList.add("matriz","niveis");
   tb.innerHTML=tabelaMat(cabec,linhas,rodape,classes);
   registrarExport(cfg.idTab,
-    ["Item","ATUAL"].concat(mostraMeta?[rotMeta,rotAting]:[])
-      .concat(["ANT.","Δ","Δ%","Part. %"]).concat(cols.map(rotCol))
-      .concat(["TOTAL"]), raw);                       // D-67/D-74: mesma ordem
+    ["Item",txtAtual].concat(mostraMeta?[rotMeta,rotAting]:[])
+      .concat(["LY","Δ","Δ%","Part. %"]).concat(cols.map(rotCol))
+      .concat([txtYtd]), raw);                        // D-67/D-74/D-75: mesma ordem
   tb.onclick=e=>{
     const s=e.target.closest(".exp"); if(!s) return;
     const c=decodeURIComponent(s.dataset.x);

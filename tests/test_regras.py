@@ -896,12 +896,20 @@ def test_d67_colunas_de_decisao_antes_da_serie():
     D-74: META e ATING. % entram entre ATUAL e ANT., so quando ha meta
     (`colsMeta` vazio sem meta), e a exportacao acompanha."""
     corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
-    assert ('{v:"ATUAL"}].concat(colsMeta).concat([{v:"ANT."},{v:"Δ"},{v:"Δ%"},'
+    # D-75: ATUAL = ano selecionado (rotAtual), ANT. = LY, ultima = YTD
+    assert ('{v:rotAtual}].concat(colsMeta).concat([{v:"LY"},{v:"Δ"},{v:"Δ%"},'
             '{v:"Part. %"}])') in corpo
-    assert '.concat([{v:"TOTAL",c:"serie corte"}])' in corpo
-    assert ('["Item","ATUAL"].concat(mostraMeta?[rotMeta,rotAting]:[])'
+    assert '.concat([{v:rotYtd,c:"serie corte"}])' in corpo
+    assert ('["Item",txtAtual].concat(mostraMeta?[rotMeta,rotAting]:[])'
             in corpo)
-    assert '.concat(["ANT.","Δ","Δ%","Part. %"]).concat(cols.map(rotCol))' in corpo
+    assert '.concat(["LY","Δ","Δ%","Part. %"]).concat(cols.map(rotCol))' in corpo
+    # D-75: o YTD e o acumulado do ano selecionado, nao a soma da serie
+    for termo in ("function mesesYtd(p)", "function rotuloAnoSel()",
+                  "const mapY = soma(ytd);", "const tot=n=>n.y;",
+                  'const txtYtd = "YTD "+anoRot;'):
+        assert termo in corpo, f"template v4 perdeu a D-75: {termo}"
+    assert "n.serie.reduce((s,v)=>s+v,0)" not in corpo, \
+        "a ultima coluna voltou a somar a serie exibida em vez do YTD"
 
 
 def test_d65_template_monta_o_corte_na_tela():

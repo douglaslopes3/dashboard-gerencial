@@ -1214,3 +1214,20 @@ Evolucao (2a onda, mesmo dia)    serie "Meta" so com meta no periodo: FY2027
                                  sem serie nem legenda de meta; rotulo com
                                  valor + atingimento; zero erro no console
 ```
+
+## T-60 · D-75: colunas ATUAL/ANT./TOTAL viram ano selecionado / LY / YTD (08/09/2026)
+
+```
+unitarios                        78 de 78 (guarda da D-67 reescrita: rotAtual,
+                                 "LY", rotYtd; YTD = mesesYtd, tot = n.y; a
+                                 soma da serie exibida nao pode voltar)
+navegador, Full                  FY2027: "FY2027 | META | ATING. % (PARCIAL) |
+                                 LY | Δ | Δ% | PART. % | FY2025 | FY2026 |
+                                 FY2027* | YTD FY2027"; Total geral ATUAL =
+                                 YTD = R$ 11,7 mi; export com os mesmos nomes
+                                 · FY2026 so jun/26: "FY2026 (1 M.)" R$ 101,8
+                                 mi x "YTD FY2026" R$ 964,5 mi (set/25 a
+                                 jun/26, 10 meses; Atacado 40 mi x 372,4 mi)
+                                 · calendario 2026: "2026" e "YTD 2026",
+                                 R$ 787,3 mi · zero erro no console
+```

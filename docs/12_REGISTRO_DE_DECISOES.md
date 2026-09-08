@@ -2632,3 +2632,44 @@ docs 05/06/08/10/11, README.
 **Rollback.** Tirar os arquivos de `bases/Metas/`: o painel sai sem meta
 (FATO_META vazia, `cubo_meta` vazio, nenhuma coluna ou card de meta), sem
 tocar em código.
+
+---
+
+## D-75 · Nomes das colunas de decisão das matrizes: ano selecionado, LY e YTD (08/09/2026)
+
+**Pedido do Douglas.** "ATUAL = FY27 (é dinâmico ou exibe sempre FY27?),
+ANT. = LY, a última coluna da matriz (Total) = YTD."
+
+**Fato medido antes de mudar.** A coluna TOTAL somava as **12 colunas
+exibidas** da série (nov/25 a out/26 em 08/09), não o acumulado do ano: com
+o FY2027 selecionado ela trazia 10 meses do FY2026 dentro. Renomear sem
+mudar a conta seria número enganoso.
+
+**Decisão.**
+
+1. **ATUAL → ano selecionado, dinâmico**: "FY2027" na base fiscal, "2026" na
+   base calendário (o mesmo ano do chip "Ano"). Quando a seleção de meses não
+   é o ano inteiro oferecido, o cabeçalho diz "FY2027 (2 m.)" e o tooltip
+   traz o intervalo ("set/26 a out/26 (2 meses)"). A conta não mudou: é o
+   período selecionado.
+2. **ANT. → LY**, como nos cards.
+3. **TOTAL → "YTD FY2027"** (ou "YTD 2026"): o **acumulado do ano
+   selecionado até o último mês escolhido**, pela mesma junção
+   `ytdFiscal`/`ytdCalendario` que o "Comparar" já usa. Tooltip com o
+   intervalo. A série de até 12 períodos continua como contexto à esquerda.
+   A ordenação padrão das matrizes e a exportação passam a seguir o YTD.
+   Com o ano inteiro selecionado, ATUAL = YTD por construção; com uma
+   seleção parcial (só jun/26, por exemplo), ATUAL é jun/26 e YTD é set/25 a
+   jun/26.
+
+**Verificado.** Full, FY2027 (set+out/26): cabeçalho "FY2027 | META |
+ATING. % (PARCIAL) | LY | Δ | Δ% | PART. % | … | YTD FY2027", Total geral
+ATUAL = YTD = R$ 11,7 mi (tooltips "set/26 a out/26 (2 meses)" e "acumulado
+de set/26 a out/26"); FY2026 com jun/26 só: ATUAL "FY2026 (1 m.)" R$ 101,8
+mi (Atacado R$ 40 mi) e YTD FY2026 (set/25 a jun/26, 10 meses) R$ 964,5 mi
+(Atacado R$ 372,4 mi); base calendário 2026 inteiro: "2026" e "YTD 2026",
+R$ 787,3 mi nas duas. Exportação com os mesmos nomes ("FY2027", "LY",
+"YTD FY2027"). Zero erro no console. Guarda da D-67 atualizada; 78/78.
+
+**Onde.** `dashboard/template_v4.html` (`rotuloAnoSel`, `mesesYtd`,
+`matrizNiveis`), `tests/test_regras.py`, docs/08, README.

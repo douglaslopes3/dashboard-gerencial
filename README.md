@@ -394,6 +394,12 @@ do principal · recorte por nível · teto 35 MB · cards e matrizes com META e
 ATING. % · seção 11 do relatório de qualidade · listas de negativas e de
 revisões · 9 testes novos · docs 05/06/08/10/11/12.
 
+**Também em 08/09 (D-75):** colunas de decisão renomeadas nas três matrizes:
+ATUAL vira o ano selecionado (dinâmico: "FY2027", "FY2027 (2 m.)" ou
+"2026"), ANT. vira LY e a última coluna vira "YTD <ano>", que agora soma o
+acumulado do ano até o último mês escolhido (antes somava as 12 colunas
+exibidas). Ordenação e exportação seguem o YTD.
+
 **Próximo passo, por responsável (08/09):**
 
 | Quem | O quê | Quando |
