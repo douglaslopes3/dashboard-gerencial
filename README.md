@@ -35,9 +35,11 @@ PUBLICADAS com o ok)         (cliente x categoria x mes, set/26 R$ 122,28 mi e
                              do Douglas em docs/12 D-74. Na mesma tarde: barra
                              Meta na Evolucao, colunas ano/LY/YTD (D-75), cores
                              opcao A e um eixo so (D-76), percentuais nomeados
-                             (D-77). PUBLICADOS em 08/09 com o ok dele: 73/73
-                             arquivos identicos ao build (MD5); publicacao
-                             automatica LIGADA de novo
+                             (D-77) e busca por cliente na aba Bandeiras
+                             (D-78). PUBLICADOS em 08/09 com o ok dele (duas
+                             vezes: D-74..77 e depois D-78): 73/73 arquivos
+                             identicos ao build (MD5); publicacao automatica
+                             LIGADA de novo
 D-72 (04/09, PUBLICADA       aba Bandeiras abre por CLIENTE (Bandeira >
 a noite com o ok)            Cliente > Categoria); cliente e o 5o eixo do cubo
                              principal (730.257 linhas); clientes RTM que
@@ -418,7 +420,7 @@ explicado no título do gráfico.
 | **Douglas** | ~~abrir o build e dar o ok~~ **feito em 08/09 ("Aprovado, pode publicar")**: publicação religada, 73/73 publicados idênticos ao build | feito |
 | **Douglas** | analisar `data/quality/metas_negativas_por_bandeira.csv` (Q1): 204 pares bandeira×mês ficam negativos no total da bandeira; decidir se volta ao Comercial | esta semana |
 | **Douglas** | aviso de uma linha aos usuários: "o painel agora traz a meta FY27 por cliente" (junto com o aviso pendente da D-72) | na publicação |
-| **D-78 (08/09 à tarde, EM CONFERÊNCIA, publicação desligada)** | busca por cliente na aba Bandeiras: a mesma caixa acha a bandeira pelo rótulo ou por qualquer cliente dela (código ou nome); bandeira achada por cliente abre mostrando só os clientes que casam | aguarda o ok do Douglas para publicar |
+| **D-78 (08/09 à tarde, PUBLICADA com o ok)** | busca por cliente na aba Bandeiras: a mesma caixa acha a bandeira pelo rótulo ou por qualquer cliente dela (código ou nome); bandeira achada por cliente abre mostrando só os clientes que casam. 73/73 publicados idênticos ao build | feito |
 | **Próxima rodada** (decisão dele) | canal como dimensão; Vendedor × Bandeira | quando ele pedir |
 
 **Feito em 03 e 04/09 (D-54 a D-71, tudo publicado em 04/09 ~00:25):**

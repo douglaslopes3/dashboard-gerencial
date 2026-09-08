@@ -2795,3 +2795,7 @@ busca volta às 50 do Top. Zero erro no console. 78/78.
 **Onde.** `dashboard/template_v4.html` (`marcarBandeirasMulti`,
 `matrizNiveis`, `renderBandeiras`, placeholder), `tests/test_regras.py`,
 docs/08, README.
+
+**Publicação (08/09/2026, "Aprovado, pode publicar").** Publicação
+religada; 72 arquivos por nível + Full em `Dashboard - Full\`; 73 de 73 com
+MD5 igual ao build.
