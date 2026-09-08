@@ -20,8 +20,8 @@ receita liquida              R$ 2.329.190.649,47
 peso                         165.806,51 t
 caixas                       33.658.816
 fato                         3.134.928 linhas (linhas 100% zeradas descartadas, D-36)
-D-74 (08/09, EM CONFERENCIA, METAS FY27 POR CLIENTE: bases/Metas/Metas_FY'27.xlsx
-publicacao DESLIGADA)        (cliente x categoria x mes, set/26 R$ 122,28 mi e
+D-74..D-77 (08/09,           METAS FY27 POR CLIENTE: bases/Metas/Metas_FY'27.xlsx
+PUBLICADAS com o ok)         (cliente x categoria x mes, set/26 R$ 122,28 mi e
                              out/26 R$ 119,95 mi) entram como FATO_META e
                              cubo_meta com os MESMOS indices do cubo principal;
                              a meta herda bandeira/hierarquia/canal/RTM pelo
@@ -32,8 +32,12 @@ publicacao DESLIGADA)        (cliente x categoria x mes, set/26 R$ 122,28 mi e
                              Calendario ate out/26 (26 meses, FY2027). Full
                              19,46 MB (teto subiu para 35 MB, Q7-a), abertura
                              3,7 s, heap 200 MB. 78/78 + 6/6. Decisoes Q1-Q10
-                             do Douglas em docs/12 D-74. Falta: ok dele para
-                             religar a publicacao
+                             do Douglas em docs/12 D-74. Na mesma tarde: barra
+                             Meta na Evolucao, colunas ano/LY/YTD (D-75), cores
+                             opcao A e um eixo so (D-76), percentuais nomeados
+                             (D-77). PUBLICADOS em 08/09 com o ok dele: 73/73
+                             arquivos identicos ao build (MD5); publicacao
+                             automatica LIGADA de novo
 D-72 (04/09, PUBLICADA       aba Bandeiras abre por CLIENTE (Bandeira >
 a noite com o ok)            Cliente > Categoria); cliente e o 5o eixo do cubo
                              principal (730.257 linhas); clientes RTM que
@@ -411,7 +415,7 @@ explicado no título do gráfico.
 
 | Quem | O quê | Quando |
 |---|---|---|
-| **Douglas** | abrir o build (`dashboard/build/`) e dar o ok; aí `publicacao.ativo: true`, `python run_dashboard.py`, commit de publicação | hoje |
+| **Douglas** | ~~abrir o build e dar o ok~~ **feito em 08/09 ("Aprovado, pode publicar")**: publicação religada, 73/73 publicados idênticos ao build | feito |
 | **Douglas** | analisar `data/quality/metas_negativas_por_bandeira.csv` (Q1): 204 pares bandeira×mês ficam negativos no total da bandeira; decidir se volta ao Comercial | esta semana |
 | **Douglas** | aviso de uma linha aos usuários: "o painel agora traz a meta FY27 por cliente" (junto com o aviso pendente da D-72) | na publicação |
 | **Próxima rodada** (decisão dele) | busca por cliente; canal como dimensão; Vendedor × Bandeira (a barra Meta na Evolução saiu no mesmo dia, a pedido dele) | quando ele pedir |
@@ -451,7 +455,7 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 | P10 | **Cliente na aba Bandeiras: FEITO e PUBLICADO na D-72 (04/09 à noite, com o ok do Douglas)**; conferido contra os arquivos anteriores por `ferramentas/comparar_paineis.py`. Falta só o aviso de uma linha aos usuários ("a bandeira agora abre por cliente"). Ficam para a próxima rodada: canal como dimensão, Vendedor × Bandeira | **Douglas** avisa os usuários; decide o resto | ver docs/12 D-72 | docs/12 (proposta + D-72) |
 | P11 | ~~Cópia avulsa do Full em `Dashboard - Full\`~~ **Resolvida na D-73** (04/09 à noite): a pasta virou o destino oficial do Full (`publicacao.pasta_full`), porque o Douglas a compartilhou com pessoas que não podem ver as pastas dos colaboradores. A raiz não recebe mais o Full | — | — | docs/12 D-73 |
 | P12 | **Metas negativas na planilha FY27** (Q1-a: entram como estão): 1.034 pares, 318 clientes, R$ −96.066; 493 dos 517 pares de set/26 coincidem com realizado negativo no FY26 (rateio herdou devoluções). Em 204 pares bandeira×mês a soma da bandeira inteira fica negativa (102 bandeiras por mês, a pior em R$ −1.777) | **Douglas** analisa; **Comercial** corrige se ele pedir | R$ −96 mil em R$ 242 mi (0,04%) | `data/quality/metas_negativas.csv` e `metas_negativas_por_bandeira.csv` (regenerados a cada execução) |
-| P13 | **Publicação da D-74** desligada até o ok do Douglas sobre o build; os 73 arquivos compartilhados ainda são os da D-72/D-73 | **Douglas** | 73 arquivos | `config/config.yaml → dashboard.publicacao.ativo` |
+| P13 | ~~Publicação da D-74 desligada até o ok~~ **FEITA em 08/09/2026**: ok do Douglas, publicação religada, 73/73 arquivos (D-74 a D-77) nas pastas, MD5 igual ao build. Falta o aviso de uma linha aos usuários (meta por cliente no painel + bandeira abre por cliente) | **Douglas** avisa | 73 arquivos | `config/config.yaml → dashboard.publicacao.ativo` |
 
 ---
 
