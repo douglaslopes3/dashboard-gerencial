@@ -1147,3 +1147,64 @@ navegador, N1 Distribuicao       66 bandeiras, 36 com expansor · 113 clientes n
 tamanhos                         Full 17,60 MB · Atacado 12,39 · Distribuicao
                                  1,34 · Sul/CO 4,38 · RS/SC 3,49
 ```
+
+## T-59 · D-74: metas FY27 por cliente (08/09/2026)
+
+```
+unitarios                        78 de 78 (9 novos): leitor aceita serial/data/
+                                 texto no Periodo e codigo zero-preenchido;
+                                 aborta tipo desconhecido, chave duplicada,
+                                 periodo invalido e valor nulo; categoria fora
+                                 do modelo aborta (Q5-a); cliente so com meta
+                                 entra na DIM pela hierarquia com SEM_SELLIN
+                                 (Q4-a); cubo_meta usa os indices do principal,
+                                 par so com meta ganha linha, mes so com meta
+                                 entra no calendario, meta negativa entra como
+                                 esta, reconciliacao por mes aborta se faltar
+                                 linha; RTM acumula a meta na linha Σ do
+                                 distribuidor; filtrar_por_nivel recorta e
+                                 reindexa a meta (H1 + H2 = total); revisoes
+                                 registram alterado/removido/novo e so avisam
+                                 nos dois primeiros; guarda do template D-74;
+                                 guarda da D-67 atualizada (META e ATING. %
+                                 entre ATUAL e ANT., condicionadas)
+cenarios (ponta a ponta)         6 de 6
+pipeline (base real)             exit 0 em 37 s · Metas_FY'27.xlsx 146.794
+                                 pares em 3,6 s · set/26 R$ 122.279.463,48 /
+                                 7.824,458 t · out/26 R$ 119.951.284,00 /
+                                 7.693,401 t · DIM_CALENDARIO 26 meses (out/26
+                                 so com meta) · CUBO_META 146.106 linhas,
+                                 reconciliado nos 2 meses e 2 metricas ·
+                                 FATO_META.parquet 2.098 KB · 7 avisos (os
+                                 mesmos de antes)
+qualidade §11                    36 clientes da meta fora da hierarquia (R$ 201
+                                 mil/mes) · 1 inativo · 55 RTM (somam na Σ do
+                                 distribuidor) · 0 sem sell-in na serie ·
+                                 negativas 1.034 pares / 318 clientes /
+                                 R$ -96.066: 568 pares bandeira x categoria x
+                                 mes com negativo, 366 ficam negativos na
+                                 categoria, 204 na bandeira inteira (102
+                                 bandeiras por mes; pior R$ -1.777)
+geracao (publicacao OFF)         73 arquivos em 19 s; Full 19,46 MB (17,62 antes:
+                                 +0,92 MB por mes de meta), abaixo do teto de
+                                 35 MB; particionamento da META N1/N2/N3 fecha
+                                 ao centavo (R$ 241.828.369,97 + fora
+                                 402.376,18 = 242.230.746,15); 3 asserts por
+                                 arquivo tambem sobre o cubo_meta
+navegador, Full                  abertura 3,7 s · heap 200 MB · zero erro ·
+                                 FY2027 (set+out/26): KPI "Meta R$ 242,2 mi ·
+                                 Ating. 4,8% (parcial)", Volume "Meta 15,5 mil
+                                 t · 5,0%"; chip out/26 com "0" e titulo "tem
+                                 meta"; estado "meta: 2 de 2 meses (mes
+                                 parcial)"; matriz hierarquica META/ATING. %
+                                 (PARCIAL) apos ATUAL: Atacado R$ 96,7 mi,
+                                 Distribuicao 56,7, KA Nacional 48,3, KA
+                                 Regional 40,2, Sem estrutura 401,3 mil,
+                                 Inativos 1,1 mil, Total geral 242,2 mi = KPI;
+                                 Bandeiras: LASA R$ 15,7 mi, ATACADAO 14,2,
+                                 ASSAI 14,5, total = KPI; Categorias: AMENDOIM
+                                 R$ 75,5 mi, GOMAS 48,4, BALA 39,7, SKU n/d
+navegador, N3 RS/SC              abertura 1,1 s · heap 43 MB · KPI "Meta R$ 12,8
+                                 mi · Ating. 6,0% (parcial)" = linha do
+                                 executivo = Total geral · 855 t
+```

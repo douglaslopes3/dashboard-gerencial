@@ -123,41 +123,43 @@ SKU que aparece no sell-in e não está no cadastro entra com
 `FORA_DO_CADASTRO = true`, usando descrição e categoria do próprio sell-in e
 `MARCA` nula.
 
-## 3b. `FY 26-27_Meta Set_TT BRASIL.xlsx` → `FATO_META` (D-43 — **REMOVIDA na D-49, 02/09/2026**)
+## 3b. `bases/Metas/*.xlsx` → `FATO_META` (D-74, 08/09/2026)
 
-> **D-49:** a `FATO_META` deixou de existir — o tema Metas saiu do produto e o
-> novo arquivo de metas, quando chegar, será cruzado pela chave do cliente
-> (reintegração em docs/12, D-49). A tabela abaixo fica como registro.
+> A `FATO_META` da D-43 (grão head × bandeira × categoria, rota A) saiu na
+> D-49. A tabela de hoje é a da **D-74**: meta por **cliente**, cruzada pela
+> chave do cliente com a `DIM_CLIENTE`. Leitor: `src/extract/metas.py`;
+> config: `fontes.metas`.
 
-Grão: `ANO_MES` x `COD_HEAD` x `BANDEIRA_META` x `COD_BANDEIRA` x `CATEGORIA`
-(duplicidade ABORTA). A competência vem do rótulo da coluna (`SET'26`), e a
-soma do detalhe é reconciliada contra a linha `Total` do próprio arquivo.
+Grão: `ANO_MES` × `COD_CLIENTE` × `CATEGORIA` (duplicidade da chave + tipo
+ABORTA). O arquivo vem em formato **longo** (uma linha por tipo de meta); a
+pasta inteira é varrida (Q2) e a competência vem do conteúdo (`Período`),
+nunca do nome. O mesmo mês em dois arquivos aborta.
 
 | Origem | Destino | Transformação |
 |---|---|---|
-| rótulo da coluna de mês | `ANO_MES` | `SET'26` → `2026-09` (aborta se não casar `MMM'AA`) |
-| `CÓDIGO HEAD` | `COD_HEAD` | `digitos()` (10/20/30/40 — os mesmos da hierarquia) |
-| `HEAD` | `HEAD_META` | `texto()` (nome como veio, só conferência) |
-| `CLUSTER` | `CLUSTER` | `texto()` (Top Atacados, Sem Mudança, Phase 1...) |
-| `CLIENTE` | `BANDEIRA_META` | `texto()` (nome da bandeira; espaço duplo colapsa) |
-| `CÓD. BANDEIRA 1` | `COD_BANDEIRA` | `digitos()` — série 82xxxxx (D-42) |
-| `CÓD. BANDEIRA 2` | `COD_BANDEIRA_2` | só quando dígito puro E ≠ do 1 (fusão); senão `<NA>` |
-| `CATEGORIA` | `CATEGORIA` | `texto()` (10/10 batem com a DIM_PRODUTO) |
-| `(N2) CÓDIGO GERENTE` | `COD_GERENTE` | `digitos()` (prefixo do rótulo `GERENTE` da DIM) |
-| `(N3) CÓDIGO SUP./EXEC.` | `COD_SUPERVISOR` | `digitos()` (prefixo do rótulo `SUPERVISOR`) |
-| `STATUS VÍNCULO` | `STATUS_VINCULO` | `texto()` |
-| coluna sob rótulo `Volume (kg)` | `META_PESO_KG` | numérico |
-| coluna sob rótulo `RL (R$)` | `META_RECEITA` | numérico |
+| `CÓDIGO CLIENTE` | `COD_CLIENTE` | `digitos()` (7 dígitos; zero à esquerda e float tolerados) |
+| `CATEGORIA` | `CATEGORIA` | `texto()`; categoria fora da `DIM_PRODUTO` **aborta** (Q5-a) |
+| `Período` | `ANO_MES` | data, serial do Excel (46266 → `2026-09`) ou texto `AAAA-MM`; irreconhecível aborta |
+| `Tipo Meta` = `VALOR (R$)` | `META_RECEITA` | `numero()`; mapa em `fontes.metas.tipos_meta`; tipo fora do mapa aborta |
+| `Tipo Meta` = `VOLUME (KG)` | `META_PESO_KG` | idem, **em kg** (mesma unidade do `PESO_KG` do sell-in; toneladas só no cubo) |
 | nome do arquivo | `ARQUIVO_ORIGEM` | linhagem |
 
-Arquivo ausente NÃO derruba o pipeline: `FATO_META` sai vazia com o esquema
-estável e o painel fica sem meta (ausente, nunca zero). O cruzamento com o
-realizado (fase dos visuais) é por CÓDIGO primeiro (D-42), nome como
-fallback declarado.
+Regras medidas em 08/09/2026: 146.794 pares em 2 meses (set/26 e out/26),
+11.133 clientes (todos na DIM_CLIENTE), 10 categorias (todas no modelo),
+nenhum nulo, nenhuma duplicidade; 1.034 pares **negativos** entram como
+estão (Q1-a) e saem listados em `data/quality/metas_negativas*.csv`.
+Reconciliação interna: a soma da tabela larga por mês bate com a soma bruta
+das linhas do arquivo (o pivô não pode perder linha). Arquivo ausente NÃO
+derruba o pipeline: `FATO_META` sai vazia com o esquema estável e o painel
+fica sem meta (ausente, nunca zero). Mês já carregado que muda numa
+execução seguinte é **registrado** em `data/quality/metas_revisoes.csv`
+(Q3). Cliente com meta e sem sell-in entra na `DIM_CLIENTE` com a flag
+`SEM_SELLIN` (Q4-a).
 
 ## 4. Derivado — `DIM_CALENDARIO`
 
-Não tem fonte de arquivo: é gerada da amplitude de `ANO_MES` presente na fato.
+Não tem fonte de arquivo: é gerada da amplitude de `ANO_MES` presente na fato
+**e na `FATO_META`** (D-74: out/26 tem meta antes de ter sell-in).
 Ver `docs/06_MODELO_ESTRELA.md §2.2` para a lista de colunas e
 `config/config.yaml → calendario` para os parâmetros (`fiscal_mes_inicio: 9`,
 `fiscal_prefixo: "FY"`).

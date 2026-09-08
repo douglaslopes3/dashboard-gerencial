@@ -55,7 +55,10 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
           dim_produto: pd.DataFrame, dim_cal: pd.DataFrame,
           meta: dict, cobertura_head: float, cobertura_canal: float,
           pacote_cubo: dict, avisos: list[str],
-          saneamento: dict | None = None) -> dict:
+          saneamento: dict | None = None,
+          fato_meta: pd.DataFrame | None = None,
+          meta_metas: dict | None = None,
+          revisoes_meta: list[dict] | None = None) -> dict:
     PASTA_QUALITY.mkdir(parents=True, exist_ok=True)
     L: list[str] = []
     resumo: dict = {}
@@ -369,6 +372,10 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     else:
         linha("Nenhum.")
     linha()
+    # ------------------------------------------------------- 11. metas D-74
+    _secao_metas(linha, fato_meta, dim_cliente, meta_metas or {},
+                 revisoes_meta or [], fato, dim_produto)
+
     linha("---")
     linha()
     linha("Gaps conhecidos e seus donos: `docs/04_GAPS_E_RISCOS.md`.")
@@ -377,3 +384,122 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     alvo.write_text("\n".join(L), encoding="utf-8")
     log(f"relatorio de qualidade -> {alvo.relative_to(alvo.parents[2])}", "ok")
     return resumo
+
+
+# ============================================================ 11. metas D-74
+def _secao_metas(linha, fato_meta, dim_cliente, meta_metas: dict,
+                 revisoes: list[dict], fato: pd.DataFrame,
+                 dim_produto: pd.DataFrame) -> None:
+    """Metas por cliente (D-74, 08/09/2026). Mede: totais por mes, cruzamento
+    com a DIM_CLIENTE (hierarquia, RTM, inativos, sem sell-in), pares
+    NEGATIVOS (Q1-a: entram como estao e saem listados, com a soma por
+    bandeira para o Douglas conferir se fica positiva) e as REVISOES de
+    meses ja carregados (Q3)."""
+    linha("## 11. Metas por cliente (D-74)")
+    linha()
+    if fato_meta is None or fato_meta.empty:
+        linha("Sem base de metas nesta execução (`bases/Metas/` vazia): o "
+              "painel sai **sem meta** — ausência, nunca zero.")
+        linha()
+        return
+    fm = fato_meta.merge(
+        dim_cliente[["COD_CLIENTE", "NOME_CLIENTE", "BANDEIRA", "HEAD",
+                     "GERENTE", "SUPERVISOR", "NA_ESTRUTURA"]
+                    + [c for c in ("INATIVO", "BANDEIRA_HERDADA", "SEM_SELLIN")
+                       if c in dim_cliente.columns]],
+        on="COD_CLIENTE", how="left")
+    for arq in meta_metas.get("arquivos") or []:
+        linha(f"- `{arq['arquivo']}`: {arq['linhas']:,} linhas · meses "
+              f"{', '.join(arq['meses'])}")
+    linha()
+    linha("| Mês | Pares cliente×categoria | Clientes | Meta R$ | Meta t |")
+    linha("|---|---:|---:|---:|---:|")
+    for am, g in fm.groupby("ANO_MES"):
+        linha(f"| {am} | {len(g):,} | {g['COD_CLIENTE'].nunique():,} | "
+              f"{_fmt(float(g['META_RECEITA'].sum()))} | "
+              f"{_fmt(float(g['META_PESO_KG'].sum()) / 1000, 3)} |")
+    linha()
+    ultimo = fm["ANO_MES"].max()
+    u = fm[fm["ANO_MES"] == ultimo]
+    linha(f"**Cruzamento com a DIM_CLIENTE (mês {ultimo}):**")
+    linha()
+    fora = u[~u["NA_ESTRUTURA"].fillna(False).astype(bool)]
+    linha(f"- Clientes da meta fora da hierarquia (`{_SEM_ESTRUTURA}`): "
+          f"**{fora['COD_CLIENTE'].nunique():,}** · R$ {_fmt(float(fora['META_RECEITA'].sum()))}")
+    if "INATIVO" in u.columns:
+        ina = u[u["INATIVO"].fillna(False).astype(bool)]
+        linha(f"- Clientes da meta inativados pelo saneamento: "
+              f"**{ina['COD_CLIENTE'].nunique():,}** · R$ {_fmt(float(ina['META_RECEITA'].sum()))}")
+    if "BANDEIRA_HERDADA" in u.columns:
+        rtm = u[u["BANDEIRA_HERDADA"].fillna(False).astype(bool)]
+        linha(f"- Clientes RTM (meta somada na linha Σ do distribuidor): "
+              f"**{rtm['COD_CLIENTE'].nunique():,}** · R$ {_fmt(float(rtm['META_RECEITA'].sum()))}")
+    if "SEM_SELLIN" in u.columns:
+        ss = u[u["SEM_SELLIN"].fillna(False).astype(bool)]
+        linha(f"- Clientes com meta que NUNCA faturaram na série (Q4-a, "
+              f"entram pela hierarquia): **{ss['COD_CLIENTE'].nunique():,}**")
+    cats_modelo = set(dim_produto["CATEGORIA"].dropna())
+    linha(f"- Categorias da meta: **{fm['CATEGORIA'].nunique()}** (todas no "
+          f"modelo, Q5-a) · categorias do modelo sem meta: "
+          f"{sorted(cats_modelo - set(fm['CATEGORIA']))}")
+    # sell-in do ultimo mes de meta ja carregado?
+    tem_sellin = fato[fato["ANO_MES"] == ultimo]
+    if len(tem_sellin):
+        pares_real = set(zip(tem_sellin["COD_CLIENTE"],
+                             tem_sellin["COD_PRODUTO"].map(
+                                 dim_produto.set_index("COD_PRODUTO")["CATEGORIA"])))
+        pares_meta = set(zip(u["COD_CLIENTE"], u["CATEGORIA"]))
+        linha(f"- {ultimo} já tem sell-in: pares com meta e sem sell-in "
+              f"**{len(pares_meta - pares_real):,}** · com sell-in e sem meta "
+              f"**{len(pares_real - pares_meta):,}** (nenhum é descartado; "
+              "meta ausente é n/d, nunca zero)")
+    else:
+        linha(f"- {ultimo} ainda não tem sell-in carregado: o painel mostra a "
+              "meta com realizado ausente")
+    linha()
+
+    # ---- negativos (Q1-a) ------------------------------------------------
+    neg = fm[(fm["META_RECEITA"] < 0) | (fm["META_PESO_KG"] < 0)]
+    cols = ["ANO_MES", "COD_CLIENTE", "NOME_CLIENTE", "BANDEIRA", "HEAD",
+            "GERENTE", "SUPERVISOR", "CATEGORIA", "META_RECEITA", "META_PESO_KG"]
+    _csv(neg[cols].sort_values(["ANO_MES", "META_RECEITA"]), "metas_negativas.csv")
+    # soma por bandeira x categoria x mes: a meta negativa do par e a meta
+    # TOTAL da bandeira na categoria (todos os clientes) — fica positiva?
+    chave = ["ANO_MES", "BANDEIRA", "CATEGORIA"]
+    tot = fm.groupby(chave)[["META_RECEITA", "META_PESO_KG"]].sum()
+    tot_ban = fm.groupby(["ANO_MES", "BANDEIRA"])["META_RECEITA"].sum()
+    negb = neg.groupby(chave).agg(clientes_negativos=("COD_CLIENTE", "nunique"),
+                                  meta_negativa_rs=("META_RECEITA", "sum"),
+                                  meta_negativa_kg=("META_PESO_KG", "sum"))
+    negb = negb.join(tot.rename(columns={"META_RECEITA": "meta_total_bandeira_categoria_rs",
+                                         "META_PESO_KG": "meta_total_bandeira_categoria_kg"}))
+    negb["meta_total_bandeira_rs"] = [tot_ban[(a, b)] for a, b, _ in negb.index]
+    negb["fica_positiva_na_categoria"] = negb["meta_total_bandeira_categoria_rs"] > 0
+    negb["fica_positiva_na_bandeira"] = negb["meta_total_bandeira_rs"] > 0
+    negb = negb.reset_index().sort_values(["ANO_MES", "meta_negativa_rs"])
+    _csv(negb, "metas_negativas_por_bandeira.csv")
+    linha(f"**Metas negativas (Q1-a, entram como estão):** "
+          f"**{len(neg):,}** pares · **{neg['COD_CLIENTE'].nunique():,}** clientes · "
+          f"R$ {_fmt(float(neg['META_RECEITA'].sum()))} · "
+          f"{_fmt(float(neg['META_PESO_KG'].sum()) / 1000, 3)} t")
+    if len(negb):
+        n_cat_neg = int((~negb["fica_positiva_na_categoria"]).sum())
+        n_ban_neg = int((~negb["fica_positiva_na_bandeira"]).sum())
+        linha(f"- Pares bandeira×categoria×mês com algum cliente negativo: "
+              f"**{len(negb):,}**; a soma da bandeira na categoria fica "
+              f"NEGATIVA em **{n_cat_neg:,}**; a soma da bandeira inteira fica "
+              f"NEGATIVA em **{n_ban_neg:,}**")
+    linha("- Listas: `metas_negativas.csv` (par a par) e "
+          "`metas_negativas_por_bandeira.csv` (soma por bandeira)")
+    linha()
+
+    # ---- revisoes (Q3) ---------------------------------------------------
+    linha("**Revisões de meses já carregados (Q3):** "
+          + (f"{len(revisoes)} registro(s) nesta execução" if revisoes
+             else "nenhuma nesta execução")
+          + " · histórico acumulado em `metas_revisoes.csv`")
+    for r in revisoes:
+        linha(f"- {r['ANO_MES']}: **{r['situacao']}** · {r['pares_alterados']:,} "
+              f"par(es) · R$ {_fmt(r['receita_anterior'] or 0)} → "
+              f"R$ {_fmt(r['receita_nova'] or 0)}")
+    linha()

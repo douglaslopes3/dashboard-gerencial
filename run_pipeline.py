@@ -21,6 +21,8 @@ import sys
 import time
 import traceback
 
+import pandas as pd
+
 # O console do Windows abre em cp1252 e engole os acentos do log. O arquivo de
 # log ja e UTF-8; isto alinha o console com ele.
 for _fluxo in (sys.stdout, sys.stderr):
@@ -29,12 +31,12 @@ for _fluxo in (sys.stdout, sys.stderr):
     except (AttributeError, OSError):
         pass
 
-from src.extract import cadastros, sellin
+from src.extract import cadastros, metas, sellin
 from src.load import cubos, parquet
 from src.qualidade import gerar as gerar_qualidade
 from src.transform import calendario, dimensoes, fato as fato_mod, saneamento
 from src.utils import log as L
-from src.utils.config import CFG, PASTA_CURATED, preparar_pastas
+from src.utils.config import CFG, PASTA_CURATED, PASTA_QUALITY, preparar_pastas
 from src.utils.log import EXECUCAO_ID, abortar, log, titulo
 
 
@@ -73,6 +75,10 @@ def main() -> int:
     avisos_negocio += avisos_rtm
     faltando, avisos_falt = cadastros.ler_faltando()
     avisos_negocio += avisos_falt
+    # D-74 (08/09/2026): metas por cliente x categoria x mes (bases/Metas).
+    # Fonte opcional: sem arquivo o painel sai sem meta, com aviso.
+    fato_meta, meta_metas, avisos_metas = metas.ler()
+    avisos_negocio += avisos_metas
 
     # ------------------------------------------------------------ 2. FATO
     titulo("2/6 · FATO — grao e reconciliacao contra a origem")
@@ -82,12 +88,19 @@ def main() -> int:
 
     # ------------------------------------------------------ 3. DIMENSOES
     titulo("3/6 · DIMENSOES")
-    dim_cal = calendario.construir(sorted(f["ANO_MES"].unique()))
+    # D-74: o calendario cobre ate o ultimo mes com META — out/26 tem meta e
+    # ainda nao tem sell-in; sem o mes no calendario a meta nao teria indice.
+    dim_cal = calendario.construir(sorted(set(f["ANO_MES"].unique())
+                                          | set(fato_meta["ANO_MES"].unique())))
     log(f"DIM_CALENDARIO: {len(dim_cal)} meses · anos fiscais "
         f"{sorted(dim_cal['ANO_FISCAL_ROTULO'].unique())}")
-    dim_cli = dimensoes.dim_cliente(bruto, estrutura, canais)
+    # D-74/Q4-a: cliente com meta e sem sell-in entra na DIM_CLIENTE.
+    dim_cli = dimensoes.dim_cliente(bruto, estrutura, canais,
+                                    clientes_extra=fato_meta["COD_CLIENTE"])
     dim_prod = dimensoes.dim_produto(bruto, produtos)
     del bruto    # B4: 692 MB que ninguem mais le — fora do pico de memoria
+    # D-74/Q5-a: categoria da meta que nao existe no modelo ABORTA.
+    metas.conferir_categorias(fato_meta, dim_prod)
     # D-50: RTM + saneamento agem SO na DIM_CLIENTE — a fato nunca e tocada;
     # e o join com a dimensao que decide a quem o historico aparece atribuido.
     dim_cli, san, avisos_san = saneamento.aplicar(dim_cli, rtm, faltando, f)
@@ -105,17 +118,31 @@ def main() -> int:
     # aborto na validacao dos cubos deixava parquet novo em data/curated com
     # cubos.json/resumo.json velhos — e `run_dashboard.py` publicava painel da
     # execucao anterior com cara de valido.
-    pacote = cubos.construir(f, dim_cli, dim_prod, dim_cal)
+    pacote = cubos.construir(f, dim_cli, dim_prod, dim_cal, fato_meta=fato_meta)
     cubos.reconciliar(pacote, f)
-    # D-49: o CUBO_META (rota A) saiu com a remocao do tema Metas. O ponto de
-    # reintegracao da futura base por codigo de cliente esta em docs/12 (D-49).
+    # D-74: o CUBO_META (join direto pela chave do cliente, sem rota A) e
+    # reconciliado com a FATO_META mes a mes. (O CUBO_META antigo, D-44,
+    # saiu na D-49; este e o ponto de reintegracao descrito la.)
+    cubos.reconciliar_meta(pacote, fato_meta)
     pacote["execucao"] = EXECUCAO_ID     # conferido por run_dashboard.py (A6)
+
+    # D-74/Q3: a meta de um mes ja carregado pode mudar; a diferenca contra a
+    # FATO_META da execucao ANTERIOR fica registrada (append) antes de
+    # sobrescrever. Comparacao feita aqui, antes de qualquer gravacao.
+    alvo_meta = PASTA_CURATED / "FATO_META.parquet"
+    anterior = pd.read_parquet(alvo_meta) if alvo_meta.exists() else None
+    revisoes, avisos_rev = metas.registrar_revisoes(
+        fato_meta, anterior, PASTA_QUALITY / "metas_revisoes.csv", EXECUCAO_ID)
+    avisos_negocio += avisos_rev
 
     # ------------------------------------------------ 6. GRAVAR e RELATAR
     titulo("6/6 · GRAVAR o modelo estrela e RELATAR")
     parquet.salvar(dim_cal, "DIM_CALENDARIO")
     parquet.salvar(dim_cli, "DIM_CLIENTE")
     parquet.salvar(dim_prod, "DIM_PRODUTO")
+    # D-74: FATO_META (ANO_MES x COD_CLIENTE x CATEGORIA), em R$ e KG. Sem
+    # meta o parquet e gravado VAZIO (esquema estavel; ausencia declarada).
+    parquet.salvar(fato_meta, "FATO_META")
     f_part = f.copy()
     f_part["ANO"] = f_part["ANO_MES"].str.slice(0, 4)
     parquet.salvar_particionado(f_part, "FATO_SELLIN", "ANO")
@@ -128,7 +155,9 @@ def main() -> int:
 
     resumo = gerar_qualidade(f, dim_cli, dim_prod, dim_cal, meta, cobertura,
                              cobertura_canal, pacote,
-                             avisos_negocio + L.avisos(), saneamento=san)
+                             avisos_negocio + L.avisos(), saneamento=san,
+                             fato_meta=fato_meta, meta_metas=meta_metas,
+                             revisoes_meta=revisoes)
 
     # Resumo enxuto para o painel. Existe para que `run_dashboard.py` nao precise
     # reabrir os 3 milhoes de linhas da fato so para escrever o rodape.
@@ -150,6 +179,12 @@ def main() -> int:
         "cobertura_estrutura": cobertura,
         "cobertura_canal": cobertura_canal,
         "avisos": len(L.avisos()),
+        # D-74: o painel declara quais meses tem meta (o cubo tambem diz;
+        # aqui e para o leitor humano e para o run_dashboard).
+        "metas": {"meses": sorted(meta_metas.get("gabarito") or {}),
+                  "clientes": int(fato_meta["COD_CLIENTE"].nunique()),
+                  "pares": int(len(fato_meta)),
+                  "arquivos": [a["arquivo"] for a in meta_metas.get("arquivos") or []]},
     }, ensure_ascii=False, indent=1))
 
     # ------------------------------------------------------------ RESUMO
@@ -164,6 +199,11 @@ def main() -> int:
     log(f"SKUs ................... {len(dim_prod):,}")
     log(f"cobertura da estrutura . {cobertura:.2%}")
     log(f"cobertura de canal ..... {cobertura_canal:.2%}")
+    meses_meta = sorted(meta_metas.get("gabarito") or {})
+    log(f"metas .................. "
+        + (f"{len(meses_meta)} mes(es) ({meses_meta[0]} a {meses_meta[-1]}), "
+           f"{fato_meta['COD_CLIENTE'].nunique():,} clientes"
+           if meses_meta else "sem base de metas"))
     log(f"avisos ................. {len(L.avisos())}")
     log("")
     log(f"tempo total: {time.time() - t0:.1f}s")

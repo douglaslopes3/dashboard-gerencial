@@ -892,11 +892,16 @@ def test_d70_sem_notas_de_rodape():
 
 def test_d67_colunas_de_decisao_antes_da_serie():
     """D-67: nas tres matrizes o cabecalho e nome | ATUAL | ANT. | Δ | Δ% |
-    Part. % | serie... | TOTAL — e a exportacao segue a mesma ordem."""
+    Part. % | serie... | TOTAL — e a exportacao segue a mesma ordem.
+    D-74: META e ATING. % entram entre ATUAL e ANT., so quando ha meta
+    (`colsMeta` vazio sem meta), e a exportacao acompanha."""
     corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
-    assert '{v:"ATUAL"},{v:"ANT."},{v:"Δ"},{v:"Δ%"},{v:"Part. %"}]' in corpo
+    assert ('{v:"ATUAL"}].concat(colsMeta).concat([{v:"ANT."},{v:"Δ"},{v:"Δ%"},'
+            '{v:"Part. %"}])') in corpo
     assert '.concat([{v:"TOTAL",c:"serie corte"}])' in corpo
-    assert '["Item","ATUAL","ANT.","Δ","Δ%","Part. %"].concat(cols.map(rotCol))' in corpo
+    assert ('["Item","ATUAL"].concat(mostraMeta?[rotMeta,rotAting]:[])'
+            in corpo)
+    assert '.concat(["ANT.","Δ","Δ%","Part. %"]).concat(cols.map(rotCol))' in corpo
 
 
 def test_d65_template_monta_o_corte_na_tela():
@@ -1125,6 +1130,222 @@ def test_d72_template_abre_bandeira_por_cliente():
     rot = (CFG["dashboard"].get("rotulos_exibicao") or {}).get("rtm_acumulado")
     assert rot and "{n}" in rot
     assert rot not in corpo, "o rotulo de leitor mora no config, nao no template"
+
+
+# ===================================================== D-74: metas por cliente
+def _metas_mini():
+    """Meta para o _mini_modelo: cliente 1 (BALA), cliente 3 (GOMAS) e um par
+    que NAO tem sell-in (cliente 2 em GOMAS), em jan/26; e fev/26 so para o
+    cliente 5 — mes sem sell-in nenhum, com meta NEGATIVA (Q1-a)."""
+    return pd.DataFrame({
+        "ANO_MES": pd.Series(["2026-01", "2026-01", "2026-01", "2026-02"], dtype="string"),
+        "COD_CLIENTE": pd.Series(["1", "3", "2", "5"], dtype="string"),
+        "CATEGORIA": pd.Series(["BALA", "GOMAS", "GOMAS", "BALA"], dtype="string"),
+        "META_RECEITA": [120.0, 330.0, 50.0, -10.0],
+        "META_PESO_KG": [12.0, 33.0, 5.0, -1.0],
+        "ARQUIVO_ORIGEM": pd.Series(["m.xlsx"] * 4, dtype="string"),
+    })
+
+
+def _planilha_metas(alvo, linhas, cols=None):
+    cols = cols or ["CÓDIGO CLIENTE", "CATEGORIA", "Período", "Tipo Meta", "Valor"]
+    df = pd.DataFrame(linhas, columns=cols)
+    with pd.ExcelWriter(alvo, engine="openpyxl") as w:
+        df.to_excel(w, sheet_name="Metas FY27", index=False)
+    return alvo
+
+
+def _tmp_dir():
+    import tempfile
+    return Path(tempfile.mkdtemp(prefix="metas_teste_"))
+
+
+def test_d74_leitor_aceita_serial_data_e_texto_no_periodo():
+    """A competencia vem do CONTEUDO: serial do Excel (46266 = 01/09/2026),
+    data e texto AAAA-MM viram o mesmo ANO_MES. Codigo zero-preenchido e
+    float viram o mesmo cliente (digitos)."""
+    from src.extract import metas
+    arq = _planilha_metas(_tmp_dir() / "m.xlsx", [
+        [1005619, "AMENDOIM", 46266, "VOLUME (KG)", 1.5],
+        ["0001005619", "AMENDOIM", 46266, "VALOR (R$)", 30.0],
+        [1005619.0, "GOMAS", pd.Timestamp("2026-10-01"), "VOLUME (KG)", 2.0],
+        [1005619, "GOMAS", "2026-10", "VALOR (R$)", 40.0],
+    ])
+    d, extra = metas._ler_um(arq)
+    assert list(d.columns) == metas.COLUNAS
+    assert sorted(d["ANO_MES"]) == ["2026-09", "2026-10"]
+    assert set(d["COD_CLIENTE"]) == {"1005619"}
+    assert extra["meses"] == ["2026-09", "2026-10"]
+    assert extra["gabarito"]["2026-09"] == {"META_RECEITA": 30.0, "META_PESO_KG": 1.5}
+    assert extra["pares_com_um_tipo_so"] == 0
+
+
+def test_d74_leitor_aborta_tipo_desconhecido_duplicidade_e_periodo_invalido():
+    """Tipo de meta fora do config, chave repetida, periodo irreconhecivel e
+    valor nulo ABORTAM — nada entra pela metade."""
+    from src.extract import metas
+    pasta = _tmp_dir()
+    casos = {
+        "tipo": [[1, "BALA", 46266, "VALOR (US$)", 1.0], [1, "BALA", 46266, "VOLUME (KG)", 1.0]],
+        "dup": [[1, "BALA", 46266, "VALOR (R$)", 1.0], [1, "BALA", 46266, "VALOR (R$)", 2.0],
+                [1, "BALA", 46266, "VOLUME (KG)", 1.0]],
+        "periodo": [[1, "BALA", "setembro", "VALOR (R$)", 1.0], [1, "BALA", 46266, "VOLUME (KG)", 1.0]],
+        "nulo": [[1, "BALA", 46266, "VALOR (R$)", None], [1, "BALA", 46266, "VOLUME (KG)", 1.0]],
+    }
+    for nome, linhas in casos.items():
+        arq = _planilha_metas(pasta / f"{nome}.xlsx", linhas)
+        try:
+            metas._ler_um(arq)
+        except SystemExit as e:
+            assert e.code == 1
+            continue
+        raise AssertionError(f"caso {nome} deveria abortar")
+
+
+def test_d74_categoria_fora_do_modelo_aborta():
+    """Q5-a: categoria que nao existe na DIM_PRODUTO rejeita a base."""
+    from src.extract import metas
+    _, _, dim_prod, _ = _mini_modelo()
+    fm = _metas_mini()
+    metas.conferir_categorias(fm, dim_prod)          # BALA e GOMAS existem
+    fm.loc[0, "CATEGORIA"] = "AMENDOIN"
+    try:
+        metas.conferir_categorias(fm, dim_prod)
+    except SystemExit as e:
+        assert e.code == 1
+        return
+    raise AssertionError("categoria fora do modelo deveria abortar")
+
+
+def test_d74_cliente_so_com_meta_entra_na_dim_pela_hierarquia():
+    """Q4-a: cliente com meta e sem sell-in entra na DIM_CLIENTE com a
+    flag SEM_SELLIN, hierarquia pelo de-para e nome ausente (nada inventado)."""
+    sellin = pd.DataFrame({
+        "ANO_MES": ["2026-01"], "COD_CLIENTE": ["1"], "NOME_CLIENTE": ["CLI 1"],
+        "BANDEIRA": ["REDE A"], "UF": ["SP"],
+    })
+    estrutura = pd.DataFrame({
+        "COD_CLIENTE": ["1", "9"], "HEAD": ["10 - H1", "10 - H1"],
+        "GERENTE": ["1000 - G1"] * 2, "SUPERVISOR": ["1100 - S1"] * 2,
+        "VENDEDOR": ["111 - V1"] * 2, "PROJETO": ["P1"] * 2,
+        "BANDEIRA_ESTRUTURA": ["REDE A", "REDE Z"],
+    })
+    d = dimensoes.dim_cliente(sellin, estrutura, None,
+                              clientes_extra=pd.Series(["9", "1", "77"]))
+    assert list(d["COD_CLIENTE"]) == ["1", "77", "9"]
+    assert list(d["SEM_SELLIN"]) == [False, True, True]
+    nove = d.set_index("COD_CLIENTE").loc["9"]
+    assert nove["HEAD"] == "10 - H1" and nove["BANDEIRA"] == "REDE Z"
+    assert pd.isna(nove["NOME_CLIENTE"])
+    sete = d.set_index("COD_CLIENTE").loc["77"]
+    assert sete["HEAD"] == dimensoes.SEM_ESTRUTURA and not sete["NA_ESTRUTURA"]
+
+
+def test_d74_cubo_meta_tem_os_mesmos_indices_e_reconcilia_por_mes():
+    """O cubo de meta usa os indices do principal (bandeira, categoria,
+    perfil, cliente) e o mes; par so com meta ganha linha; mes so com meta
+    entra no calendario; soma por mes bate com a FATO_META ao centavo."""
+    from src.load import cubos
+    fato, dim_cli, dim_prod, _ = _mini_modelo()
+    fm = _metas_mini()
+    dim_cal = calendario.construir(sorted(set(fato["ANO_MES"]) | set(fm["ANO_MES"])))
+    assert list(dim_cal["ANO_MES"]) == ["2026-01", "2026-02"]
+    pac = cubos.construir(fato, dim_cli, dim_prod, dim_cal, fato_meta=fm)
+    cm = pac["cubo_meta"]
+    assert len(cm) == 4 and all(len(l) == cubos.BASE_MET_META + 2 for l in cm)
+    D = pac["dims"]
+    # cliente 2 em GOMAS so existe na meta; a linha aponta para os indices certos
+    linha = [l for l in cm if D["cli"][l[4]][0] == "2"][0]
+    assert D["cat"][linha[2]] == "GOMAS" and D["ban"][linha[1]] == "REDE B"
+    assert D["perfil"][linha[3]][0] == "10 - H1"
+    assert linha[5] == 5000 and linha[6] == 5000      # R$ 50 em centavos, 5 kg em g
+    # fev/26 (indice 1) so tem meta: nenhuma linha do principal, uma da meta
+    assert not [l for l in pac["cubo"] if l[0] == 1]
+    assert [l for l in cm if l[0] == 1][0][5] == -1000  # negativa entra como esta
+    cubos.reconciliar_meta(pac, fm)
+    # meta que some do cubo derruba a reconciliacao
+    pac["cubo_meta"] = cm[:-1]
+    try:
+        cubos.reconciliar_meta(pac, fm)
+    except SystemExit as e:
+        assert e.code == 1
+        return
+    raise AssertionError("cubo de meta incompleto deveria abortar")
+
+
+def test_d74_rtm_acumula_a_meta_na_linha_do_distribuidor():
+    """Cliente RTM que herdou a bandeira: a meta dele soma na MESMA chave Σ
+    do realizado, nunca em linha propria."""
+    from src.load import cubos
+    fato, dim, dim_prod, dim_cal = _modelo_rtm_acumulado()
+    fm = _metas_mini().iloc[:2].copy()           # clientes 1 (dist.) e 3 (RTM)
+    fm["CATEGORIA"] = pd.Series(["BALA", "BALA"], dtype="string")
+    pac = cubos.construir(fato, dim, dim_prod, dim_cal, fato_meta=fm)
+    D = pac["dims"]
+    linhas = [l for l in pac["cubo_meta"] if D["ban"][l[1]] == "DIST X"]
+    tipos = sorted((D["cli"][l[4]][0], D["cli"][l[4]][2], l[5]) for l in linhas)
+    assert tipos == [("", 2, 33000), ("1", 0, 12000)]     # Σ RTM (n=2) e o distribuidor
+
+
+def test_d74_recorte_por_nivel_leva_a_meta_e_reindexa():
+    """filtrar_por_nivel recorta o cubo de meta pelo mesmo perfil e as listas
+    de categoria/bandeira/cliente sao a UNIAO com a meta do arquivo."""
+    from src.load import cubos
+    from run_dashboard import filtrar_por_nivel
+    fato, dim_cli, dim_prod, _ = _mini_modelo()
+    fm = _metas_mini()
+    dim_cal = calendario.construir(["2026-01", "2026-02"])
+    pac = cubos.construir(fato, dim_cli, dim_prod, dim_cal, fato_meta=fm)
+    h2 = filtrar_por_nivel(pac, 0, "20 - H2")
+    # H2 so fatura BALA (SKU 30), e o cliente 5 tem meta em fev/26 em BALA
+    assert h2["dims"]["cat"] == ["BALA"]
+    assert [l[5] for l in h2["cubo_meta"]] == [-1000]
+    assert all(l[3] < len(h2["dims"]["perfil"]) and l[4] < len(h2["dims"]["cli"])
+               for l in h2["cubo_meta"])
+    h1 = filtrar_por_nivel(pac, 0, "10 - H1")
+    assert sum(l[5] for l in h1["cubo_meta"]) == 50000       # 120 + 330 + 50
+    assert sum(l[5] for l in h1["cubo_meta"]) + sum(l[5] for l in h2["cubo_meta"]) \
+        == sum(l[5] for l in pac["cubo_meta"])
+
+
+def test_d74_revisoes_registram_mes_alterado_e_removido():
+    """Q3: mes ja carregado que muda ou some fica registrado (append) e
+    vira aviso; mes novo e igual nao viram aviso."""
+    from src.extract import metas
+    ant = _metas_mini()
+    nov = ant.copy()
+    nov.loc[0, "META_RECEITA"] = 121.0              # jan/26 alterado
+    nov = nov[nov["ANO_MES"] != "2026-02"]          # fev/26 removido
+    nov = pd.concat([nov, pd.DataFrame({
+        "ANO_MES": pd.Series(["2026-03"], dtype="string"),
+        "COD_CLIENTE": pd.Series(["1"], dtype="string"),
+        "CATEGORIA": pd.Series(["BALA"], dtype="string"),
+        "META_RECEITA": [1.0], "META_PESO_KG": [1.0],
+        "ARQUIVO_ORIGEM": pd.Series(["m.xlsx"], dtype="string")})], ignore_index=True)
+    alvo = _tmp_dir() / "metas_revisoes.csv"
+    linhas, avisos = metas.registrar_revisoes(nov, ant, alvo, "exec1")
+    sit = {l["ANO_MES"]: l["situacao"] for l in linhas}
+    assert sit == {"2026-01": "alterado", "2026-02": "removido", "2026-03": "novo"}
+    assert [l["pares_alterados"] for l in linhas if l["ANO_MES"] == "2026-01"] == [1]
+    assert len(avisos) == 2                          # alterado e removido; novo nao
+    assert alvo.exists()
+    # segunda execucao sem mudanca: nada registrado, arquivo intacto
+    tam = alvo.stat().st_size
+    assert metas.registrar_revisoes(nov, nov, alvo, "exec2") == ([], [])
+    assert alvo.stat().st_size == tam
+
+
+def test_d74_template_mostra_meta_so_quando_o_periodo_tem():
+    """Guarda no template: cubo de meta indexado por mes, colunas META/ATING
+    condicionadas ao periodo, atingimento sobre os meses com meta, caixas
+    sem meta, mes so com meta visivel nos chips, medicao no console."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    for termo in ("const BASE_META = 5", "function somarMeta", "function metMeta",
+                  "const MOSTRA_META = p => TEM_META && p.meta && p.meta.length>0 && METRICAS[F.metrica].col<=1",
+                  "function ating(real, meta)", "mapAM = mostraMeta ? soma(p.meta)",
+                  "pathMeta:l=>[l[2]]", "OPC.mesMeta.has(i)", "metaParcial",
+                  "performance.now()", 'class="cmp meta"', "DB.cubo_meta"):
+        assert termo in corpo, f"template v4 perdeu a D-74: {termo}"
 
 
 # ================================================================== runner

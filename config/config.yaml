@@ -157,6 +157,33 @@ fontes:
     colunas_obrigatorias: ["CÓDIGO CLIENTE", "CLIENTE", "Hierarquia"]
     obrigatorio: false
 
+  # D-74 (08/09/2026): METAS por CLIENTE x CATEGORIA x MES (formato longo,
+  # uma linha por tipo de meta). Substitui a base FY 26/27 por bandeira que
+  # saiu na D-49. Regras medidas na analise de 08/09:
+  #   - a PASTA inteira e varrida (Q2): tanto um arquivo que cresce quanto um
+  #     por ano fiscal funcionam; a competencia vem do CONTEUDO (coluna
+  #     Periodo: data, serial do Excel ou texto AAAA-MM), nunca do nome;
+  #   - o MESMO mes em dois arquivos ABORTA (substituir, nunca adicionar);
+  #   - a meta de um mes ja carregado pode mudar (Q3): o arquivo atual e a
+  #     verdade e a mudanca fica REGISTRADA em data/quality/metas_revisoes.csv;
+  #   - categoria que nao existe no modelo ABORTA (Q5); cliente que nunca
+  #     faturou entra na DIM_CLIENTE pela Hierarquia_Consolidada (Q4);
+  #   - meta negativa entra como esta (Q1) e sai listada em
+  #     data/quality/metas_negativas*.csv;
+  #   - sem arquivo nenhum o painel roda SEM meta (ausencia, nunca zero).
+  metas:
+    pasta: "bases/Metas"
+    padroes_aceitos: ["*.xlsx", "*.xlsm"]
+    # null = primeira aba (o nome da aba carrega o ano fiscal: "Metas FY27").
+    aba: null
+    colunas_obrigatorias: ["CÓDIGO CLIENTE", "CATEGORIA", "Período", "Tipo Meta", "Valor"]
+    # Valor da coluna "Tipo Meta" -> metrica da FATO_META. Tipo que nao esta
+    # aqui ABORTA (nao e ignorado): o arquivo e que precisa ser conferido.
+    tipos_meta:
+      "VALOR (R$)": "META_RECEITA"
+      "VOLUME (KG)": "META_PESO_KG"
+    obrigatorio: false
+
 # -----------------------------------------------------------------------------
 # SANEAMENTO DA HIERARQUIA (D-50, Step 5) — parametros, nunca hardcode
 # -----------------------------------------------------------------------------
@@ -334,6 +361,15 @@ dashboard:
   # nome, como qualquer outro. A regra "acumula so quando herdou" garante que
   # com `saneamento.rtm_herda_bandeira: false` nada e acumulado.
   cliente_rtm_acumulado: true
+  # D-74 (Q7-a, 08/09/2026): TETO de tamanho de um arquivo de painel, em MB.
+  # Era 25 MB (acordo da D-48). Medido em 08/09: o Full tinha 17,6 MB e
+  # cresce ~0,7 MB por mes de sell-in; a meta por cliente custa ~0,96 MB por
+  # mes de meta no Full — com 12 meses de meta e o sell-in de ago/27 o Full
+  # passa de 30 MB. Decisao do Douglas: 35 MB, com a abertura e o heap
+  # medidos a cada rodada (o template registra os dois no console do
+  # navegador; a medicao de 08/09 esta em docs/12 D-74). Acima do teto o
+  # gerador ABORTA — subir o numero e decisao, nao acidente.
+  teto_mb: 35
 
   # Quantos itens no bloco de destaque de ganhos/quedas.
   top_ranking: 10

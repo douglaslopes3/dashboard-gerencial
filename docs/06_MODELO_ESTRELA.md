@@ -46,10 +46,18 @@ grosso quebraria o recorte por SKU e por cliente.
                               |
   DIM_PRODUTO ----------- FATO_SELLIN ----------- DIM_CLIENTE
    COD_PRODUTO                                     COD_CLIENTE
+   (CATEGORIA) ---------- FATO_META -------------------|
+                    ANO_MES x COD_CLIENTE x CATEGORIA (D-74)
 ```
 
-**Três dimensões. Uma fato.** Nenhum snowflake: toda dimensão liga direto na
-fato, e nenhuma liga em outra.
+**Três dimensões. Duas fatos.** Nenhum snowflake: toda dimensão liga direto
+nas fatos, e nenhuma liga em outra. A `FATO_META` (D-74, 08/09/2026) tem o
+grão mês × cliente × **categoria** (não SKU): liga na `DIM_CLIENTE` pela
+chave do cliente, na `DIM_CALENDARIO` pelo mês e na categoria pelo rótulo
+(a categoria é atributo da `DIM_PRODUTO`; a meta não desce ao SKU). É pelo
+join com a `DIM_CLIENTE` que a meta herda bandeira, hierarquia, canal e a
+regra RTM, sem atribuição própria. Colunas: `ANO_MES`, `COD_CLIENTE`,
+`CATEGORIA`, `META_RECEITA` (R$), `META_PESO_KG` (kg), `ARQUIVO_ORIGEM`.
 
 ### 2.1 `FATO_SELLIN`
 

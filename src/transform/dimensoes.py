@@ -29,13 +29,22 @@ _COLS_ESTRUTURA = ["HEAD", "GERENTE", "SUPERVISOR", "VENDEDOR", "PROJETO"]
 
 
 def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
-                canais: pd.DataFrame | None = None) -> pd.DataFrame:
+                canais: pd.DataFrame | None = None,
+                clientes_extra: pd.Series | None = None) -> pd.DataFrame:
     """Cliente + bandeira + UF + estrutura comercial + canal na mesma tabela.
 
     UF e bandeira são ATRIBUTOS do cliente, não dimensões próprias: vêm da mesma
     linha, têm o cliente como única chave e nunca são recortadas sem ele.
     Head, gerente, supervisor, canal e subcanal idem — uma tabela separada
     ligaria na fato pelo cliente de qualquer jeito. Ver `docs/06 §2.3`.
+
+    D-74 (Q4-a, 08/09/2026): `clientes_extra` sao codigos que NAO tem sell-in
+    na serie mas precisam existir na dimensao — hoje, clientes com META. Eles
+    entram com nome/bandeira/UF ausentes (nada inventado), recebem a
+    hierarquia e o canal pelos mesmos de-paras de todo mundo (quem nao esta
+    na Hierarquia_Consolidada fica "sem estrutura", como qualquer outro) e
+    carregam a flag SEM_SELLIN. Medido em 08/09: zero casos na base atual;
+    a regra existe para o dia em que aparecer um.
     """
     # O nome/bandeira/UF MAIS RECENTE vence: cliente renomeado no meio da serie
     # apareceria duas vezes no ranking.
@@ -48,6 +57,22 @@ def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
         agg["SUBCANAL"] = ("SUBCANAL", "last")
     base = (sellin.sort_values("ANO_MES", kind="stable")
                   .groupby("COD_CLIENTE", as_index=False).agg(**agg))
+    base["SEM_SELLIN"] = False
+    if clientes_extra is not None and len(clientes_extra):
+        novos = sorted(set(clientes_extra.dropna().astype("string"))
+                       - set(base["COD_CLIENTE"]))
+        if novos:
+            ext = pd.DataFrame({"COD_CLIENTE": pd.Series(novos, dtype="string")})
+            for c in base.columns:
+                if c not in ext.columns:
+                    ext[c] = pd.Series(pd.NA, index=ext.index,
+                                       dtype=base[c].dtype if c != "SEM_SELLIN" else "boolean")
+            ext["SEM_SELLIN"] = True
+            base = pd.concat([base, ext[base.columns]], ignore_index=True)
+            log(f"{len(novos):,} cliente(s) SEM sell-in na serie entram na "
+                "DIM_CLIENTE por terem META (D-74/Q4-a) — nome, bandeira e "
+                "UF ficam ausentes; hierarquia e canal pelos de-paras", "aviso")
+    base["SEM_SELLIN"] = base["SEM_SELLIN"].astype(bool)
 
     antes = len(base)
     # validate="m:1" (A15): a garantia de cardinalidade nao pode morar so num
@@ -87,6 +112,12 @@ def dim_cliente(sellin: pd.DataFrame, estrutura: pd.DataFrame,
             d[c] = pd.Series(pd.NA, index=d.index, dtype="string")
         d[c] = d[c].fillna(SEM_CANAL)
 
+    # D-74: cliente sem sell-in (so meta) nao tem bandeira de sell-in; se a
+    # Hierarquia_Consolidada traz o nome da bandeira, ele vale — e cadastro,
+    # nao invencao. Sem nada, fica o balde de ausencia.
+    if "BANDEIRA_ESTRUTURA" in d.columns and d["SEM_SELLIN"].any():
+        so_meta = d["SEM_SELLIN"] & d["BANDEIRA"].isna()
+        d.loc[so_meta, "BANDEIRA"] = d.loc[so_meta, "BANDEIRA_ESTRUTURA"]
     d["BANDEIRA"] = d["BANDEIRA"].fillna(SEM_BANDEIRA)
     d["UF"] = d["UF"].fillna(SEM_UF)
 

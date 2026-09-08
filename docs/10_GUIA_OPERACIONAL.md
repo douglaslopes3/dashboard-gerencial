@@ -27,6 +27,22 @@ propósito (cópia duplicada; ver `docs/14 §1`). Se o mês vier partido pela
 extração (`_p1`, `_p2`), largue **as duas partes**: o pipeline soma e confere
 contra a soma dos dois gabaritos.
 
+### 1b. Metas (D-74): largue o arquivo em `bases\Metas\`
+
+```
+bases\Metas\Metas_FY'27.xlsx
+```
+
+Formato: uma linha por `CÓDIGO CLIENTE` × `CATEGORIA` × `Período` × `Tipo
+Meta` (`VALOR (R$)` / `VOLUME (KG)`) com o valor na coluna `Valor`. Mês novo
+é **linha nova** no mesmo arquivo (ou um arquivo novo na mesma pasta: a
+pasta inteira é lida). O mês vem da coluna `Período`, nunca do nome. O mesmo
+mês em dois arquivos aborta. Se a meta de um mês já carregado mudar, o
+arquivo atual vale e a mudança fica registrada em
+`data\quality\metas_revisoes.csv` (aparece como aviso). Categoria com grafia
+fora do modelo aborta (corrija no arquivo). **Feche o Excel antes de rodar**:
+arquivo aberto derruba a leitura (aconteceu com o sell-in em 08/09).
+
 ### 2. Rode o pipeline
 
 ```bash
@@ -53,6 +69,8 @@ Abra `data\quality\relatorio_qualidade.md`. Olhe quatro coisas:
 3. **§7/§7b Registros sem classificação**: a cobertura da estrutura continua
    perto de 97,6%? Os números de RTM e saneamento mudaram?
 4. **§10 Avisos**: algum aviso **novo** em relação à execução anterior?
+5. **§11 Metas (D-74)**: os meses de meta são os esperados? O total por mês
+   bate com o que o Comercial enviou? Alguma revisão de mês já carregado?
 
 ### 4. Gere o painel (e publique)
 

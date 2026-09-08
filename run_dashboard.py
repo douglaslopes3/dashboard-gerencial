@@ -32,7 +32,7 @@ for _fluxo in (sys.stdout, sys.stderr):
     except (AttributeError, OSError):
         pass
 
-from src.load.cubos import BASE_MET, COLS_PERFIL
+from src.load.cubos import BASE_MET, BASE_MET_META, COLS_PERFIL
 from src.utils import log as L
 from src.utils.config import CFG, PASTA_CURATED, caminho, preparar_pastas
 from src.utils.log import abortar, log, titulo
@@ -98,6 +98,11 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
             for l in pacote["cubo"] if l[3] in mapa_perf]
     cubo_sku = [[l[0], l[1], mapa_perf[l[2]], l[3], l[4], l[5]]
                 for l in pacote["cubo_sku"] if l[2] in mapa_perf]
+    # D-74: o cubo de META tem os mesmos 5 indices do principal + 2 metricas;
+    # recorta pelo MESMO perfil — a meta de um cliente vai para o arquivo de
+    # quem e dono dele na hierarquia, e para mais nenhum.
+    cubo_meta = [[l[0], l[1], l[2], mapa_perf[l[3]], l[4], l[5], l[6]]
+                 for l in (pacote.get("cubo_meta") or []) if l[3] in mapa_perf]
 
     perfil = [dims["perfil"][i] for i in manter_perf]
 
@@ -106,17 +111,20 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
     # 3a posicao do rotulo de SKU). Encolher a lista sem remapear os dois
     # apontaria para a categoria errada — por isso o mapa e aplicado nas duas
     # pontas na mesma passada.
-    manter_cat = sorted({l[2] for l in cubo})
+    # D-74: as listas sao a UNIAO do realizado com a meta do arquivo — um par
+    # que so tem meta (cliente que ainda nao faturou a categoria) precisa da
+    # categoria, da bandeira e do cliente na lista como qualquer outro.
+    manter_cat = sorted({l[2] for l in cubo} | {l[2] for l in cubo_meta})
     mapa_cat = {c: i for i, c in enumerate(manter_cat)}
     manter_sku = sorted({l[1] for l in cubo_sku})
     mapa_sku = {s: i for i, s in enumerate(manter_sku)}
 
     # ---- bandeira (D-65): so as do escopo, reindexadas. A ordem dos indices
     # e a do ranking global por receita (cubos.py), e `sorted` a preserva.
-    manter_ban = sorted({l[1] for l in cubo})
+    manter_ban = sorted({l[1] for l in cubo} | {l[1] for l in cubo_meta})
     mapa_ban = {b: i for i, b in enumerate(manter_ban)}
     # ---- cliente (D-72): so os do escopo, reindexados
-    manter_cli = sorted({l[4] for l in cubo})
+    manter_cli = sorted({l[4] for l in cubo} | {l[4] for l in cubo_meta})
     mapa_cli = {c: i for i, c in enumerate(manter_cli)}
 
     cubo = [[l[0], mapa_ban[l[1]], mapa_cat[l[2]], l[3], mapa_cli[l[4]],
@@ -124,6 +132,9 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
             for l in cubo]
     cubo_sku = [[l[0], mapa_sku[l[1]], l[2], l[3], l[4], l[5]]
                 for l in cubo_sku]
+    cubo_meta = [[l[0], mapa_ban[l[1]], mapa_cat[l[2]], l[3], mapa_cli[l[4]],
+                  l[5], l[6]]
+                 for l in cubo_meta]
 
     sku = [[cod, desc, mapa_cat.get(ic, -1)]
            for cod, desc, ic in (dims["sku"][i] for i in manter_sku)]
@@ -146,6 +157,7 @@ def filtrar_por_nivel(pacote: dict, pos: int, rotulo: str,
                     "perfil": perfil}
     novo["cubo"] = cubo
     novo["cubo_sku"] = cubo_sku
+    novo["cubo_meta"] = cubo_meta          # D-74
     novo["corte_bandeira"] = corte
     return novo
 
@@ -253,6 +265,8 @@ def main() -> int:
         "arquivos": R["arquivos"],
         "gerado_em": R["gerado_em"],
         "execucao": R["execucao"],
+        # D-74: meses com meta (AAAA-MM), para o cabecalho e a linha de estado
+        "metas_meses": (R.get("metas") or {}).get("meses") or [],
     }
     pacote["tops"] = {"ban": _DASH["tops_bandeira"]}
     pacote["top_ranking"] = int(_DASH["top_ranking"])
@@ -335,6 +349,15 @@ def main() -> int:
                  f"{len(carga) / 1024 / 1024:,.1f} MB compactados"
                  if compactar else " · SEM compactacao")
         log(f"painel ................. {alvo.name} ({tam:,.2f} MB){extra}", "ok")
+        # D-74 (Q7-a): TETO declarado no config (`dashboard.teto_mb`, 35 MB
+        # desde 08/09/2026; era 25). Passar do teto ABORTA — subir o numero
+        # e decisao registrada, nao acidente de crescimento.
+        teto = float(_DASH.get("teto_mb") or 0)
+        if teto and tam > teto:
+            abortar(f"{alvo.name} tem {tam:,.2f} MB, acima do teto de "
+                    f"{teto:g} MB (config/config.yaml -> dashboard.teto_mb).\n"
+                    "  Nada foi publicado. Ou o teto sobe (decisao), ou o "
+                    "conteudo do arquivo diminui.")
         return alvo
 
     log("")
@@ -359,6 +382,8 @@ def main() -> int:
         pub = _DASH.get("publicacao") or {}
         destino = caminho(pub["destino"]) if pub.get("ativo") else None
         rec_total = sum(l[BASE_MET] for l in pacote["cubo"])   # centavos, exato
+        # D-74: a META tambem particiona por nivel (centavos, exato)
+        meta_total = sum(l[BASE_MET_META] for l in pacote.get("cubo_meta") or [])
         n_arquivos = 0
         for nome_nivel, pos in (pn.get("niveis") or {}).items():
             pos = int(pos)
@@ -367,6 +392,7 @@ def main() -> int:
             log(f"recortes {nome_nivel} ({len(rotulos)}) — baldes "
                 "fora-da-hierarquia nao geram arquivo")
             soma_nivel = 0
+            soma_meta = 0
             for rot in rotulos:
                 pac = filtrar_por_nivel(pacote, pos, rot, nome_nivel)
                 # Prova do recorte, nao confianca: nenhuma linha de fora.
@@ -377,7 +403,12 @@ def main() -> int:
                 assert all(l[1] < len(pac["dims"]["ban"]) for l in pac["cubo"])
                 # D-72: e para um cliente da lista do arquivo
                 assert all(l[4] < len(pac["dims"]["cli"]) for l in pac["cubo"])
+                # D-74: a meta obedece as mesmas tres provas
+                assert all(perf[l[3]][pos] == rot for l in pac["cubo_meta"])
+                assert all(l[1] < len(pac["dims"]["ban"]) and l[4] < len(pac["dims"]["cli"])
+                           and l[2] < len(pac["dims"]["cat"]) for l in pac["cubo_meta"])
                 soma_nivel += sum(l[BASE_MET] for l in pac["cubo"])
+                soma_meta += sum(l[BASE_MET_META] for l in pac["cubo_meta"])
                 # P2-D/L3-G: titulo e cabecalho declaram o recorte; a
                 # restricao de verdade e o recorte fisico feito acima.
                 pac["meta"] = {**pacote["meta"], "recorte": rot,
@@ -391,6 +422,11 @@ def main() -> int:
             log(f"particionamento {nome_nivel} fecha: "
                 f"R$ {br(soma_nivel / 100)} + fora da hierarquia "
                 f"R$ {br(resto / 100)} = R$ {br(rec_total / 100)}", "ok")
+            if meta_total:
+                log(f"particionamento {nome_nivel} da META fecha: "
+                    f"R$ {br(soma_meta / 100)} + fora da hierarquia "
+                    f"R$ {br((meta_total - soma_meta) / 100)} = "
+                    f"R$ {br(meta_total / 100)}", "ok")
         if destino:
             # Q13: o painel Full ia para a RAIZ do destino, fora das pastas
             # compartilhadas. D-73: vai para a subpasta `pasta_full` (o Douglas

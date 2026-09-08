@@ -91,7 +91,8 @@ def _escalar(g: pd.DataFrame) -> pd.DataFrame:
 
 
 def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
-              dim_produto: pd.DataFrame, dim_cal: pd.DataFrame) -> dict:
+              dim_produto: pd.DataFrame, dim_cal: pd.DataFrame,
+              fato_meta: pd.DataFrame | None = None) -> dict:
     # validate="m:1" (A15): uma duplicata futura em DIM_CLIENTE/DIM_PRODUTO
     # multiplicaria o cubo — a reconciliacao pegaria, mas com o diagnostico
     # errado ("cubo nao reconcilia"). Aqui o erro nasce com o nome certo.
@@ -111,12 +112,36 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     d = d.merge(dim_produto[["COD_PRODUTO", "CATEGORIA"]],
                 on="COD_PRODUTO", how="left", validate="m:1")
 
+    # D-74 (08/09/2026): a META por cliente x categoria x mes cruza pela
+    # CHAVE DO CLIENTE com a MESMA DIM_CLIENTE — herda bandeira, hierarquia,
+    # canal e a regra RTM sem nenhuma atribuicao propria. Os eixos abaixo sao
+    # a UNIAO do realizado com a meta: um par que so existe na meta (cliente
+    # que ainda nao faturou na categoria) precisa de indice como qualquer
+    # outro. `dm` e a meta ja com o perfil do cliente.
+    tem_meta = fato_meta is not None and len(fato_meta) > 0
+    if tem_meta:
+        dm = fato_meta.merge(
+            dim_cliente[["COD_CLIENTE", "BANDEIRA", "BANDEIRA_HERDADA", "HEAD",
+                         "GERENTE", "SUPERVISOR", "VENDEDOR", "CANAL", "PROJETO"]],
+            on="COD_CLIENTE", how="left", validate="m:1")
+        orfaos = dm["HEAD"].isna()
+        if orfaos.any():
+            abortar(f"metas: {int(orfaos.sum()):,} par(es) de cliente que nao "
+                    "existe na DIM_CLIENTE (ex.: "
+                    f"{sorted(dm.loc[orfaos, 'COD_CLIENTE'].unique())[:5]}). "
+                    "O pipeline deveria te-los incluido (D-74/Q4-a).")
+    else:
+        dm = None
+
     # ---------------------------------------------------------------- eixos
     # D-51 (Fase 3, Q10): o eixo UF saiu dos dois cubos — a aba Geografia e o
     # filtro de UF sairam do painel, e manter o eixo so inflaria o arquivo.
     # UF segue na DIM_CLIENTE (atributo do cliente, curated).
     meses, i_mes = _indexar(dim_cal["ANO_MES"].tolist())
-    cats, i_cat = _indexar(sorted(d["CATEGORIA"].dropna().unique()))
+    cats_universo = set(d["CATEGORIA"].dropna().unique())
+    if tem_meta:
+        cats_universo |= set(dm["CATEGORIA"].dropna().unique())
+    cats, i_cat = _indexar(sorted(cats_universo))
     heads, i_head = _indexar(sorted(dim_cliente["HEAD"].dropna().unique()))
     canais, i_can = _indexar(sorted(dim_cliente["CANAL"].dropna().unique()))
 
@@ -128,7 +153,8 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     # D-48 (02/09/2026): o SUPERVISOR (N3 Sup./Exec.) entrou aqui. Medido antes
     # de decidir: 123 -> 223 perfis e 94.085 -> 97.710 linhas no cubo principal
     # (+3,9%), 110 KB de JSON. A cardinalidade do eixo cresce; o cubo quase nao.
-    perfis = (d[COLS_PERFIL].drop_duplicates()
+    fontes_perfil = [d[COLS_PERFIL]] + ([dm[COLS_PERFIL]] if tem_meta else [])
+    perfis = (pd.concat(fontes_perfil).drop_duplicates()
                .sort_values(COLS_PERFIL)
                .values.tolist())
     i_perf = {tuple(p): i for i, p in enumerate(perfis)}
@@ -167,7 +193,12 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     topn = int(_DASH["top_bandeiras"])
     rotulo_demais = _DASH["rotulo_demais_bandeiras"]
     ranking = d.groupby("BANDEIRA", observed=True)["RECEITA"].sum().sort_values(ascending=False)
-    bans, i_ban = _indexar(list(ranking.index))
+    lista_ban = list(ranking.index)
+    if tem_meta:
+        # D-74: bandeira que so existe pela meta entra DEPOIS do ranking (sem
+        # receita, nao tem posicao a disputar).
+        lista_ban += sorted(set(dm["BANDEIRA"].dropna().unique()) - set(lista_ban))
+    bans, i_ban = _indexar(lista_ban)
     cobertura = float(ranking.head(topn).sum() / ranking.sum()) if len(ranking) else 1.0
     log(f"bandeiras: {len(bans):,} no cubo (todas); corte de EXIBICAO {topn} "
         f"= {cobertura:.1%} da receita no Full", "ok")
@@ -196,8 +227,25 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
     nomes = (d.loc[~herdou, ["CLI_KEY", "NOME_CLIENTE"]]
               .drop_duplicates("CLI_KEY").set_index("CLI_KEY")["NOME_CLIENTE"])
     n_rtm = d.loc[herdou].groupby("CLI_KEY")["COD_CLIENTE"].nunique()
-    clis, i_cli = _indexar(sorted(d["CLI_KEY"].unique()))
-    cli_labels = [["", "", int(n_rtm[k])] if k.startswith(RTM_PREFIXO)
+    universo_cli = set(d["CLI_KEY"].unique())
+    if tem_meta:
+        # D-74: a MESMA regra de chave para a meta — o cliente RTM que herdou
+        # a bandeira acumula a meta na linha Σ do distribuidor, como o
+        # realizado. Cliente so com meta ganha indice proprio (nome vem da
+        # DIM: ausente se nunca faturou).
+        herdou_m = dm["BANDEIRA_HERDADA"].fillna(False).astype(bool) if acumular \
+            else pd.Series(False, index=dm.index)
+        dm["CLI_KEY"] = dm["COD_CLIENTE"].astype(str)
+        dm.loc[herdou_m, "CLI_KEY"] = RTM_PREFIXO + dm.loc[herdou_m, "BANDEIRA"].astype(str)
+        universo_cli |= set(dm["CLI_KEY"].unique())
+        nomes_dim = dim_cliente.set_index("COD_CLIENTE")["NOME_CLIENTE"]
+        for k in set(dm.loc[~herdou_m, "CLI_KEY"]) - set(nomes.index):
+            nomes[k] = nomes_dim.get(k, pd.NA)
+        # linha Σ que so existe pela meta: a contagem vem dos clientes da meta
+        n_rtm_meta = dm.loc[herdou_m].groupby("CLI_KEY")["COD_CLIENTE"].nunique()
+        n_rtm = n_rtm.combine_first(n_rtm_meta)
+    clis, i_cli = _indexar(sorted(universo_cli))
+    cli_labels = [["", "", int(n_rtm.get(k, 0))] if k.startswith(RTM_PREFIXO)
                   else [k, (n if isinstance(n := nomes.get(k), str) else ""), 0]
                   for k in clis]
     log(f"clientes: {len(clis) - len(n_rtm):,} nominais + {len(n_rtm):,} "
@@ -220,6 +268,37 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
                    g["VENDEDOR"], g["CLI_KEY"], esc["R"], esc["P"], esc["C"])]
     log(f"CUBO_PRINCIPAL         {len(cubo):>10,} linhas "
         f"(ANO_MES x BANDEIRA x CATEGORIA x PERFIL x CLIENTE)", "ok")
+
+    # ------------------------------------------------------------ CUBO META
+    # D-74 (08/09/2026): a meta viaja num cubo IRMAO do principal, com os
+    # MESMOS cinco indices [mes, bandeira, categoria, perfil, cliente] e duas
+    # metricas [META_R$ em centavos, META_KG em gramas] — as mesmas escalas
+    # do realizado (ESC_RECEITA/ESC_PESO), para o template dividir os dois
+    # pela mesma constante e nunca somar kg com t. Cubo separado, e nao duas
+    # colunas a mais no principal, porque 95% dos pares com meta nao tem
+    # sell-in no mes (medido em set/26 parcial: 69.260 de 73.397) e porque
+    # o realizado nao pode ganhar linha por causa da meta. Mes sem meta nao
+    # tem linha: ausencia e ausencia, nunca zero. Custo medido: 0,96 MB
+    # (gzip+base64) por mes de meta no Full.
+    if tem_meta:
+        gm = (dm.groupby(["ANO_MES", "BANDEIRA", "CATEGORIA"] + COLS_PERFIL + ["CLI_KEY"],
+                         observed=True, dropna=False)[["META_RECEITA", "META_PESO_KG"]]
+                .sum(min_count=1).reset_index())
+        mr = (gm["META_RECEITA"].fillna(0.0) * ESC_RECEITA).round().astype("int64")
+        mp = (gm["META_PESO_KG"].fillna(0.0) * ESC_PESO).round().astype("int64")
+        cubo_meta = [[i_mes[am], i_ban[bn], i_cat[ct],
+                      i_perf[(hd, gr, sp, cn, pj, vd)], i_cli[cl], r, p]
+                     for am, bn, ct, hd, gr, sp, cn, pj, vd, cl, r, p
+                     in zip(gm["ANO_MES"], gm["BANDEIRA"], gm["CATEGORIA"],
+                            gm["HEAD"], gm["GERENTE"], gm["SUPERVISOR"],
+                            gm["CANAL"], gm["PROJETO"], gm["VENDEDOR"],
+                            gm["CLI_KEY"], mr, mp)]
+        meses_meta = sorted(set(gm["ANO_MES"]))
+        log(f"CUBO_META              {len(cubo_meta):>10,} linhas "
+            f"(mesmos indices; meses {meses_meta[0]} a {meses_meta[-1]}, "
+            f"{len(meses_meta)}) — D-74", "ok")
+    else:
+        cubo_meta = []
 
     # -------------------------------------------------------------- CUBO SKU
     # D-48 (02/09/2026) — o eixo comercial deste cubo era o par (HEAD, CANAL),
@@ -295,6 +374,9 @@ def construir(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
         },
         "cubo": cubo,
         "cubo_sku": cubo_sku,
+        # D-74: [mes, bandeira, categoria, perfil, cliente, META_R$, META_KG]
+        # nas escalas R e P. Lista vazia = painel sem meta.
+        "cubo_meta": cubo_meta,
         # D-65: corte de EXIBICAO. `top` e quantas o Full/N1 mostram
         # nominalmente; `universo` e quantas bandeiras o arquivo carrega
         # (filtrar_por_nivel reconta); `exibir_todas` e decidido por nivel no
@@ -333,3 +415,44 @@ def reconciliar(pacote: dict, fato: pd.DataFrame) -> list[str]:
         abortar("cubo NAO reconcilia com a FATO_SELLIN:\n  " + "\n  ".join(ruins))
     log("cubos reconciliados com a FATO_SELLIN nas 3 metricas", "ok")
     return []
+
+
+# D-74: posicao da primeira metrica no cubo de meta (mesmos 5 indices do
+# principal). O template le `BASE_META`.
+BASE_MET_META = 5
+
+
+def reconciliar_meta(pacote: dict, fato_meta: pd.DataFrame | None) -> None:
+    """CUBO_META x FATO_META, por MES e nas duas metricas — a meta de um mes
+    nao pode vazar para outro nem somar em dobro (RTM acumulado). Aborta."""
+    linhas = pacote.get("cubo_meta") or []
+    if fato_meta is None or fato_meta.empty:
+        if linhas:
+            abortar("CUBO_META tem linhas sem FATO_META por tras")
+        return
+    meses = [c[0] for c in pacote["cal"]]
+    alvo = fato_meta.groupby("ANO_MES")[["META_RECEITA", "META_PESO_KG"]].sum()
+    soma: dict[int, list[float]] = {}
+    for l in linhas:
+        s = soma.setdefault(l[0], [0.0, 0.0])
+        s[0] += l[BASE_MET_META]
+        s[1] += l[BASE_MET_META + 1]
+    ruins = []
+    for am, esperado in alvo.iterrows():
+        i = meses.index(am) if am in meses else -1
+        got = soma.get(i, [0.0, 0.0])
+        for k, (metrica, esc) in enumerate((("META_RECEITA", ESC_RECEITA),
+                                            ("META_PESO_KG", ESC_PESO))):
+            v = got[k] / esc
+            e = float(esperado[metrica])
+            rel = abs(v - e) / abs(e) if e else abs(v)
+            if rel > _TOL_REL:
+                ruins.append(f"{am} [{metrica}]: cubo {v:,.4f} x fato "
+                             f"{e:,.4f} ({rel:.3%})")
+    extras = sorted(set(soma) - {meses.index(am) for am in alvo.index if am in meses})
+    if extras:
+        ruins.append(f"meses no CUBO_META sem FATO_META: {[meses[i] for i in extras]}")
+    if ruins:
+        abortar("CUBO_META NAO reconcilia com a FATO_META:\n  " + "\n  ".join(ruins))
+    log(f"CUBO_META reconciliado com a FATO_META nos {len(alvo)} mes(es), "
+        "2 metricas", "ok")

@@ -2519,3 +2519,103 @@ vazio, ausente; o config tem de declarar a pasta).
 `ferramentas/limpar_paineis_antigos.py`, testes, docs 10/13/15, README.
 
 **Rollback.** `pasta_full: ""` volta o Full para a raiz, sem código.
+
+---
+
+## D-74 · Metas FY27 por cliente × categoria × mês no painel (08/09/2026)
+
+**Contexto.** O Comercial entregou `bases/Metas/Metas_FY'27.xlsx` (criado em
+08/09/2026 09:38): formato longo, uma linha por `CÓDIGO CLIENTE` ×
+`CATEGORIA` × `Período` × `Tipo Meta` (`VALOR (R$)` / `VOLUME (KG)`), com
+set/26 e out/26 (146.794 pares cliente×categoria×mês, 11.133 clientes, 10
+categorias). É o "novo arquivo de metas cruzado pela chave do cliente" que a
+D-49 previu ao remover o tema Metas antigo (rota A por bandeira). O total de
+set/26 (R$ 122.279.463,48) bate ao centavo com a base antiga: é a mesma meta,
+rateada por cliente. A análise prévia (pedida "só análise, sem alterar nada")
+está resumida no README e mediu: 11.133/11.133 clientes na DIM_CLIENTE,
+10/10 categorias no modelo, 1.034 pares negativos (318 clientes, R$ −96.066;
+493 dos 517 de set/26 coincidem com realizado negativo no FY26: o rateio
+herdou o sinal das devoluções), 14.599 pares abaixo de 1 kg, custo de 0,96 MB
+por mês de meta no Full.
+
+**Decisões do Douglas (08/09/2026, respostas Q1–Q10):**
+
+| # | Decisão |
+|---|---|
+| Q1 | Metas negativas **entram como estão**; sai um arquivo com os casos isolados e a soma por bandeira (`data/quality/metas_negativas.csv`, `metas_negativas_por_bandeira.csv`) |
+| Q2 | O leitor **varre `bases/Metas/*.xlsx`**; o mesmo mês em dois arquivos aborta |
+| Q3 | A meta de um mês já carregado **pode mudar**: releitura completa e **registro** das mudanças (`data/quality/metas_revisoes.csv`, append, com aviso) |
+| Q4 | Cliente com meta que nunca faturou entra na DIM_CLIENTE pela Hierarquia_Consolidada; sem linha lá, "Sem estrutura comercial" com aviso |
+| Q5 | Categoria que não existe no modelo **aborta** |
+| Q6 | Primeira onda: **KPIs + colunas nas matrizes**; barra de meta na Evolução fica para a segunda |
+| Q7 | Teto do arquivo sobe de 25 para **35 MB**, com abertura e heap medidos a cada rodada |
+| Q8 | Atingimento em mês parcial **é mostrado**, marcado "(parcial)" |
+| Q9 | `VOLUME (KG)` da meta = mesmo conceito do `Peso Líquido` do sell-in (confirmado) |
+| Q10 | Sem meta de caixas e sem meta por SKU: aceito |
+
+**Como ficou.**
+
+1. **Leitor** `src/extract/metas.py` (config `fontes.metas`): pasta varrida,
+   competência do conteúdo (`Período` como data, serial do Excel ou texto
+   AAAA-MM), `digitos()` no cliente, `texto()` na categoria, mapa
+   `tipos_meta` do config (tipo desconhecido aborta), chave duplicada / nulo /
+   período irreconhecível abortam, pivô para `META_RECEITA` + `META_PESO_KG`
+   e reconciliação interna (pivô × soma bruta por mês). Arquivo aberto no
+   Excel vira mensagem "feche o arquivo". Cache por hash em staging.
+2. **Pipeline**: `FATO_META` (ANO_MES × COD_CLIENTE × CATEGORIA, em R$ e kg)
+   gravada na curated; `DIM_CALENDARIO` cobre até o último mês com meta
+   (out/26 entrou sem sell-in: 26 meses, FY2027); `dim_cliente(...,
+   clientes_extra)` acolhe cliente só com meta (flag `SEM_SELLIN`, zero casos
+   hoje); `metas.conferir_categorias` aborta categoria estranha;
+   `metas.registrar_revisoes` compara com a FATO_META da execução anterior
+   antes de sobrescrever; seção **11** do relatório de qualidade.
+3. **Cubo** `cubo_meta` (`cubos.construir(..., fato_meta)`): os **mesmos cinco
+   índices do principal** [mês, bandeira, categoria, perfil, cliente] +
+   [META_R$ em centavos, META_KG em gramas], escalas `ESC_RECEITA`/`ESC_PESO`.
+   Cruzamento = join pela chave do cliente na DIM_CLIENTE: a meta herda
+   bandeira, hierarquia, canal e a regra RTM (cliente que herdou a bandeira
+   soma na linha Σ do distribuidor) sem código próprio de atribuição. Os
+   eixos são a união realizado ∪ meta. `reconciliar_meta` aborta se a soma
+   por mês não bater com a FATO_META. Cubo separado, não colunas a mais no
+   principal: 69.260 dos 73.397 pares de set/26 não têm sell-in no mês.
+4. **Gerador**: `filtrar_por_nivel` recorta o `cubo_meta` pelo mesmo perfil e
+   reindexa categoria/bandeira/cliente pela união; três asserts por arquivo;
+   particionamento da meta por nível no log; `dashboard.teto_mb: 35` aborta
+   acima do teto.
+5. **Template v4** (primeira onda): `somarMeta`/`metMeta` sobre `IDX_META`
+   com os mesmos filtros; cards Valor e Volume ganham "Meta · Ating." (Caixas
+   não); as três matrizes ganham **META** e **ATING. %** logo depois de ATUAL
+   (ordem D-67 mantida; exportação acompanha), só quando o período tem mês
+   com meta; atingimento = realizado **dos meses com meta** ÷ meta desses
+   meses (cabeçalho diz "(k/n m.)" quando a meta cobre parte do período e
+   "(parcial)" quando há mês não fechado); SKU sem meta (n/d); mês só com
+   meta aparece nos chips com a marca "0" e o título "tem meta"; linha de
+   estado e cabeçalho declaram os meses com meta; abertura e heap saem no
+   console (`painel: abertura … ms · heap … MB`).
+
+**Medido em 08/09/2026.** Pipeline 37 s (leitura da meta 3,6 s);
+CUBO_META 146.106 linhas; Full 17,62 → **19,46 MB** (+0,92 MB por mês de
+meta), abertura 3,7 s, heap 200 MB; N3 RS/SC 1,1 s, heap 43 MB; 73 arquivos
+em 19 s; meta particiona por nível ao centavo (R$ 241.828.369,97 nos
+níveis + R$ 402.376,18 fora da hierarquia = R$ 242.230.746,15; a diferença
+de R$ 1,33 para a soma da planilha é o arredondamento a centavos por linha).
+Na tela (FY2027, set+out/26): KPI "Meta R$ 242,2 mi · Ating. 4,8% (parcial)",
+head Atacado R$ 96,7 mi, categoria AMENDOIM R$ 75,5 mi, bandeira LASA
+R$ 15,7 mi, Total geral = KPI nas três abas; executivo RS/SC R$ 12,8 mi.
+Negativas: 568 pares bandeira×categoria×mês com algum cliente negativo; a
+soma da bandeira na categoria fica negativa em 366 e a da bandeira inteira
+em 204 (102 bandeiras por mês, a pior UMBELINO DA SILVA REIS ME em
+R$ −1.777). 78/78 unitários (9 novos), 6/6 cenários.
+
+**Fica para a segunda onda (decisão dele):** barra Meta na Evolução;
+busca por cliente; meta de caixas e por SKU (não existem na base).
+
+**Onde.** `config/config.yaml` (`fontes.metas`, `dashboard.teto_mb`),
+`src/extract/metas.py` (novo), `src/transform/dimensoes.py`,
+`src/load/cubos.py`, `src/qualidade.py` (§11), `run_pipeline.py`,
+`run_dashboard.py`, `dashboard/template_v4.html`, `tests/test_regras.py`,
+docs 05/06/08/10/11, README.
+
+**Rollback.** Tirar os arquivos de `bases/Metas/`: o painel sai sem meta
+(FATO_META vazia, `cubo_meta` vazio, nenhuma coluna ou card de meta), sem
+tocar em código.

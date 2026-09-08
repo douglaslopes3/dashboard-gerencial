@@ -12,14 +12,27 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 
 ---
 
-## Estado atual — medido em 04/09/2026 (execucao 20260904-183146; ago/26 fechado + set/26 parcial)
+## Estado atual — medido em 08/09/2026 (execucao 20260908-105634; ago/26 fechado + set/26 parcial; metas set+out/26)
 
 ```
-29 arquivos de Sell In       3.131.629 linhas de fato    25 meses (2024-09 a 2026-09)
-receita liquida              R$ 2.326.876.207,52
-peso                         165.663,63 t
-caixas                       33.624.305
-fato                         3.131.629 linhas (linhas 100% zeradas descartadas, D-36)
+29 arquivos de Sell In       3.134.928 linhas de fato    25 meses (2024-09 a 2026-09)
+receita liquida              R$ 2.329.190.649,47
+peso                         165.806,51 t
+caixas                       33.658.816
+fato                         3.134.928 linhas (linhas 100% zeradas descartadas, D-36)
+D-74 (08/09, EM CONFERENCIA, METAS FY27 POR CLIENTE: bases/Metas/Metas_FY'27.xlsx
+publicacao DESLIGADA)        (cliente x categoria x mes, set/26 R$ 122,28 mi e
+                             out/26 R$ 119,95 mi) entram como FATO_META e
+                             cubo_meta com os MESMOS indices do cubo principal;
+                             a meta herda bandeira/hierarquia/canal/RTM pelo
+                             join com a DIM_CLIENTE. Na tela: "Meta · Ating."
+                             nos cards Valor e Volume e colunas META / ATING. %
+                             nas 3 matrizes, so quando o periodo tem meta.
+                             Calendario ate out/26 (26 meses, FY2027). Full
+                             19,46 MB (teto subiu para 35 MB, Q7-a), abertura
+                             3,7 s, heap 200 MB. 78/78 + 6/6. Decisoes Q1-Q10
+                             do Douglas em docs/12 D-74. Falta: ok dele para
+                             religar a publicacao
 D-72 (04/09, PUBLICADA       aba Bandeiras abre por CLIENTE (Bandeira >
 a noite com o ok)            Cliente > Categoria); cliente e o 5o eixo do cubo
                              principal (730.257 linhas); clientes RTM que
@@ -48,12 +61,13 @@ HIERARQUIA (D-56, D-61)      Hierarquia_Consolidada e a UNICA fonte (13.516
                              derruba a cobertura para 75,40% e o pipeline
                              aborta (aconteceu e foi restaurado em 03/09);
                              ferramentas/diagnostico_cobertura.py explica
-METAS REMOVIDAS (D-49)       o tema Metas saiu inteiro do produto em 02/09/2026
-                             (leitor D-43, CUBO_META/aba D-44, meta na Evolucao
-                             D-45, bloco Meta x Realizado D-47): havera novo
-                             arquivo de metas cruzado pela chave do cliente —
-                             ponto de reintegracao em docs/12 (D-49);
-                             bases/Metas/ fica intocada
+METAS (D-49 -> D-74)         o tema Metas antigo (por bandeira, rota A) saiu em
+                             02/09 (D-49); voltou em 08/09 (D-74) pela chave do
+                             CLIENTE: leitor src/extract/metas.py, FATO_META,
+                             cubo_meta, secao 11 do relatorio de qualidade.
+                             Negativas (1.034 pares, R$ -96 mil) entram como
+                             estao e saem em data/quality/metas_negativas*.csv;
+                             revisoes de mes ja carregado em metas_revisoes.csv
 
 BANDEIRA RTM (D-59, 03/09)   o cliente RTM herda tambem a BANDEIRA do
                              distribuidor (`saneamento.rtm_herda_bandeira`):
@@ -370,7 +384,23 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | — | [AUDIT.md](AUDIT.md) — auditoria de 5 camadas com medição; achados, correções (✔) e o que ficou aberto |
 | — | [docs/pedidos/](docs/pedidos/) — material pronto para encaminhar ao Comercial e ao BI |
 
-## Roadmap — fechamento de 04/09/2026
+## Roadmap — fechamento de 08/09/2026
+
+**Feito em 08/09 (D-74, publicação DESLIGADA até o ok do Douglas):** análise
+da planilha de metas (só leitura, relatório com 10 perguntas) · decisões
+Q1–Q10 · leitor de metas por cliente · FATO_META · cubo_meta com os índices
+do principal · recorte por nível · teto 35 MB · cards e matrizes com META e
+ATING. % · seção 11 do relatório de qualidade · listas de negativas e de
+revisões · 9 testes novos · docs 05/06/08/10/11/12.
+
+**Próximo passo, por responsável (08/09):**
+
+| Quem | O quê | Quando |
+|---|---|---|
+| **Douglas** | abrir o build (`dashboard/build/`) e dar o ok; aí `publicacao.ativo: true`, `python run_dashboard.py`, commit de publicação | hoje |
+| **Douglas** | analisar `data/quality/metas_negativas_por_bandeira.csv` (Q1): 204 pares bandeira×mês ficam negativos no total da bandeira; decidir se volta ao Comercial | esta semana |
+| **Douglas** | aviso de uma linha aos usuários: "o painel agora traz a meta FY27 por cliente" (junto com o aviso pendente da D-72) | na publicação |
+| **Próxima rodada** (decisão dele) | segunda onda da meta: barra Meta na Evolução; busca por cliente; canal como dimensão; Vendedor × Bandeira | quando ele pedir |
 
 **Feito em 03 e 04/09 (D-54 a D-71, tudo publicado em 04/09 ~00:25):**
 visibilidade dinâmica dos botões · formatação única · desempate N4 na origem ·
@@ -406,6 +436,8 @@ próprio vendedor não desce um nível · docs 08/10/13/14/15 reescritos.
 | P7 | ~~Compartilhar as 72 pastas~~ **FEITO em 04/09/2026 à noite pelo Douglas**: as 72 pastas de colaborador e a pasta `Dashboard - Full\` estão compartilhadas; a segregação por pasta está em vigor (a por conteúdo já estava, D-52). Os arquivos publicados são os da D-72 | — | 72 pastas + Full | [docs/15](docs/15_PLANO_SHAREPOINT.md) |
 | P10 | **Cliente na aba Bandeiras: FEITO e PUBLICADO na D-72 (04/09 à noite, com o ok do Douglas)**; conferido contra os arquivos anteriores por `ferramentas/comparar_paineis.py`. Falta só o aviso de uma linha aos usuários ("a bandeira agora abre por cliente"). Ficam para a próxima rodada: canal como dimensão, Vendedor × Bandeira | **Douglas** avisa os usuários; decide o resto | ver docs/12 D-72 | docs/12 (proposta + D-72) |
 | P11 | ~~Cópia avulsa do Full em `Dashboard - Full\`~~ **Resolvida na D-73** (04/09 à noite): a pasta virou o destino oficial do Full (`publicacao.pasta_full`), porque o Douglas a compartilhou com pessoas que não podem ver as pastas dos colaboradores. A raiz não recebe mais o Full | — | — | docs/12 D-73 |
+| P12 | **Metas negativas na planilha FY27** (Q1-a: entram como estão): 1.034 pares, 318 clientes, R$ −96.066; 493 dos 517 pares de set/26 coincidem com realizado negativo no FY26 (rateio herdou devoluções). Em 204 pares bandeira×mês a soma da bandeira inteira fica negativa (102 bandeiras por mês, a pior em R$ −1.777) | **Douglas** analisa; **Comercial** corrige se ele pedir | R$ −96 mil em R$ 242 mi (0,04%) | `data/quality/metas_negativas.csv` e `metas_negativas_por_bandeira.csv` (regenerados a cada execução) |
+| P13 | **Publicação da D-74** desligada até o ok do Douglas sobre o build; os 73 arquivos compartilhados ainda são os da D-72/D-73 | **Douglas** | 73 arquivos | `config/config.yaml → dashboard.publicacao.ativo` |
 
 ---
 

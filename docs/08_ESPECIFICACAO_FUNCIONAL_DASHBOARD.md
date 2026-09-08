@@ -17,7 +17,7 @@ no template.
 | **Comparar** (base de comparação) | fixo | **1 de 2** | YTD Fiscal · YTD Calendário. O LY está **embutido**: o período é a seleção de meses e o anterior são os mesmos meses do ano anterior (D-28) |
 | **Ver por** (granularidade) | fixo | 1 de 4 | Mês · Trimestre · Semestre · Ano (D-38), na barra de Período |
 | **Ano** | `DIM_CALENDARIO.ANO_FISCAL_ROTULO` ou `ANO` | 1 | qual dos dois manda depende de "Comparar"; ver §1.1 |
-| **Meses** | `DIM_CALENDARIO` | N | multisseleção + `Todos` / `Nenhum` |
+| **Meses** | `DIM_CALENDARIO` | N | multisseleção + `Todos` / `Nenhum`. D-74: mês que só tem **meta** (sem sell-in ainda) aparece com a marca "0" e o título "tem meta" |
 | **Canal** | `DIM_CLIENTE.CANAL` | N | de `bases/Canais/Canais.xlsx`, 100% de cobertura (D-19) |
 | **Categoria** | `DIM_PRODUTO.CATEGORIA` | N | |
 | **Head** | `DIM_CLIENTE.HEAD` | N | seletor de escopo do **Template Full**; não existe nos arquivos por colaborador (D-52) |
@@ -88,6 +88,14 @@ drill-down nem "voltar".
   (`receita ÷ nº de meses`) · Preço Médio R$/kg (**= ticket médio**, D-22).
   Cada um com o valor do período, o LY, a variação absoluta e a **variação %
   com sinal e seta**.
+* **Meta (D-74, 08/09/2026):** os cards Valor e Volume ganham a linha
+  "Meta · Ating." quando o período selecionado tem mês com meta (Caixas não
+  tem meta). **Atingimento = realizado dos meses com meta ÷ meta desses
+  meses** (nunca o realizado do período inteiro sobre a meta de parte dele);
+  quando a meta cobre só parte dos meses, o card diz "(meta de k de n
+  meses)"; quando há mês com meta ainda não fechado, diz "(parcial)" (Q8-a).
+  Meta ausente é n/d, nunca zero. A meta vem do `cubo_meta` (mesmos índices
+  do principal) e obedece a todos os filtros.
 * **Evolução:** barras do período atual à direita e do mesmo período do LY à
   esquerda (ordem cronológica, D-39), com **rótulo de dados** sobre cada barra
   (desenhado à mão no `afterDatasetsDraw`, sem plugin externo: zero rede) e a
@@ -96,9 +104,14 @@ drill-down nem "voltar".
   granularidade é o "Ver por"; grupo incompleto sai **(parcial)**.
 * **Matriz hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA
   (D-51). Colunas, na ordem da D-67 (igual nas três matrizes e na exportação):
-  nome · **ATUAL · ANT. · Δ · Δ% · Part. %** · série de até 12 períodos (na
-  granularidade do "Ver por") · TOTAL da série. Agregação por caminho: **o pai é a soma dos
-  filhos por construção**. As linhas síntese Σ (`NÃO ATRIBUÍDO`, `INATIVO
+  nome · **ATUAL · [META · ATING. %] · ANT. · Δ · Δ% · Part. %** · série de
+  até 12 períodos (na granularidade do "Ver por") · TOTAL da série. As duas
+  colunas de meta (D-74) só existem quando o período tem mês com meta e a
+  métrica não é Caixas; o cabeçalho diz "(k/n m.)" se a meta cobre parte
+  dos meses e "(parcial)" se há mês não fechado; linha sem meta mostra n/d.
+  Na aba Categorias a meta para na categoria (o SKU não tem meta).
+  Agregação por caminho: **o pai é a soma dos filhos por construção**, para
+  o realizado e para a meta. As linhas síntese Σ (`NÃO ATRIBUÍDO`, `INATIVO
   (SANEAMENTO)`, rótulos vindos do config) ficam fora da hierarquia, sem
   expansão, e o **Total geral fecha com os cards**. No arquivo de um
   colaborador a matriz começa no nível dele (N2 → Gerente..., N3 →
