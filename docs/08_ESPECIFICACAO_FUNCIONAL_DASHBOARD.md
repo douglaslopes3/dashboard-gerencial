@@ -98,10 +98,14 @@ drill-down nem "voltar".
   do principal) e obedece a todos os filtros.
 * **Evolução:** barras do período atual à direita e do mesmo período do LY à
   esquerda (ordem cronológica, D-39), com **rótulo de dados** sobre cada barra
-  (desenhado à mão no `afterDatasetsDraw`, sem plugin externo: zero rede) e a
-  **linha laranja de Δ%** de cada período contra o LY (eixo à direita). Período
-  sem par no LY fica **sem a barra clara e sem o ponto de Δ%**, nunca zero. A
-  granularidade é o "Ver por"; grupo incompleto sai **(parcial)**. **Meta
+  (desenhado à mão no `afterDatasetsDraw`, sem plugin externo: zero rede). O
+  **Δ% de cada período contra o LY** é a segunda linha do rótulo da barra
+  Atual (verde/vermelho) e entra no tooltip dela; a linha de Δ% e o eixo
+  direito saíram na **D-76** (um eixo só). Cores (opção A, validadas): LY
+  azul médio `#5e94c9`, Atual azul Dori `#00539f`, Meta laranja queimado
+  `#c97b12`. Período sem par no LY fica **sem a barra clara e sem o Δ%**,
+  nunca zero. A granularidade é o "Ver por"; grupo incompleto sai
+  **(parcial)**. **Meta
   (D-74):** barra âmbar à direita do Atual só nos grupos com mês de meta,
   com o valor e o atingimento do grupo (realizado dos meses com meta ÷ meta)
   no rótulo e no tooltip; sem meta no período, a série não existe.

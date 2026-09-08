@@ -400,6 +400,11 @@ ATUAL vira o ano selecionado (dinâmico: "FY2027", "FY2027 (2 m.)" ou
 acumulado do ano até o último mês escolhido (antes somava as 12 colunas
 exibidas). Ordenação e exportação seguem o YTD.
 
+**Também em 08/09 (D-76):** cores do gráfico de Evolução trocadas pela
+opção A validada (LY azul médio, Atual azul Dori, Meta laranja queimado); a
+linha de Δ% e o eixo direito saíram, o Δ% virou a segunda linha do rótulo
+da barra Atual e entra no tooltip.
+
 **Próximo passo, por responsável (08/09):**
 
 | Quem | O quê | Quando |

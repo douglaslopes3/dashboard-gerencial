@@ -1231,3 +1231,20 @@ navegador, Full                  FY2027: "FY2027 | META | ATING. % (PARCIAL) |
                                  · calendario 2026: "2026" e "YTD 2026",
                                  R$ 787,3 mi · zero erro no console
 ```
+
+## T-61 · D-76: cores da Evolucao (opcao A) e Δ% sem linha (08/09/2026)
+
+```
+validador de paleta             atual (#c2cfdc,#00539f,#f4cf6a,#f5a623): FALHA
+                                 (Meta x linha 9,8 < 15; LY contraste 1,5:1)
+                                 · opcao A (#5e94c9,#00539f,#c97b12): CVD 20,8,
+                                 contraste >= 3:1, chroma do LY 0,098 (tom do
+                                 Atual, aceito)
+unitarios                        78 de 78 (guarda: sem yAxisID/linha Δ%; cores
+                                 da opcao A presentes)
+navegador, Full FY2027           3 series na legenda, 1 eixo; set/26 LY R$ 103,5
+                                 mi · Atual R$ 11,7 mi "−88,7%" · Meta R$ 122,3
+                                 mi "9,6%"; out/26 Atual R$ 0 "−100,0%", Meta
+                                 R$ 120 mi "n/d"; FY2026 sem Meta; tooltip do
+                                 Atual com Δ%; zero erro no console
+```

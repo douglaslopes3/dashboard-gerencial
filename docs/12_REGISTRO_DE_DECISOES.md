@@ -2673,3 +2673,43 @@ R$ 787,3 mi nas duas. Exportação com os mesmos nomes ("FY2027", "LY",
 
 **Onde.** `dashboard/template_v4.html` (`rotuloAnoSel`, `mesesYtd`,
 `matrizNiveis`), `tests/test_regras.py`, docs/08, README.
+
+---
+
+## D-76 · Cores do gráfico de Evolução (opção A) e fim da linha de Δ% com eixo próprio (08/09/2026)
+
+**Pedido do Douglas.** "Não achei as cores do gráfico muito friendly; quais
+opções temos?" e, diante das opções, "Opção A; acho que o Δ% pode não ter a
+linha mesmo, como recomendado".
+
+**Medido antes.** O validador de paletas do kit de dataviz (six checks:
+faixa de luminosidade, saturação, separação para daltônicos, separação
+normal, contraste) reprovou a combinação de então: Meta âmbar `#f4cf6a` e
+linha laranja `#f5a623` com distância 9,8 (mínimo 15, "difícil de
+distinguir mesmo com visão normal") e LY `#c2cfdc` com contraste 1,5:1
+sobre o fundo. Três candidatas foram apresentadas lado a lado num mock com o
+mesmo desenho do gráfico.
+
+**Decisão.**
+
+1. **Opção A**: LY `#5e94c9` (azul médio, tom do Atual: mesma entidade, ano
+   anterior), Atual `#00539f` (azul Dori), Meta `#c97b12` (laranja queimado,
+   sem contorno). Validador: separação para daltônicos 20,8 no pior par,
+   contraste acima de 3:1 nas três; o LY fica no limite de saturação por
+   ser tom do Atual de propósito.
+2. **A linha "Δ% vs LY" e o eixo direito em % saíram.** Motivo do kit
+   (aceito por ele): dois eixos no mesmo gráfico fazem a linha parecer
+   maior ou menor que as barras sem ser. O Δ% do grupo passa a ser a
+   **segunda linha do rótulo da barra Atual** (verde/vermelho, negrito), só
+   onde o par no LY é completo, e entra no tooltip da barra ("Atual: R$ … ·
+   Δ% vs LY: +…%"). A legenda fica com três itens. Rótulo do LY em azul
+   escuro `#3f6e9b`, do Atual `#003a70`, da Meta `#8a5a00`, os três com o
+   valor em cima e a taxa embaixo no mesmo desenhador.
+
+**Verificado.** Full, FY2027 (Valor): três barras por grupo, sem eixo
+direito; set/26: LY R$ 103,5 mi, Atual R$ 11,7 mi com "−88,7%" embaixo,
+Meta R$ 122,3 mi com "9,6%"; FY2026 sem barra Meta e sem legenda de meta;
+tooltip da barra Atual traz o Δ%; zero erro no console. 78/78.
+
+**Onde.** `dashboard/template_v4.html` (`renderEvolucao`, `rotuloBarras`),
+`tests/test_regras.py`, docs/08, README.

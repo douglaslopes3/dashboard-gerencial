@@ -1357,6 +1357,13 @@ def test_d74_template_mostra_meta_so_quando_o_periodo_tem():
                   'const dsMeta = mostraMeta ? [', 'label:"Meta",data:metaSerie',
                   'const ehMeta=ds.label==="Meta"', "atingSerie[c.dataIndex]"):
         assert termo in corpo, f"template v4 perdeu a D-74: {termo}"
+    # D-76: um eixo so; a linha de Δ% saiu e virou rotulo/tooltip da barra
+    # Atual; cores da opcao A (validadas pelo kit de dataviz)
+    assert 'yAxisID:"y1"' not in corpo and 'label:"Δ% vs LY"' not in corpo, \
+        "a linha de Δ% (e o segundo eixo) voltou ao grafico (D-76)"
+    for termo in ('backgroundColor:"#5e94c9"', 'backgroundColor:"#00539f"',
+                  'backgroundColor:"#c97b12"', "const d=variacao[c.dataIndex];"):
+        assert termo in corpo, f"template v4 perdeu a D-76: {termo}"
 
 
 # ================================================================== runner
