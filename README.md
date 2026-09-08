@@ -421,7 +421,7 @@ explicado no título do gráfico.
 | **Douglas** | analisar `data/quality/metas_negativas_por_bandeira.csv` (Q1): 204 pares bandeira×mês ficam negativos no total da bandeira; decidir se volta ao Comercial | esta semana |
 | **Douglas** | aviso de uma linha aos usuários: "o painel agora traz a meta FY27 por cliente" (junto com o aviso pendente da D-72) | na publicação |
 | **D-78 (08/09 à tarde, PUBLICADA com o ok)** | busca por cliente na aba Bandeiras: a mesma caixa acha a bandeira pelo rótulo ou por qualquer cliente dela (código ou nome); bandeira achada por cliente abre mostrando só os clientes que casam. 73/73 publicados idênticos ao build | feito |
-| **Próxima rodada** (decisão dele) | canal como dimensão; Vendedor × Bandeira | quando ele pedir |
+| **Próxima rodada** (decisão dele) | canal como dimensão (análise pronta em docs/12 "Proposta em aberto", 08/09: só template, custo zero de MB, recomendação B = matriz Canal › Categoria na Visão Geral; ele decidiu NÃO abrir por ora); Vendedor × Bandeira | quando ele pedir |
 
 **Feito em 03 e 04/09 (D-54 a D-71, tudo publicado em 04/09 ~00:25):**
 visibilidade dinâmica dos botões · formatação única · desempate N4 na origem ·

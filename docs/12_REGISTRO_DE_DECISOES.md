@@ -2799,3 +2799,19 @@ docs/08, README.
 **Publicação (08/09/2026, "Aprovado, pode publicar").** Publicação
 religada; 72 arquivos por nível + Full em `Dashboard - Full\`; 73 de 73 com
 MD5 igual ao build.
+
+---
+
+## PROPOSTA EM ABERTO · Canal como dimensão (08/09/2026 à tarde, SEM decisão: "não vamos entrar nessa rodada ainda")
+
+Só análise, nada executado. Hoje o canal (7 valores de `Canais.xlsx`) é
+apenas **filtro**; nenhuma tabela quebra por canal. O canal já viaja na
+posição 3 do perfil dos três cubos (principal, SKU e meta), então qualquer
+matriz pode ganhar o nível Canal **sem pipeline, sem MB e com a meta por
+canal de graça**; o recorte por nível e a regra RTM (cliente RTM carrega o
+canal DISTRIBUIDOR, D-50) já valem. Opções apresentadas: (A) nível na matriz
+hierárquica; (B) card novo na Visão Geral, Canal › Categoria, com seletor
+para Bandeira no 2º nível (recomendada); (C) Canal › Bandeira › Cliente ›
+Categoria na aba Bandeiras; (D) aba "Canais". Perguntas que ficam para quando
+ele abrir: onde; 2º nível; vale nos 73 arquivos ou só Full/N1; "SEM CANAL"
+(1 cliente) como linha síntese.
