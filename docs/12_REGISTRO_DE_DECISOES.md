@@ -2815,3 +2815,29 @@ para Bandeira no 2º nível (recomendada); (C) Canal › Bandeira › Cliente �
 Categoria na aba Bandeiras; (D) aba "Canais". Perguntas que ficam para quando
 ele abrir: onde; 2º nível; vale nos 73 arquivos ou só Full/N1; "SEM CANAL"
 (1 cliente) como linha síntese.
+
+---
+
+## PROPOSTA EM ABERTO · Vendedor × Bandeira para o N3 (08/09/2026 à tarde, SEM decisão: "não vamos fazer essa rodada por enquanto")
+
+Só análise, nada executado. O executivo (N3) não vê, numa tela, o que cada
+vendedor dele atende e como está contra a meta; hoje só pelo filtro
+Vend./RCA, um por vez. Vendedor (posição 5 do perfil), bandeira e cliente já
+estão no cubo principal e no de meta: qualquer cruzamento é só template, zero
+MB, meta de graça; D-71 (executivo = vendedor) e a linha Σ RTM continuam
+valendo.
+
+**Ponto do Douglas que muda o desenho:** bandeira NÃO pode ficar sob o
+vendedor, porque mais de um vendedor atende a mesma bandeira. No dado a
+bandeira apareceria uma vez sob cada vendedor, com a fatia dele (sem dobro,
+as fatias somam o total), mas a leitura "ATACADAO R$ 2 mi" sob um vendedor
+seria tomada por total da rede. A unidade do vendedor é o **cliente** (um
+vendedor por cliente na Hierarquia_Consolidada, desempate D-56).
+
+Formas que não confundem: **A'** Sup./Exec. › Vend./RCA › Cliente (bandeira
+escrita no rótulo do cliente), para "o que cada vendedor atende"; **C**
+Bandeira › Vend./RCA › Cliente na aba Bandeiras, para "quem atende esta rede"
+(total da bandeira em cima, fatias explicitamente parciais embaixo); ou as
+duas. Perguntas pendentes: A', C ou ambas; cliente abre em categoria ou não;
+só N2/N3 ou Full/N1 também; na C, bandeira de um cliente só pula o nível
+vendedor como já pula o nível cliente.
