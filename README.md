@@ -418,7 +418,8 @@ explicado no título do gráfico.
 | **Douglas** | ~~abrir o build e dar o ok~~ **feito em 08/09 ("Aprovado, pode publicar")**: publicação religada, 73/73 publicados idênticos ao build | feito |
 | **Douglas** | analisar `data/quality/metas_negativas_por_bandeira.csv` (Q1): 204 pares bandeira×mês ficam negativos no total da bandeira; decidir se volta ao Comercial | esta semana |
 | **Douglas** | aviso de uma linha aos usuários: "o painel agora traz a meta FY27 por cliente" (junto com o aviso pendente da D-72) | na publicação |
-| **Próxima rodada** (decisão dele) | busca por cliente; canal como dimensão; Vendedor × Bandeira (a barra Meta na Evolução saiu no mesmo dia, a pedido dele) | quando ele pedir |
+| **D-78 (08/09 à tarde, EM CONFERÊNCIA, publicação desligada)** | busca por cliente na aba Bandeiras: a mesma caixa acha a bandeira pelo rótulo ou por qualquer cliente dela (código ou nome); bandeira achada por cliente abre mostrando só os clientes que casam | aguarda o ok do Douglas para publicar |
+| **Próxima rodada** (decisão dele) | canal como dimensão; Vendedor × Bandeira | quando ele pedir |
 
 **Feito em 03 e 04/09 (D-54 a D-71, tudo publicado em 04/09 ~00:25):**
 visibilidade dinâmica dos botões · formatação única · desempate N4 na origem ·

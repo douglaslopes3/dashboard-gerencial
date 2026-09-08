@@ -157,9 +157,14 @@ drill-down nem "voltar".
     ficarem sem faturamento direto, a linha some sozinha;
   * pai = soma dos filhos por construção; **nenhum número do nível bandeira
     mudou** com a D-72 (conferido nos 73 arquivos, ao centavo de
-    arredondamento, `ferramentas/comparar_paineis.py`); a busca segue por
-    bandeira; a exportação leva as linhas visíveis, com "Cliente: …" na
-    coluna Item.
+    arredondamento, `ferramentas/comparar_paineis.py`); a exportação leva as
+    linhas visíveis, com "Cliente: …" na coluna Item.
+  * **Busca por cliente (D-78):** a mesma caixa da aba acha a bandeira pelo
+    rótulo **ou por qualquer cliente dela** (código ou nome, sem acento).
+    Bandeira achada só por um cliente abre sozinha e mostra apenas os
+    clientes que casam (categorias abaixo ficam); bandeira de um cliente só
+    aparece pelo próprio cliente e abre em categoria; a linha Σ RTM entra
+    pelo seu rótulo de leitor.
   O arquivo carrega **todas** as bandeiras do escopo (D-65); o corte é só de
   exibição:
   * **Full e N1**: seletor **Top** (10 / 50 / 100 / 200 / 300; só os cortes

@@ -827,6 +827,16 @@ def test_d66_template_tem_busca_de_bandeira_e_sku_persistida():
                   "qBan:F.qBan", "F.qSku=r.qSku", "busca:{nivel:0",
                   "busca:{nivel:1"):
         assert termo in corpo, f"template v4 perdeu a busca (D-66): {termo}"
+    # D-78: a busca da aba Bandeiras acha a bandeira tambem pelo CLIENTE
+    # (codigo ou nome), decidido na carga (BAN_CLIS); bandeira achada por um
+    # cliente abre mostrando so os clientes que casam
+    for termo in ("BAN_CLIS[b].add(c);",
+                  "casaExtra:(b,q)=>[...BAN_CLIS[+b]].some(ci=>semAcento(rotCli(ci)).includes(q))",
+                  'filhoCasa:(k,q)=> tipo(k)!=="c" || semAcento(rotCli(+String(k).slice(1))).includes(q)',
+                  "const casa0 = (k)=> casa(0,k) || casaExtra(k);",
+                  "|| (nivel===0 && viaFilho(n)));",
+                  'placeholder="bandeira ou cliente (código ou nome)'):
+        assert termo in corpo, f"template v4 perdeu a busca por cliente (D-78): {termo}"
 
 
 def test_d68_rotulos_de_exibicao_vem_do_config_e_nao_do_template():

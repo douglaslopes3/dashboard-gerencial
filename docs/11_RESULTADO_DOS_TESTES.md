@@ -1263,3 +1263,19 @@ navegador 800 px (area 240)      os mesmos tres recortes: marcador ("▼ −88,7
                                  Mes · ▲▼ Δ% vs ano anterior · ◎ % da meta";
                                  zero erro no console
 ```
+
+## T-63 · D-78: busca por cliente na aba Bandeiras (08/09/2026 a tarde)
+
+```
+unitarios                        78 de 78 (guarda D-66 estendida: BAN_CLIS,
+                                 casaExtra/filhoCasa, casa0, abertura via
+                                 filho, placeholder)
+navegador, Full FY2027           BAN_CLIS 10.350 · 739 multi · "1003318" ->
+                                 DIST. CLAUMAR aberta so com 1003318 (Σ RTM
+                                 oculta), "busca: 1 de 10350" · "rtm (soma" ->
+                                 25 bandeiras abertas na linha Σ · "1014458" e
+                                 "DISTRILOBO REPRESENTACOES" -> DIST. LOBO
+                                 aberta em categorias · "zzzzqqq" -> Nada
+                                 encontrado · busca vazia -> 50 do Top · zero
+                                 erro no console
+```

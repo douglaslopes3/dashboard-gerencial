@@ -208,6 +208,12 @@
     Categorias): sem acento, sem caixa, ignora o corte de exibicao, abre a
     categoria do SKU achado, persiste no recorte (`qBan`/`qSku`).
 
+  D-78 (08/09/2026) — BUSCA POR CLIENTE na aba Bandeiras: a mesma caixa
+    acha a bandeira pelo rotulo OU por qualquer cliente dela (codigo ou
+    nome; BAN_CLIS decidido na carga). Bandeira com varios clientes abre
+    sozinha e mostra so os clientes que casam; bandeira de um cliente so
+    aparece pelo proprio cliente. `busca.casaExtra`/`busca.filhoCasa` em
+    matrizNiveis.
   D-67 (03/09/2026) — COLUNAS DE DECISAO PRIMEIRO nas tres matrizes:
     nome | ATUAL | ANT. | Δ | Δ% | Part. % || serie (ate 12) | TOTAL.
     A exportacao segue a mesma ordem.
@@ -628,7 +634,7 @@ canvas{max-height:280px}
            inclusive as que o corte de exibicao (Top) somou na linha Σ. -->
       <div class="frow busca-linha" id="frowBuscaBan">
         <div class="flab">Buscar</div>
-        <input class="busca" id="bBan" placeholder="bandeira… (qualquer uma do escopo, mesmo fora do Top)" autocomplete="off">
+        <input class="busca" id="bBan" placeholder="bandeira ou cliente (código ou nome)… qualquer um do escopo, mesmo fora do Top" autocomplete="off">
       </div>
       <div class="scroll"><table id="tabBan"></table></div></div>
   </div>
@@ -776,14 +782,20 @@ function rotCli(i){
    carga, sobre o cubo inteiro (nao muda com filtro nem periodo — como a flag
    da D-71, que e decidida no gerador). Bandeira com um cliente so nao desce
    o nivel Cliente: abre direto em Categoria, como antes da D-72. */
-let BAN_MULTI = null;
+let BAN_MULTI = null, BAN_CLIS = null;
 function marcarBandeirasMulti(){
   const primeiro = new Int32Array(D.ban.length).fill(-1);
   BAN_MULTI = new Uint8Array(D.ban.length);
+  // D-78: os clientes de cada bandeira (indices em D.cli), decididos uma
+  // vez na carga — e o que permite a busca achar a bandeira pelo cliente,
+  // inclusive a bandeira de um cliente so, que nao tem o nivel Cliente na
+  // matriz.
+  BAN_CLIS = Array.from({length:D.ban.length}, ()=>new Set());
   // D-74: a meta conta — uma bandeira com um cliente faturando e outro so
   // com meta tem dois clientes a mostrar.
   for(const cubo of [CUBO, CUBO_META]) for(const l of cubo){
     const b = l[1], c = l[4];
+    BAN_CLIS[b].add(c);
     if(primeiro[b] < 0) primeiro[b] = c;
     else if(primeiro[b] !== c) BAN_MULTI[b] = 1;
   }
@@ -1899,6 +1911,16 @@ function matrizNiveis(cfg){
   const q = cfg.busca && semAcento(cfg.busca.q);
   const busca = q ? {nivel:cfg.busca.nivel, q} : null;
   const casa = (nivel,k)=> semAcento(cfg.rotNo(nivel,k)).includes(busca.q);
+  /* D-78 (08/09/2026): busca no nivel 0 que TAMBEM acha pelo filho.
+     `cfg.busca.casaExtra(k0, q)` diz se um item do nivel 0 casa por algo
+     que nao esta no rotulo dele (na aba Bandeiras: qualquer cliente da
+     bandeira, por codigo ou nome — inclusive na bandeira de um cliente so,
+     que nao tem o nivel Cliente na matriz). `cfg.busca.filhoCasa(k1, q)`
+     decide quais filhos ficam quando o pai NAO casou pelo proprio rotulo
+     (so os clientes que casam; categoria fica); esse pai abre sozinho. */
+  const casaExtra = (k)=> !!(busca && cfg.busca.casaExtra && cfg.busca.casaExtra(k, busca.q));
+  const casa0 = (k)=> casa(0,k) || casaExtra(k);
+  const viaFilho = (n)=> busca && busca.nivel===0 && cfg.busca.filhoCasa && !casa(0,n.k) && casaExtra(n.k);
   // D-72: `cfg.acumFn(nivel,k)` marca a linha ACUMULADA (Σ RTM): fica por
   // ultimo entre os irmaos, como a sintese do nivel 0; o resto pelo total.
   const ehAcum = (nivel,k)=> !!(cfg.acumFn && cfg.acumFn(nivel,k));
@@ -1906,9 +1928,11 @@ function matrizNiveis(cfg){
   const filhosDe = (n,nivel)=>{
     const ac = x => ehAcum(nivel+1, x.k) ? 1 : 0;
     const f=[...n.filhos.values()].sort((x,y)=>(ac(x)-ac(y))||(tot(y)-tot(x)));
-    return (busca && busca.nivel===nivel+1) ? f.filter(x=>casa(nivel+1,x.k)) : f;
+    if(busca && busca.nivel===nivel+1) return f.filter(x=>casa(nivel+1,x.k));
+    if(nivel===0 && viaFilho(n)) return f.filter(x=>cfg.busca.filhoCasa(x.k, busca.q));
+    return f;
   };
-  if(busca && busca.nivel===0) normais=normais.filter(n=>casa(0,n.k));
+  if(busca && busca.nivel===0) normais=normais.filter(n=>casa0(n.k));
   if(busca && busca.nivel===1) normais=normais.filter(n=>filhosDe(n,0).length>0);
   const achadas = busca ? normais.length : null;
   /* D-65 (03/09/2026): o corte (topN) e de EXIBICAO. O que ele tira NAO some:
@@ -1981,7 +2005,9 @@ function matrizNiveis(cfg){
     const filhos = ehSintese ? [] : filhosDe(n, nivel);
     const abre=!ehSintese && nivel<nNiv-1 && filhos.length>0;
     // D-66: com busca no nivel de baixo, o pai do item achado abre sozinho.
-    const aberto=abre && (cfg.expSet.has(caminho) || (busca && busca.nivel===nivel+1));
+    // D-78: idem para a bandeira achada por um cliente dela.
+    const aberto=abre && (cfg.expSet.has(caminho) || (busca && busca.nivel===nivel+1)
+                          || (nivel===0 && viaFilho(n)));
     const acum = !ehSintese && n.k!=="__resto__" && ehAcum(nivel, n.k);   // D-72
     const rot = n.k==="__resto__"
       ? (cfg.rotResto ? cfg.rotResto(n.n) : "Σ")     // D-65: linha do corte
@@ -2131,7 +2157,13 @@ function renderBandeiras(p){
     acumFn:(niv,k)=> niv>0 && tipo(k)==="c" && cliEhAcum(+String(k).slice(1)),
     usaSku:false, p, den, expSet:EXP.band,
     topN: todas ? 0 : F.topBan, baldeK:null, foraSet:null,
-    ignorar:null, rotResto, busca:{nivel:0, q:F.qBan}});
+    ignorar:null, rotResto,
+    // D-78: a busca acha a bandeira pelo rotulo OU por qualquer cliente
+    // dela (codigo ou nome, sem acento). Bandeira com varios clientes abre
+    // mostrando so os clientes que casam; categoria abaixo do cliente fica.
+    busca:{nivel:0, q:F.qBan,
+      casaExtra:(b,q)=>[...BAN_CLIS[+b]].some(ci=>semAcento(rotCli(ci)).includes(q)),
+      filhoCasa:(k,q)=> tipo(k)!=="c" || semAcento(rotCli(+String(k).slice(1))).includes(q)}});
 }
 
 /* ============================== Categorias (D-51, Step 2.4 — aba nova)

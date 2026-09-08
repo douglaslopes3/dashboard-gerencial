@@ -2751,3 +2751,47 @@ true`, geração com a execução `20260908-105634`: 72 arquivos por nível nas
 pastas de colaborador + o Full em `Dashboard - Full\`; 73 de 73 publicados
 com MD5 igual ao build. A partir daqui todo `run_dashboard.py` republica
 D-74 a D-77.
+
+---
+
+## D-78 · Busca por cliente na aba Bandeiras (08/09/2026 à tarde)
+
+**Pedido do Douglas.** "Vamos abrir a próxima rodada: busca por cliente na
+aba Bandeiras." Publicação desligada antes (`62199ef`).
+
+**Contexto.** Desde a D-72 a matriz da aba é Bandeira › Cliente ›
+Categoria, mas o nível Cliente só existe nas bandeiras com mais de um
+cliente (`BAN_MULTI`; 9.611 das 10.350 bandeiras têm um só e abrem direto em
+categoria). A busca da D-66 olhava só o rótulo da bandeira: quem procurava um
+CNPJ ou um nome de cliente não achava nada.
+
+**Decisão.** A **mesma caixa** da aba passa a achar a bandeira pelo rótulo
+**ou por qualquer cliente dela** (código ou nome, sem acento e sem caixa).
+Os clientes de cada bandeira (`BAN_CLIS`, índices em `dims.cli`) são
+decididos uma vez na carga, sobre o cubo principal e o de meta, como o
+`BAN_MULTI`. Regras na matriz (`busca.casaExtra` e `busca.filhoCasa` em
+`matrizNiveis`):
+
+1. bandeira que casa pelo **próprio rótulo** aparece inteira, como antes;
+2. bandeira que casa **só por um cliente** aparece, abre sozinha e mostra
+   apenas os clientes que casam (as categorias abaixo do cliente ficam);
+3. bandeira de um cliente só aparece quando o cliente casa, e abre direto em
+   categoria, como sempre;
+4. a linha Σ RTM entra na busca pelo seu rótulo de leitor ("RTM (soma de N
+   clientes)"), como qualquer outro filho.
+
+Não há caixa separada nem opção "buscar por": o leitor digita o que tem
+(nome de rede, CNPJ, razão social). O texto continua persistindo no
+recorte (`qBan`) e ignorando o corte de exibição (D-66).
+
+**Verificado.** Full, FY2027 (10.350 bandeiras, 739 com mais de um
+cliente): "1003318" (CNPJ do DIST. CLAUMAR) → 1 bandeira, aberta, só esse
+cliente, Σ RTM oculta, rodapé "busca: 1 de 10350"; "rtm (soma" → 25
+bandeiras, cada uma aberta na sua linha Σ RTM; código "1014458" e nome
+"DISTRILOBO REPRESENTACOES" (cliente único da DIST. LOBO) → a bandeira,
+aberta direto nas categorias; "zzzzqqq" → "Nada encontrado"; limpar a
+busca volta às 50 do Top. Zero erro no console. 78/78.
+
+**Onde.** `dashboard/template_v4.html` (`marcarBandeirasMulti`,
+`matrizNiveis`, `renderBandeiras`, placeholder), `tests/test_regras.py`,
+docs/08, README.
