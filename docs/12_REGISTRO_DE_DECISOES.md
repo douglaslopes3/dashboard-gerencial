@@ -2851,6 +2851,15 @@ A matriz da Visão Geral mostra a mesma série. Zero erro no console. 79/79 +
 cabeçalho de decisões), `tests/test_regras.py`
 (`test_d79_serie_da_matriz_segue_o_filtro_de_periodo`),
 `config/config.yaml` (publicação desligada), docs/08, docs/11, README.
+Commit `b34a2ce`.
+
+**Publicação (11/09/2026, "pode publicar").** Antes de religar,
+`ferramentas/comparar_paineis.py` (publicado das 09:39 x build): 73 de 73,
+0 centavo de diferença no total, por mês e por bandeira; só o template
+mudou. Publicação religada; 72 arquivos por nível + Full em
+`Dashboard - Full\`; 73 de 73 com MD5 igual ao build (conferência com
+`Get-FileHash -LiteralPath`: com `-Path`, as 13 pastas com "[VAGO" no nome
+davam falsa divergência, porque o colchete é curinga no PowerShell).
 
 ---
 
