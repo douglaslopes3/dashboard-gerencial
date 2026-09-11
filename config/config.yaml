@@ -414,7 +414,9 @@ dashboard:
     # DESLIGADA em 08/09 a tarde para a rodada D-78 (busca por cliente na
     # aba Bandeiras); RELIGADA em 08/09 com o ok dele ("Aprovado, pode
     # publicar").
-    ativo: true
+    # DESLIGADA em 11/09/2026 para a rodada D-79 (meses da matriz seguem o
+    # filtro de periodo); religar so com o ok do Douglas.
+    ativo: false
     destino: "../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
     # destino e passa a ser gravado nesta subpasta, porque ele precisou

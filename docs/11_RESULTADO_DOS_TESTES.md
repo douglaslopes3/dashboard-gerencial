@@ -1279,3 +1279,21 @@ navegador, Full FY2027           BAN_CLIS 10.350 · 739 multi · "1003318" ->
                                  encontrado · busca vazia -> 50 do Top · zero
                                  erro no console
 ```
+
+## T-64 · D-79: meses da matriz seguem o filtro de período (11/09/2026)
+
+```
+unitarios                        79 de 79 (novo: serie da matriz le p.atual,
+                                 nao anda por NM; gruposSerie saiu)
+cenarios                         6 de 6 (pipeline final exit 0)
+build                            73 arquivos, particionamento N3 e meta fecham;
+                                 publicacao DESLIGADA: pastas seguem com a
+                                 geracao das 09:39 (sem D-79), so o build tem
+navegador, Full (http.server)    aba Categorias, soma da serie = coluna do ano
+                                 em todos: FY2026 inteiro set/25..ago/26 (12) ·
+                                 so jun/26 -> jun/26 · out/25..mar/26 por
+                                 Trimestre -> T1/26* T2/26 T3/26* · Calendario
+                                 2026 -> jan/26..out/26 · FY2027 -> set/26,
+                                 out/26 · Visao Geral com a mesma serie · zero
+                                 erro no console
+```

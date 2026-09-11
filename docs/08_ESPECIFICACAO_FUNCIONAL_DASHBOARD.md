@@ -115,8 +115,9 @@ drill-down nem "voltar".
 * **Matriz hierárquica expansível** Head → Gerente → Sup./Exec. → Vend./RCA
   (D-51). Colunas, na ordem da D-67 (igual nas três matrizes e na exportação):
   nome · **ANO SELECIONADO (ex.: FY2027; "(k m.)" se a seleção não é o ano
-  inteiro) · [META · ATING. %] · LY · Δ · Δ% · Part. %** · série de até 12
-  períodos (na granularidade do "Ver por") · **YTD do ano selecionado**
+  inteiro) · [META · ATING. %] · LY · Δ · Δ% · Part. %** · série dos
+  **meses selecionados no filtro** (D-79; na granularidade do "Ver por",
+  com `*` no grupo parcial; a soma dela é a coluna do ano) · **YTD do ano selecionado**
   (acumulado até o último mês escolhido, D-75; ordena a matriz). As duas
   colunas de meta (D-74) só existem quando o período tem mês com meta e a
   métrica não é Caixas; o cabeçalho diz "(k/n m.)" se a meta cobre parte

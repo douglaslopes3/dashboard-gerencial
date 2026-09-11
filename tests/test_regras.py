@@ -922,6 +922,22 @@ def test_d67_colunas_de_decisao_antes_da_serie():
         "a ultima coluna voltou a somar a serie exibida em vez do YTD"
 
 
+def test_d79_serie_da_matriz_segue_o_filtro_de_periodo():
+    """D-79 (11/09/2026): as colunas de mes das matrizes sao os meses
+    SELECIONADOS (p.atual), agrupados pelo "Ver por", como o grafico de
+    Evolucao. Antes eram os 12 ultimos meses do arquivo, qualquer que fosse o
+    filtro: a guarda falha se a serie voltar a andar pelo calendario inteiro."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    assert "function colunasSerie(p){" in corpo
+    assert "for(const i of p.atual){" in corpo
+    assert "const cols=colunasSerie(p);" in corpo
+    assert "function gruposSerie" not in corpo, \
+        "a serie voltou a percorrer todos os meses do arquivo"
+    ini = corpo.index("function colunasSerie(p){")
+    fim = corpo.index("\n}", ini)
+    assert "NM" not in corpo[ini:fim], "colunasSerie nao pode andar por NM"
+
+
 def test_d65_template_monta_o_corte_na_tela():
     """O template nao procura mais o balde pelo rotulo (`D.ban.indexOf`), monta
     a linha Σ do corte de exibicao ele mesmo (`__resto__`) e respeita

@@ -223,6 +223,10 @@
     ultima coluna vira "YTD <ano>": o ACUMULADO do ano selecionado ate o
     ultimo mes escolhido (ytdFiscal/ytdCalendario) — nao mais a soma das
     12 colunas exibidas. A ordenacao padrao e a exportacao seguem o YTD.
+  D-79 (11/09/2026, opcao A do Douglas) — a SERIE de meses das tres
+    matrizes segue o FILTRO de periodo: colunas = meses selecionados,
+    agrupados pelo "Ver por" (como o grafico de Evolucao), com "*" no grupo
+    parcial. Antes eram os 12 ultimos meses do arquivo, fixos.
 
   D-68 (03/09/2026) — ROTULOS DE LEITOR para as linhas sintese Σ (sem
     estrutura / inativos), via DB.rotulos_exibicao, que vem do config
@@ -1766,19 +1770,24 @@ function ranking(mapA,mapAP,mapL,rot,n,temLy,excluirK){
    colunas mais recentes, que sao as que interessam, para fora do campo de
    visao. A matriz para nos 12 periodos MAIS RECENTES. O TOTAL passa a ser o
    das colunas EXIBIDAS, e a nota diz isso: total que nao corresponde ao que
-   esta na tela e a maneira mais rapida de perder a confianca do leitor. */
+   esta na tela e a maneira mais rapida de perder a confianca do leitor.
+   (D-75 trocou o TOTAL pelo YTD; D-79 trocou "12 mais recentes do arquivo"
+   pelos meses SELECIONADOS.) */
+/* D-79 (11/09/2026, opcao A do Douglas): a serie mostra os MESES
+   SELECIONADOS (p.atual), agrupados pelo "Ver por" — a mesma regra do
+   grafico de Evolucao. Ate aqui ela pegava os 12 ultimos meses do ARQUIVO,
+   qualquer que fosse o filtro (em 11/09 era sempre nov/25 a out/26). Com a
+   selecao, a soma das colunas da serie e a coluna do ano (ATUAL) por
+   construcao. A selecao nunca passa de um ano, entao o teto de 12 so guarda. */
 const MAX_COLS_SERIE = 12;
-function gruposSerie(){
+function colunasSerie(p){
   const g=new Map();
-  for(let i=0;i<NM;i++){
+  for(const i of p.atual){
     const k=grupoPeriodo(i);
     if(!g.has(k)) g.set(k,[]);
     g.get(k).push(i);
   }
-  return [...g.entries()].map(([rot,meses])=>({rot,meses}));
-}
-function colunasSerie(){
-  const todas=gruposSerie();
+  const todas=[...g.entries()].map(([rot,meses])=>({rot,meses}));
   return todas.length>MAX_COLS_SERIE ? todas.slice(-MAX_COLS_SERIE) : todas;
 }
 // "FY2026-T1" -> "T1/26" · "2026-S2" -> "S2/26" · "set/25" fica como esta.
@@ -1841,7 +1850,7 @@ function matrizNiveis(cfg){
     }
     return out;
   };
-  const cols=colunasSerie();
+  const cols=colunasSerie(p);                // D-79: meses do filtro
   const porCol=cols.map(c=>soma(c.meses));
   const mapA=soma(p.atual), mapL=temLy?soma(p.ly):new Map();
   const mapAP=parcialLy(p)?soma(p.pareado):mapA;

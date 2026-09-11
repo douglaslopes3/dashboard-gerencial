@@ -2804,6 +2804,56 @@ MD5 igual ao build.
 
 ---
 
+## D-79 · Os meses da matriz seguem o filtro de período (11/09/2026)
+
+**Pedido do Douglas.** "Independente do filtro que fazemos só exibe de
+novembro em diante. Precisamos pensar em uma lógica que respeite os
+períodos selecionados nos filtros." Análise antes, sem executar; aprovou a
+opção A ("Aprovado, pode seguir com a opção A"). Publicação desligada antes
+do build.
+
+**Fato medido antes de mudar.** `colunasSerie()` montava a série com os 12
+últimos meses do **arquivo** (`gruposSerie` andava por todo o calendário,
+`NM`), sem ler a seleção: em 11/09 era sempre NOV/25 a OUT/26. Com o FY2027
+selecionado, os meses somavam cerca de R$ 1 bi e a coluna do ano mostrava
+R$ 19,8 mi. O gráfico de Evolução já agrupava só os meses selecionados.
+
+**Opções apresentadas.** (A) só os meses selecionados, agrupados pelo "Ver
+por"; (B) o ano inteiro do filtro, com os meses fora da seleção
+esmaecidos; (C) do início do ano até o último mês escolhido (a janela do
+YTD). Recomendada e aprovada: A.
+
+**Decisão.** Nas três matrizes (Visão Geral, Bandeiras, Categorias) e na
+exportação, as colunas de mês são os **meses selecionados** (`p.atual`),
+agrupados pelo "Ver por", com `*` no grupo parcial: a mesma regra do
+gráfico de Evolução. A soma das colunas da série é a coluna do ano por
+construção. A seleção nunca passa de um ano, então o teto de 12 colunas
+(`MAX_COLS_SERIE`) fica só como guarda. A coluna YTD (D-75) não muda.
+Consequência aceita: com o FY2027 aberto, a série mostra só SET/26 e
+OUT/26 (OUT/26 é oferecido porque tem meta, e fica "–" até ter venda); o
+histórico se vê trocando o ano no filtro.
+
+**Verificado.** Full, build de 11/09 (servido por `http.server`), cabeçalho
+da aba Categorias e soma da série contra a coluna do ano, cinco recortes:
+
+| Recorte | Colunas de mês | Soma = ano |
+|---|---|---|
+| FY2026 inteiro, Mês (abertura padrão) | set/25 a ago/26 (12) | sim, R$ 1.183.873.086 |
+| FY2026 só jun/26 | jun/26 | sim, R$ 101.836.083 |
+| FY2026 out/25 a mar/26, Trimestre | T1/26\*, T2/26, T3/26\* | sim, R$ 559.883.868 |
+| Calendário 2026 inteiro | jan/26 a out/26 (10) | sim, R$ 795.329.233 |
+| FY2027 inteiro | set/26, out/26 | sim, R$ 19.778.551 |
+
+A matriz da Visão Geral mostra a mesma série. Zero erro no console. 79/79 +
+6/6.
+
+**Onde.** `dashboard/template_v4.html` (`colunasSerie(p)`, `matrizNiveis`,
+cabeçalho de decisões), `tests/test_regras.py`
+(`test_d79_serie_da_matriz_segue_o_filtro_de_periodo`),
+`config/config.yaml` (publicação desligada), docs/08, docs/11, README.
+
+---
+
 ## PROPOSTA EM ABERTO · Canal como dimensão (08/09/2026 à tarde, SEM decisão: "não vamos entrar nessa rodada ainda")
 
 Só análise, nada executado. Hoje o canal (7 valores de `Canais.xlsx`) é
