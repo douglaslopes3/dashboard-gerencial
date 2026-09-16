@@ -2902,6 +2902,38 @@ Bandeira › Vend./RCA › Cliente na aba Bandeiras, para "quem atende esta rede
 duas. Perguntas pendentes: A', C ou ambas; cliente abre em categoria ou não;
 só N2/N3 ou Full/N1 também; na C, bandeira de um cliente só pula o nível
 vendedor como já pula o nível cliente.
+
+**Avaliação de 15/09/2026 à noite (a pedido do Douglas: "só o canal ATACADO
+vale entrar no nível N4, os demais não fazem sentido; avalie antes de
+seguirmos"). SEM decisão: "não vamos mexer nisso por enquanto".** Medido no
+FY2026 fechado, "vendedor" = rótulo N4 diferente do próprio executivo (regra
+da D-71):
+
+| Head | Rótulos N4 | O que são | Executivos com equipe | Receita via N4 |
+|---|---|---|---|---|
+| 10 Distribuição | 14 | "TT Superv_...": o próprio executivo | 0 de 14 | R$ 0 |
+| 20 Atacado | 100 | 74 "TT Rep ..." + 26 "Vend ...": pessoas | 9 de 18 | R$ 278,3 mi (61% do head), 8.981 clientes, 87 vendedores |
+| 30 KA Nacional | 68 | 65 com sufixo de UF (ATACADAO_RJ, ASSAI_PB, SAMS CLUB_RJ): a rede fatiada por estado, não pessoas | 6 de 6 | R$ 248,0 mi (100% do head) |
+| 40 KA Regional | 21 | "TT Exec Ctas_...": o próprio executivo | 1 de 17 (um [VAGO], R$ 2,7 mi, 27 clientes) | R$ 2,7 mi |
+
+Conclusão: vendedor como pessoa só existe no Atacado (os maiores: RS/SC 21,
+NO/NE 2 15, RJ/ES 14, NE 1 13). Em Distribuição e KA Regional a D-71 já
+recolhe o nível. O caso a decidir é o **KA Nacional**: o N4 ali é a rede por
+UF, hoje chamada de "Vend./RCA" na matriz e no filtro; é conteúdo real (o eixo
+UF saiu dos cubos na D-51), só o nome está errado. Opções apresentadas, todas
+com a regra declarada no gerador (flag no perfil, como a D-71): **A** nível N4
+só nos heads listados no config (`20`), os demais recolhem (KA Nacional perde
+a abertura por UF); **B (recomendada)** igual à A, com rótulo do N4 por head
+(`20: "Vend./RCA"`, `30: "Rede por UF"`); **C** nada muda na hierarquia, só a
+leitura A' fica restrita ao Atacado. Com qualquer opção a leitura A' só tem
+conteúdo em 14 arquivos (N1 Atacado, 4 N2, 9 N3); as 91 bandeiras
+compartilhadas entre vendedores do Atacado somam R$ 44 mi.
+
+**Pausa (15/09 à noite):** "amanhã vou rodar uma nova estrutura de
+hierarquia, clientes e metas; após isso avaliamos novamente." As duas
+propostas (canal como dimensão e Vendedor × Bandeira) e a regra do N4 ficam
+para depois da carga de 16/09/2026, porque a nova hierarquia pode mudar as
+contagens acima.
 ---
 
 ## D-80 · Padronização visual pelo template do Scorecard DN (15/09/2026)
