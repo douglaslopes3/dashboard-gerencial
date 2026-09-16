@@ -215,11 +215,14 @@ de Sup./Exec.; no arquivo de um Sup./Exec. só a linha de Vend./RCA aparece, e
 some se ele mesmo é o único vendedor (D-71). O seletor **Ver por** (Mês /
 Trimestre / Semestre / Ano) define a granularidade das colunas e das barras;
 grupo com menos meses que a granularidade pede sai rotulado **(parcial)** ou
-com `*`. **Onde estão (D-80, 15/09/2026):** Métrica, Comparar e Ver por ficam
-na barra fixa do topo, com o botão **Filtros** à esquerda (o número no botão
-é a quantidade de filtros ativos); o resto abre numa gaveta lateral, que fecha
-por clique fora, Esc ou ×. Canal e Categoria são listas com caixinhas. A barra
-e a gaveta são as mesmas nas três abas.
+com `*`. **Onde estão (D-80 e D-81, 15/09/2026):** Métrica, Comparar e Ver
+por ficam na barra fixa logo abaixo das abas; o resto fica na **barra lateral
+esquerda**, igual à do Scorecard DN: o « recolhe para um trilho estreito (que
+mostra em vermelho quantos filtros estão ativos) e o » expande; o navegador
+lembra se você deixou aberta ou recolhida. Canal e Categoria são listas com
+caixinhas. As abas ficam fixas no topo ao rolar e, com o foco nelas, as setas
+do teclado trocam de aba. Barra lateral e barra de leitura são as mesmas nas
+três abas.
 
 **Botão que não tem dado atrás não aparece** (D-54): opção sem linha no
 recorte atual some; a que você já selecionou fica com o contador "0"; uma

@@ -17,9 +17,11 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 > **15/09/2026 — IDENTIDADE VISUAL NOVA (D-80).** O painel foi padronizado pelo
 > template do **Scorecard DN** (`Documentos\Painéis - Alavancas\DN\template`):
 > paleta, tipografia, header em faixa azul, abas em botão e filtros numa barra
-> de leitura sticky + gaveta lateral. **Nada de dado, cálculo, ordem de aba ou
+> de leitura sticky. **D-81 (15/09 à noite):** os filtros ficam na **barra
+> lateral fixa do DN** (250 px, « recolhe para 46 px), chips com 8 px, abas
+> fixas no topo e setas do teclado. **Nada de dado, cálculo, ordem de aba ou
 > disposição de visual mudou** — os números desta seção seguem valendo.
-> Decisão completa, divergências e os 4 pontos em aberto: **docs/12, D-80**.
+> Decisões, divergências e medidas: **docs/12, D-80 e D-81**.
 > Backups em `_arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/`.
 
 ```
@@ -391,8 +393,8 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 08 | [Especificação funcional](docs/08_ESPECIFICACAO_FUNCIONAL_DASHBOARD.md) |
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
-| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-65 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a **D-80**, com o porquê (a D-72 vem precedida da análise que a sustentou; a D-80 é a padronização visual de 15/09) |
+| 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-66 |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a **D-81**, com o porquê (a D-72 vem precedida da análise que a sustentou; D-80 e D-81 são a padronização visual de 15/09) |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
@@ -411,9 +413,16 @@ Filtros a esquerda + gaveta sobreposta de 300px; Canal e Categoria em lista
 com caixinhas) · linha de recorte ativo · impressao e telas estreitas.
 `posicionarFiltros()` saiu. Template 146,3 KB -> 158,1 KB; Full 19,59 MB.
 
-**Em aberto, por decisao do Douglas (docs/12 D-80):** chip em pilula x 8px do
-template · barra de abas sticky · navegacao das abas por setas · aviso de uma
-linha aos usuarios sobre a cara nova.
+**D-81 (15/09 a noite, decisoes dele por opcao tabulada):** painel de filtros
+igual ao do DN (barra lateral fixa de 250 px, comeca aberta, « recolhe para um
+trilho de 46 px com o contador vermelho; o botao "Filtros" da barra de leitura
+saiu) · chips com 8 px · abas fixas no topo (altura medida vira o top da barra
+de leitura) · setas do teclado nas abas. Medido a 1366 px: as matrizes (19
+colunas, 1.583-1.641 px) ja rolavam; a barra aberta tira 250 px, recolhida 46.
+Depois da conferencia dele, a matriz ganhou `min-width:0` no card (a pagina
+rolava na horizontal). Testes 80/80. **PUBLICADA 21h46 com o "pode publicar"
+dele: 73/73 MD5 = build; publicacao automatica LIGADA.** Pendente dele: enviar
+o aviso de uma linha aos usuarios (texto em docs/12 D-81).
 
 ## Roadmap — fechamento de 08/09/2026
 

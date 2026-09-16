@@ -2981,11 +2981,112 @@ religada. Onze pontos de retorno em
 `run_dashboard.py`** — a mudança é só de template, não há mais nenhuma etapa.
 Template de 146,3 KB → 158,1 KB; Full medido em 19,59 MB (teto 35 MB).
 
-**Em aberto, por decisão do Douglas — nenhuma é pendência técnica.**
+**Em aberto, por decisão do Douglas — nenhuma é pendência técnica (fechados
+na D-81, 15/09 à noite).**
 
 | # | Assunto | Situação |
 |---|---|---|
-| 1 | **Chip em pílula (raio 20 px) × 8 px do template** | adiado no V-03 ("pode deixar como está e ajustamos lá na frente"); reaberto no item 7 e ainda não decidido |
-| 2 | **Barra de abas sticky** | adiado no V-05, em que ele escolheu a opção B (estilo + ARIA, sem sticky) |
-| 3 | **Navegação das abas por setas do teclado** | adiado no V-05 — comportamento novo, pede item próprio |
-| 4 | **Aviso de uma linha aos usuários** sobre a cara nova e o painel de filtros em novo lugar | sugerido; texto ainda não redigido |
+| 1 | **Chip em pílula (raio 20 px) × 8 px do template** | adiado no V-03 ("pode deixar como está e ajustamos lá na frente"); reaberto no item 7; **decidido na D-81: 8 px** |
+| 2 | **Barra de abas sticky** | adiado no V-05, em que ele escolheu a opção B (estilo + ARIA, sem sticky); **decidido na D-81: fixa, como o DN** |
+| 3 | **Navegação das abas por setas do teclado** | adiado no V-05 — comportamento novo, pede item próprio; **decidido na D-81: sim** |
+| 4 | **Aviso de uma linha aos usuários** sobre a cara nova e o painel de filtros em novo lugar | texto proposto na D-81; o Douglas envia |
+
+---
+
+## D-81 · Fechamento dos pontos visuais: barra lateral do DN, chips 8 px, abas fixas, setas (15/09/2026 à noite)
+
+**Pedido do Douglas.** "Vamos fechar os 4 pontos visuais em aberto" e, no meio
+da medição, "sobre o painel de filtros, seria legal padronizar igual ao painel
+de DN que fizemos?". As cinco decisões saíram por opção tabulada, com a medida
+na frente.
+
+**O que foi medido antes de perguntar.**
+
+* O painel de filtros do DN é uma **barra lateral fixa de 250 px** à esquerda
+  (`.dnside`), com título, botão « que a recolhe para um **trilho de 46 px**
+  com o contador vermelho dos filtros ativos (`.dnside-n`), e o conteúdo
+  desloca (`.dnmain{margin-left}`). Por dentro: rótulos em caixa alta, chips de
+  8 px (`.fchip`) e listas suspensas (`.fsel`). Aqui era uma gaveta sobreposta
+  de 300 px (item 7 da D-80).
+* Custo a 1366 px (monitor comum): as três matrizes têm 19 colunas e medem
+  1.605 (Visão Geral), 1.641 (Bandeiras) e 1.583 px (Categorias); já rolam na
+  horizontal. Barra aberta tira mais 250 px; trilho, 46 px.
+* Chip: 20 px aqui, 8 px no DN; a V-03 já usa 8 px em todo controle, o chip era
+  a única exceção. Raios no DN: 13 usos de 8 px, 13 de 9 px, 2 de 20 px.
+* Abas fixas: barra de abas 33 px + barra de leitura 49 px = 82 px de 768
+  (10,7 %) ocupados em toda rolagem. O DN fixa as abas (`.dntabs`).
+* Setas: o DN não tem; é o padrão WAI-ARIA de `tablist`; ~12 linhas.
+
+**Decisões dele (15/09, ~21h10).**
+
+| # | Pergunta | Decisão |
+|---|---|---|
+| 1 | Painel de filtros como o DN? | **Barra lateral do DN, começa aberta** (recomendada) |
+| 2 | Chip 20 px ou 8 px? | **8 px como o DN** (recomendada) |
+| 3 | Abas fixas ao rolar? | **Fixar, como o DN** (contra a recomendação, que era não fixar para devolver 33 px às matrizes) |
+| 4 | Setas do teclado nas abas? | **Sim** (recomendada) |
+
+**O que foi aplicado (só `template_v4.html`; gerador, cubos e regras
+intactos).**
+
+* **Barra lateral** `.fgav`: `position:fixed; width:250px; z-index:45`,
+  sombra e botão nas medidas do `.dnside`; `body.lat-off` recolhe para 46 px
+  (título, corpo e ações somem, fica o botão » e o contador vermelho `.fgav-n`
+  quando há filtro ativo); `.top` e `.wrap` levam `margin-left` 250/46 px com
+  transição. O botão "Filtros" da barra de leitura, o fundo escuro (`.fback`),
+  o × e o Esc **saíram**: a barra não é mais sobreposta. Estado
+  aberta/recolhida em `localStorage` na chave própria
+  `dashDoriCanais.lateral.v1` (fora do recorte e do link: é preferência de
+  quem olha, não parte da visão; sem sufixo de recorte, vale para os 73
+  arquivos), lida por um `<script>` inline logo após `<body>` para não piscar.
+  Tela ≤ 700 px: aberta, cobre a largura inteira sem deslocar o conteúdo.
+* **Chips** `border-radius:8px`.
+* **Abas fixas**: `.tabs{position:sticky;top:0;z-index:31;background:var(--bg)}`;
+  a altura real vai para `--abas-h` (`medirAbas()`, no load e no resize) e é o
+  `top` da barra de leitura, que empilha embaixo. Em tela estreita e na
+  impressão as duas voltam a `static`.
+* **Setas**: `keydown` na `nav.tabs` (Esquerda/Direita circulam, Home/End vão
+  às pontas, ativação automática); `tabindex` itinerante (só a aba ativa entra
+  na ordem do Tab), no clique e na restauração do recorte.
+
+**Medido no build (Full, `http.server`, 1366 × 768).** Barra 250 px em
+`x=0`; faixa azul e `.wrap` em `x=250` com 1.101 px; `--abas-h` = 51 px; barra
+de leitura `sticky` com `top:51px`; chips, listas e caixinhas com raio 8 px;
+`tabindex` [0, −1, −1]; sem botão na barra de leitura. Recolher: barra 46 px,
+conteúdo em `x=46` com 1.305 px, título e corpo ocultos, contador vermelho "1"
+depois de marcar um head (KPI R$ 278,7 mi = Distribuição), botão » "Expandir
+filtros", `localStorage` = `off`; recarga abre já recolhida. Rolagem de 124 px:
+abas em `y=0`, barra de leitura em `y=51`. Foco na aba + → Bandeiras (painel
+`band`, foco acompanha, `tabindex` [−1, 0, −1]); End → Categorias; Home →
+Visão Geral. Console: abertura 5.884 ms · heap 192 MB · zero erro. Testes
+80/80 (novo `test_d81_template_barra_lateral_chips_abas`). Template 158,1 KB →
+161,2 KB; Full 19,60 MB.
+
+**Ajuste depois da conferência dele ("ficou muito ruim a matriz", ~21h50).**
+A captura mostrava a faixa azul e os cards terminando em ~930 px e a matriz
+seguindo além: a página inteira rolava na horizontal. Causa medida: o card da
+matriz é item de uma grade (`.grid`) e, sem `min-width:0`, cresce até a
+largura mínima da tabela (células com `white-space:nowrap`), em vez de deixar
+o `.scroll` rolar por dentro. Já era assim no template original (a 1366 px a
+tabela media 1.605 px e a página rolava), só não aparecia em monitor largo;
+os 250 px da barra lateral escancararam. Correção: `.grid>.card,.card{min-width:0}`
+e `.scroll{max-width:100%}`. Medido a 1366 × 768 com a barra aberta: página
+com `scrollWidth` = `clientWidth` = 1.351 px (sem rolagem horizontal), faixa
+azul e barra de leitura até a borda, tabela de 1.607 px rolando dentro de um
+`.scroll` de 1.025 px; Bandeiras idem. As colunas fixas da esquerda (nome e
+valor do ano) já supunham essa rolagem interna.
+
+**Aviso aos usuários (ponto 4), texto proposto ao Douglas:** "O Dashboard
+Gerencial está com o visual dos painéis da Dori: os filtros ficam na barra
+lateral esquerda (o « recolhe, o » expande) e as abas ficam fixas no topo.
+Nenhum número, aba ou regra mudou."
+
+**Backup** em `_arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/`:
+`template_v4_pre_D81.html` e `config_pre_D81.yaml`. Reverter = restaurar o
+template e rodar `run_dashboard.py`.
+
+**Publicação:** desligada no início da rodada (`ativo: false`, 21h20);
+**religada às 21h46 com o "pode publicar" do Douglas**, depois da conferência dele
+e do ajuste da matriz: 73 arquivos gerados e publicados nas pastas, MD5
+idêntico ao build em 73/73 (`Get-FileHash -LiteralPath`). Publicação
+automática LIGADA de novo: todo `run_dashboard.py` republica.

@@ -25,16 +25,19 @@ no template.
 | **Sup./Exec.** | perfil do cubo (N3) | 1 (lista suspensa) | idem |
 | **Vend./RCA** | perfil do cubo (N4) | 1 (lista suspensa) | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível. Vendedor que é o próprio Sup./Exec. (mesma pessoa, D-71) não é opção |
 
-**Onde ficam (D-80, 15/09/2026).** Métrica, Comparar e Ver por estão na
-**barra de leitura** fixa no topo (`sticky`), junto com o botão **Filtros**
-(à esquerda, com o contador de filtros ativos). Os demais (Ano, Meses, Canal,
-Categoria, Head, Gerente, Sup./Exec., Vend./RCA, `Limpar filtros`, `Copiar
-recorte`) ficam numa **gaveta sobreposta** de 300 px que abre pelo botão e
-fecha por clique fora, Esc ou ×. Canal e Categoria são **listas com caixinhas**
-(o gatilho declara a seleção: "Todos" ou os itens marcados); Ano, Meses e Head
-seguem em chips. A gaveta nasce sempre fechada; o recorte vem do hash/`localStorage`
-como antes. Antes da D-80 esses filtros eram um painel que viajava entre as
-abas (`posicionarFiltros()`, removida).
+**Onde ficam (D-80 e D-81, 15/09/2026).** Métrica, Comparar e Ver por estão
+na **barra de leitura** fixa (`sticky`) logo abaixo das abas. Os demais (Ano,
+Meses, Canal, Categoria, Head, Gerente, Sup./Exec., Vend./RCA, `Limpar
+filtros`, `Copiar recorte`) ficam na **barra lateral fixa** de 250 px à
+esquerda, no padrão do Scorecard DN (D-81): começa aberta, o botão « a recolhe
+para um trilho de 46 px que mostra só o » e o contador vermelho dos filtros
+ativos; o conteúdo desloca. O estado aberta/recolhida fica no navegador
+(`localStorage`, chave própria, fora do recorte e do link). Canal e Categoria
+são **listas com caixinhas** (o gatilho declara a seleção: "Todos" ou os itens
+marcados); Ano, Meses e Head seguem em chips, com raio de 8 px como os demais
+controles. O recorte vem do hash/`localStorage` como antes. Histórico: até a
+D-80 era um painel que viajava entre as abas (`posicionarFiltros()`, removida);
+na D-80 virou gaveta sobreposta de 300 px; na D-81, a barra lateral do DN.
 
 Saíram na D-51 (Q9) e não voltaram: Projeto e UF (o eixo UF saiu dos cubos,
 Q10; projeto continua no perfil do cubo, sem filtro na tela). Bandeira e SKU
@@ -90,12 +93,15 @@ pediu. Trocar a base recompõe a lista de anos; nada fica desabilitado.
 
 ## 2. Abas
 
-A barra de leitura, a gaveta de filtros e a linha de recorte ativo (D-80) são
-globais: valem nas três abas e ficam no mesmo lugar em todas (até a D-80 o
-painel de filtros ficava abaixo do gráfico de Evolução na Visão Geral e no
-topo nas demais). As abas são botões com `role="tab"` (D-80/V-05, sem barra
-fixa e sem navegação por setas: pontos em aberto). Toda navegação entre níveis
-é pela **expansão da matriz** (▸); não há drill-down nem "voltar".
+A barra de leitura, a barra lateral de filtros e a linha de recorte ativo
+(D-80, D-81) são globais: valem nas três abas e ficam no mesmo lugar em todas
+(até a D-80 o painel de filtros ficava abaixo do gráfico de Evolução na Visão
+Geral e no topo nas demais). As abas são botões com `role="tab"` (D-80/V-05) e,
+desde a D-81, a barra de abas fica **fixa no topo** (a barra de leitura empilha
+logo abaixo) e aceita **setas do teclado**: Esquerda/Direita circulam, Home/End
+vão às pontas, a aba muda ao mover o foco; só a aba ativa entra na ordem do
+Tab. Toda navegação entre níveis é pela **expansão da matriz** (▸); não há
+drill-down nem "voltar".
 
 ### Aba 1 — Visão Geral
 

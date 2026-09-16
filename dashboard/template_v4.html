@@ -291,9 +291,9 @@
 /* V-03 (15/09/2026, aprovado): dois patamares de raio — 8px para controle
    (botao, lista, busca) e 12-14px para superficie (card, KPI, painel de
    filtros); sombra unica 0 1px 2px rgba(20,30,60,.05); gap 12->10px e
-   margem do corpo 16/20/60. O CHIP FICA EM PILULA (20px) por decisao do
-   Douglas em 15/09: a silhueta dele volta a mesa no item 7, junto com o
-   redesenho dos filtros (opcao C). */
+   margem do corpo 16/20/60. O chip ficou em pilula (20px) ate a D-81 (15/09
+   a noite): o Douglas decidiu 8px, como o .fchip do DN — o chip deixou de
+   ser a unica excecao a regra de raios dos controles. */
 /* V-02 (15/09/2026, aprovado): escala tipografica do template de referencia,
    com UMA divergencia deliberada — piso de 9,5px nos rotulos em caixa alta
    (o DN usa 8,5-9px). "Sup./Exec." e "Vend./RCA" em 8,5px ficam ilegiveis em
@@ -352,40 +352,43 @@ body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 /* ---------------------------------------------------------------- filtros
    Item 7a (15/09/2026, opcao C aprovada): o painel viajante (.filters +
    posicionarFiltros) saiu. No lugar: BARRA DE LEITURA sticky com Metrica,
-   Comparar e Ver por, e GAVETA SOBREPOSTA com as dimensoes. Sobreposta, e nao
-   fixa como a do DN, porque a largura e o recurso escasso aqui: as matrizes
-   tem ate 14 colunas de serie. */
-.fbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:16px;
+   Comparar e Ver por, e as dimensoes numa lateral.
+   D-81 (15/09/2026 a noite, decisao do Douglas por opcao tabulada): a gaveta
+   SOBREPOSTA virou a BARRA LATERAL FIXA do DN (.dnside): 250px a esquerda,
+   comeca aberta, o botao « recolhe para um trilho de 46px com o contador
+   vermelho dos filtros ativos, e o conteudo (.top e .wrap) desloca. Custo
+   medido a 1366px: as matrizes (1.583-1.641px, 19 colunas) ja rolam na
+   horizontal; com a barra aberta rolam mais 250px, recolhida so 46px. O
+   estado (aberta/recolhida) e lembrado no navegador, fora do recorte.
+   A barra de leitura empilha sob as abas fixas: top = --abas-h (medida). */
+.fbar{position:sticky;top:var(--abas-h,45px);z-index:30;display:flex;align-items:center;gap:16px;
   flex-wrap:wrap;background:linear-gradient(180deg,#FFFFFF 0%,#FAFBFD 100%);
   border:1px solid var(--linha);border-radius:14px;padding:9px 14px;
   margin-bottom:12px;box-shadow:0 1px 2px rgba(20,30,60,.05)}
 .fbar .fbrow{display:flex;align-items:center;gap:7px;padding:0;border-bottom:0;flex:0 1 auto}
 .fbar .flab{min-width:0;padding-top:0}
-.fbtn{border:1px solid var(--azul);background:#fff;color:var(--azul);
-  border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:700;cursor:pointer;
-  font-family:inherit;transition:background .12s}
-.fbtn:hover{background:#E8EDF7}
-.fbtn .fchev{display:inline-block;font-size:9px;transition:transform .12s}
-.fbtn[aria-expanded="true"]{background:var(--azul);color:#fff;border-color:var(--azul)}
-.fbtn[aria-expanded="true"] .fchev{transform:rotate(90deg)}
-.fbtn[aria-expanded="true"] .fnum{background:#fff;color:var(--azul)}
-.fbtn:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
-.fnum{margin-left:7px;background:var(--azul);color:#fff;border-radius:10px;
-  padding:1px 7px;font-size:9.5px;font-weight:700}
-.fnum:empty{display:none}
-/* gaveta */
-.fback{position:fixed;inset:0;background:rgba(20,30,60,.28);z-index:48}
-.fgav{position:fixed;left:0;top:0;bottom:0;width:300px;z-index:49;background:#fff;
-  border-right:1px solid var(--linha);box-shadow:2px 0 14px rgba(20,30,60,.16);
-  padding:14px 16px 16px;overflow-y:auto;display:flex;flex-direction:column}
-.fgav[hidden],.fback[hidden]{display:none}
-.fgav-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+/* barra lateral (D-81) — medidas do .dnside do template DN: 250px, trilho de
+   46px, sombra 2px 0 10px, botao de 30x28 com raio 8, contador vermelho */
+.top,.wrap{margin-left:250px;transition:margin-left .15s}
+body.lat-off .top,body.lat-off .wrap{margin-left:46px}
+.fgav{position:fixed;left:0;top:0;bottom:0;width:250px;z-index:45;background:#fff;
+  border-right:1px solid var(--linha);box-shadow:2px 0 10px rgba(20,30,60,.06);
+  padding:12px 14px 20px;overflow-y:auto;display:flex;flex-direction:column;
+  transition:width .15s}
+body.lat-off .fgav{width:46px;padding:12px 6px;overflow:hidden}
+.fgav-cab{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}
 .fgav-tit{font-size:12px;font-weight:800;color:var(--azul);text-transform:uppercase;
   letter-spacing:.8px}
-.fgav-x{border:1px solid #BBCAE3;background:#F4F6FA;color:var(--azul);border-radius:8px;
-  width:28px;height:28px;font-size:15px;line-height:1;cursor:pointer;font-family:inherit}
-.fgav-x:hover{background:#E8EDF7}
-.fgav-x:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
+.fgav-tgl{border:1px solid #D9DCE6;background:#F4F7FC;color:var(--azul);border-radius:8px;
+  width:30px;height:28px;font-size:13px;font-weight:700;line-height:1;cursor:pointer;
+  font-family:inherit;flex:0 0 auto}
+.fgav-tgl:hover{background:#E8EDF7}
+.fgav-tgl:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
+/* trilho recolhido: fica so o botao » e o contador vermelho dos filtros ativos */
+.fgav-n{display:none;margin:8px auto 0;background:var(--bd);color:#fff;border-radius:10px;
+  font-size:10px;font-weight:700;text-align:center;width:22px;line-height:18px}
+body.lat-off .fgav-tit,body.lat-off #fBody,body.lat-off .fgav-acoes{display:none}
+body.lat-off .fgav-n.tem{display:block}
 .fgav .frow{display:block;border-bottom:0;padding:0 0 12px}
 .fgav .flab{display:block;min-width:0;margin:0 0 5px;padding-top:0}
 .fgav .lista{min-width:0;width:100%}
@@ -410,14 +413,19 @@ body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 .fgav-acoes{margin-top:auto;border-top:1px solid var(--linha);padding-top:12px;
   display:flex;flex-direction:column;gap:7px}
 .fgav-acoes .reset,.fgav-acoes .mini{width:100%;text-align:center}
-@media(max-width:700px){.fgav{width:100%}}
+/* tela estreita: aberta, a barra cobre a largura inteira sem deslocar o
+   conteudo (250px fixos deixariam 450px para as matrizes); recolhida, trilho */
+@media(max-width:700px){
+  body:not(.lat-off) .fgav{width:100%}
+  body:not(.lat-off) .top,body:not(.lat-off) .wrap{margin-left:0}
+}
 .frow{display:flex;align-items:flex-start;gap:8px;padding:5px 0;flex-wrap:wrap;
   border-bottom:1px dashed #D2DCEC}
 .frow:last-of-type{border-bottom:0}
 .flab{min-width:78px;font-size:9.5px;font-weight:800;color:var(--azul);
   text-transform:uppercase;letter-spacing:.9px;padding-top:6px}
 .chips{display:flex;gap:5px;flex-wrap:wrap;flex:1}
-.chip{border:1px solid #BBCAE3;background:#F4F6FA;border-radius:20px;
+.chip{border:1px solid #BBCAE3;background:#F4F6FA;border-radius:8px;
   padding:3px 11px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;
   transition:background .12s,border-color .12s,box-shadow .12s;white-space:nowrap}
 .chip:hover{border-color:var(--azul);background:#fff}
@@ -473,9 +481,14 @@ body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 
 /* ------------------------------------------------------------------- abas */
 /* V-05, opcao B (15/09/2026, aprovada): botao no padrao do template —
-   estilo + semantica de aba (role/aria). SEM barra sticky e SEM navegacao por
-   setas: sao comportamentos novos e ficaram para um item proprio. */
-.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+   estilo + semantica de aba (role/aria).
+   D-81 (15/09 a noite, decisao do Douglas): barra FIXA no topo como a .dntabs
+   do DN, e navegacao por setas (Esquerda/Direita circulam, Home/End vao as
+   pontas, ativacao automatica, tabindex itinerante). A altura real da barra
+   vai para --abas-h (medirAbas) e vira o top da barra de leitura: as duas
+   empilham. Custo medido: 33px de abas + 49px de leitura = 82px de 768. */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;z-index:31;
+  background:var(--bg);padding:6px 0 12px;margin:-6px 0 0}
 .tab{padding:8px 16px;cursor:pointer;font-size:12.5px;font-weight:700;
   color:#5A5F75;background:#F4F6FA;border:1px solid transparent;border-radius:9px;
   font-family:inherit;line-height:1.2;transition:background .12s,color .12s}
@@ -503,7 +516,15 @@ body{margin:0;padding:0;background:var(--bg);color:var(--txt);
 .kpi.destaque{border-left:3px solid var(--azul)}
 
 /* ----------------------------------------------------------------- tabelas */
-.scroll{overflow:auto;max-height:460px}
+/* D-81 (15/09 a noite, "ficou muito ruim a matriz"): o card da matriz e item
+   de grade e, sem min-width:0, cresce ate a largura minima da tabela (celulas
+   sem quebra), empurrando a PAGINA inteira para a rolagem horizontal — faixa
+   azul e cards terminavam antes da tabela. Ja era assim no template original
+   (medido: tabela de 1.605px a 1366px de tela), so nao aparecia em monitor
+   largo; a barra lateral de 250px escancarou. Com min-width:0 a tabela rola
+   DENTRO do card (.scroll), como as colunas fixas ja supunham. */
+.grid>.card,.card{min-width:0}
+.scroll{overflow:auto;max-height:460px;max-width:100%}
 table{border-collapse:collapse;width:100%;font-size:11.5px;
   font-variant-numeric:tabular-nums}
 th,td{padding:5px 9px;text-align:right;white-space:nowrap;
@@ -629,6 +650,7 @@ canvas{max-height:280px}
    menores. A gaveta ja vai a largura inteira desde o item 7a. */
 @media(max-width:700px){
   .fbar{position:static;gap:10px}
+  .tabs{position:static}
   .tab{padding:7px 11px;font-size:11.5px}
   .top{padding:10px 14px}
   .wrap{padding:12px 12px 40px}
@@ -642,7 +664,9 @@ canvas{max-height:280px}
    Imprime SO A ABA ATIVA: as outras duas continuam ocultas, porque imprimir as
    tres gera um documento longo que ninguem pediu. */
 @media print{
-  .fbar,.fgav,.fback,.expbtns,.busca-linha{display:none !important}
+  .fbar,.fgav,.expbtns,.busca-linha{display:none !important}
+  .top,.wrap{margin-left:0 !important}
+  .tabs{position:static}
   .top{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .wrap{padding:0}
   .scroll{max-height:none;overflow:visible}
@@ -655,6 +679,9 @@ canvas{max-height:280px}
 }
 </style>
 </head><body>
+<script>/* D-81: o estado da barra lateral e lido ANTES do primeiro desenho, para
+   nao piscar aberta e recolher depois (o payload leva segundos para carregar). */
+try{ if(localStorage.getItem("dashDoriCanais.lateral.v1")==="off") document.body.classList.add("lat-off"); }catch(e){}</script>
 
 <div class="top">
   <h1>Dashboard Gerencial de Canais<small>Sell In</small></h1>
@@ -675,14 +702,15 @@ canvas{max-height:280px}
 
 <!-- Item 7a (15/09/2026, aprovado): OPCAO C dos filtros. A barra de LEITURA
      (Metrica, Comparar, Ver por) fica sticky logo abaixo das abas, e as
-     DIMENSOES foram para uma gaveta lateral SOBREPOSTA — sobreposta, e nao
-     fixa como a do DN, porque largura e o recurso escasso aqui: as matrizes
-     tem ate 14 colunas de serie. Barra e gaveta sao GLOBAIS: o painel nao
-     viaja mais entre abas (posicionarFiltros saiu). Nenhuma regra de filtro
-     mudou — D-54 (linha some sem escolha), cascata Gerente > Sup. > Vend. e
-     persistencia do recorte por rotulo seguem iguais. -->
+     DIMENSOES foram para uma lateral. D-81 (15/09 a noite, decisao do
+     Douglas): a lateral e a BARRA FIXA do DN (250px, recolhivel para 46px,
+     comeca aberta), nao mais a gaveta sobreposta; o botao "Filtros" da barra
+     de leitura saiu — o « da propria barra lateral faz o papel. Barra e
+     lateral sao GLOBAIS: o painel nao viaja mais entre abas (posicionarFiltros
+     saiu). Nenhuma regra de filtro mudou — D-54 (linha some sem escolha),
+     cascata Gerente > Sup. > Vend. e persistencia do recorte por rotulo seguem
+     iguais. -->
 <div class="fbar" id="fBar">
-  <button type="button" class="fbtn" id="fToggle" aria-expanded="false" aria-controls="fGaveta"><span class="fchev" aria-hidden="true">▸</span> Filtros<span class="fnum" id="fAtivos"></span></button>
   <div class="fbrow"><span class="flab">Métrica</span><span class="chips" id="fMetrica"></span></div>
   <div class="fbrow"><span class="flab">Comparar</span><span class="chips" id="fBase"></span></div>
   <div class="fbrow"><span class="flab" title="Granularidade das colunas da matriz e das barras do gráfico">Ver por</span><span class="chips" id="fPeriodo"></span></div>
@@ -692,12 +720,12 @@ canvas{max-height:280px}
      na pratica quase ninguem lia. Mesmo texto, mesma fonte de dado; o que
      muda e estar onde se olha. Vazia, ela some (:empty). -->
 <div class="ativos" id="estado"></div>
-<div class="fback" id="fBack" hidden></div>
-<aside class="fgav" id="fGaveta" hidden aria-label="Filtros de dimensão">
+<aside class="fgav" id="fGaveta" aria-label="Filtros de dimensão">
   <div class="fgav-cab">
     <span class="fgav-tit">Filtros</span>
-    <button type="button" class="fgav-x" id="fFechar" aria-label="Fechar filtros">×</button>
+    <button type="button" class="fgav-tgl" id="fToggle" aria-expanded="true" aria-controls="fBody" title="Recolher filtros">«</button>
   </div>
+  <span class="fgav-n" id="fAtivos"></span>
   <div id="fBody">
   <!-- D-54: cada linha tem id porque ela some INTEIRA quando nao ha escolha a
        fazer (menos de duas opcoes com dado no recorte atual). -->
@@ -1622,8 +1650,11 @@ function atualizarEstado(p){
   if(d.length) partes.push("filtros: "+d.join(" · "));
   // v2: contagem no cabecalho recolhivel, visivel mesmo com o painel fechado.
   // Item 7a: a contagem virou o badge do botao "Filtros" da barra sticky.
+  // D-81: o badge e o contador vermelho do trilho da barra lateral — aparece
+  // so com a barra recolhida e com filtro ativo, como o .dnside-n do DN.
   el("fAtivos").textContent = d.length ? String(d.length) : "";
-  el("fToggle").title = d.length
+  el("fAtivos").classList.toggle("tem", d.length>0);
+  el("fAtivos").title = d.length
     ? d.length+" filtro(s) de dimensão ativo(s)" : "nenhum filtro de dimensão ativo";
   el("estado").innerHTML=partes.join(" &nbsp;·&nbsp; ");
   const mm = DB.meta.metas_meses || [];
@@ -2612,17 +2643,29 @@ function lerRecorteInicial(){
   catch(e){}
   return null;
 }
-function atualizarToggle(){
-  el("fToggle").setAttribute("aria-expanded", el("fGaveta").hidden ? "false" : "true");
+/* D-81: barra lateral fixa no padrao do DN. Aberta por padrao; « recolhe para
+   o trilho de 46px e » expande. O estado vai para o localStorage numa chave
+   propria (nao entra no recorte nem no link: e preferencia de quem olha, nao
+   parte da visao; e vale para os 73 arquivos, por isso sem sufixo de recorte).
+   Sem fundo escuro e sem Esc: a barra nao e mais sobreposta. */
+const CHAVE_LATERAL = "dashDoriCanais.lateral.v1";
+function lateral(aberta){
+  document.body.classList.toggle("lat-off", !aberta);
+  const b=el("fToggle");
+  b.setAttribute("aria-expanded", aberta ? "true" : "false");
+  b.textContent = aberta ? "«" : "»";
+  b.title = aberta ? "Recolher filtros" : "Expandir filtros";
+  try{ localStorage.setItem(CHAVE_LATERAL, aberta ? "on" : "off"); }catch(e){}
 }
-/* Item 7a: gaveta sobreposta — abre pelo botao e fecha por clique fora, Esc ou
-   pelo x. Tres saidas, porque gaveta que so fecha num lugar irrita. O foco vai
-   para o x ao abrir e volta para o botao ao fechar. */
-function abrirGaveta(v){
-  el("fGaveta").hidden=!v;   // o ▸/▾ do botao segue o aria-expanded (CSS)
-  el("fBack").hidden=!v;
-  atualizarToggle();
-  (v ? el("fFechar") : el("fToggle")).focus();
+function lateralSalva(){
+  try{ return localStorage.getItem(CHAVE_LATERAL)!=="off"; }catch(e){ return true; }
+}
+/* D-81: as abas e a barra de leitura empilham no topo; a altura real da barra
+   de abas vira --abas-h (o top da barra de leitura). Medida, nao chutada,
+   porque em tela estreita as abas quebram em duas linhas. */
+function medirAbas(){
+  const n=document.querySelector(".tabs");
+  document.documentElement.style.setProperty("--abas-h", n.offsetHeight+"px");
 }
 async function copiarRecorte(){
   gravarRecorte();                       // garante que o hash esta atualizado
@@ -2701,11 +2744,23 @@ function ligar(){
       if(c.dataset.g){ F.gran=c.dataset.g; render(); }
     });
   });
-  el("fToggle").onclick=()=>abrirGaveta(el("fGaveta").hidden);
-  el("fFechar").onclick=()=>abrirGaveta(false);
-  el("fBack").onclick=()=>abrirGaveta(false);
-  document.addEventListener("keydown", ev=>{
-    if(ev.key==="Escape" && !el("fGaveta").hidden) abrirGaveta(false);
+  el("fToggle").onclick=()=>lateral(document.body.classList.contains("lat-off"));
+  window.addEventListener("resize", medirAbas);
+  // D-81: setas nas abas (padrao WAI-ARIA de tablist, ativacao automatica).
+  // Esquerda/Direita circulam, Home/End vao as pontas; so a aba ativa entra
+  // na ordem do Tab (tabindex itinerante, ver o clique e a restauracao).
+  document.querySelector(".tabs").addEventListener("keydown", ev=>{
+    const abas=[...document.querySelectorAll(".tab")];
+    const i=abas.indexOf(document.activeElement);
+    if(i<0) return;
+    let j=null;
+    if(ev.key==="ArrowRight") j=(i+1)%abas.length;
+    else if(ev.key==="ArrowLeft") j=(i-1+abas.length)%abas.length;
+    else if(ev.key==="Home") j=0;
+    else if(ev.key==="End") j=abas.length-1;
+    if(j===null) return;
+    ev.preventDefault();
+    abas[j].focus(); abas[j].click();
   });
   // D-66: as buscas rerenderizam so a propria aba, com um respiro de 150 ms
   // para nao remontar a matriz a cada tecla.
@@ -2736,9 +2791,11 @@ function ligar(){
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>{
       x.classList.remove("active"); x.setAttribute("aria-selected","false");   // V-05
+      x.tabIndex=-1;                                                           // D-81
     });
     document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
     t.classList.add("active"); t.setAttribute("aria-selected","true");         // V-05
+    t.tabIndex=0;                                                              // D-81
     el(t.dataset.p).classList.add("active");
     F.aba=t.dataset.p;
     renderAba(F.aba);               // B1: renderiza sob demanda, se suja
@@ -2803,9 +2860,11 @@ function iniciar(){
     const on=t.dataset.p===F.aba;
     t.classList.toggle("active", on);
     t.setAttribute("aria-selected", on ? "true" : "false");   // V-05
+    t.tabIndex = on ? 0 : -1;                                 // D-81
     el(t.dataset.p).classList.toggle("active", on);
   });
-  atualizarToggle();
+  lateral(lateralSalva());   // D-81: barra lateral no estado lembrado
+  medirAbas();
   render();
   // D-74 (Q7-a): abertura e heap MEDIDOS a cada carga, no console do
   // navegador (F12) — e a regua do teto de tamanho (dashboard.teto_mb).

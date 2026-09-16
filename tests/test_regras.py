@@ -1404,6 +1404,34 @@ def test_d74_template_mostra_meta_so_quando_o_periodo_tem():
         assert termo in corpo, f"template v4 perdeu a D-77: {termo}"
 
 
+def test_d81_template_barra_lateral_chips_abas():
+    """Guarda no template (D-81, 15/09/2026 a noite, decisao do Douglas por
+    opcao tabulada): barra lateral FIXA no padrao do DN (250px, recolhivel
+    para 46px, comeca aberta, estado lembrado fora do recorte), chips com
+    raio de 8px, abas fixas no topo com a altura medida e navegacao por
+    setas com tabindex itinerante. A gaveta sobreposta (fundo escuro, x, Esc)
+    nao pode voltar."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    for termo in ('<aside class="fgav" id="fGaveta" aria-label="Filtros de dimensão">',
+                  ".top,.wrap{margin-left:250px", "body.lat-off .fgav{width:46px",
+                  "body.lat-off .fgav-n.tem{display:block}",
+                  'const CHAVE_LATERAL = "dashDoriCanais.lateral.v1";',
+                  "function lateral(aberta)", "function lateralSalva()",
+                  "lateral(lateralSalva());",
+                  'localStorage.getItem("dashDoriCanais.lateral.v1")==="off"',
+                  'el("fAtivos").classList.toggle("tem", d.length>0);',
+                  ".chip{border:1px solid #BBCAE3;background:#F4F6FA;border-radius:8px;",
+                  ".tabs{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;",
+                  "top:var(--abas-h,45px)", "function medirAbas()",
+                  'if(ev.key==="ArrowRight") j=(i+1)%abas.length;',
+                  'else if(ev.key==="Home") j=0;',
+                  "t.tabIndex = on ? 0 : -1;", "x.tabIndex=-1;"):
+        assert termo in corpo, f"template v4 perdeu a D-81: {termo}"
+    for antigo in ("abrirGaveda", "abrirGaveta", "fBack", "fFechar", "atualizarToggle",
+                   '.fbtn', 'id="fGaveta" hidden', ".chip{border:1px solid #BBCAE3;background:#F4F6FA;border-radius:20px"):
+        assert antigo not in corpo, f"a gaveta sobreposta / chip em pilula voltou (D-81): {antigo}"
+
+
 # ================================================================== runner
 def _rodar_sem_pytest() -> int:
     testes = [(n, o) for n, o in sorted(globals().items())

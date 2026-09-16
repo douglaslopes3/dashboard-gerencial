@@ -1330,3 +1330,43 @@ navegador, Full (http.server)    faixa azul com tag de periodo; abas em botao
                                  MB · cubo 735.371 + sku 688.167 + meta
                                  146.106 linhas", zero erro
 ```
+
+## T-66 · D-81: barra lateral do DN, chips 8 px, abas fixas e setas (15/09/2026 a noite)
+
+```
+escopo                           so template_v4.html; gerador, cubos e regras
+                                 intactos; config: publicacao DESLIGADA
+unitarios                        80 de 80 (novo: guarda D-81 — aside sem
+                                 hidden, body.lat-off 46px, CHAVE_LATERAL,
+                                 lateral()/lateralSalva(), chip 8px, .tabs
+                                 sticky, --abas-h, medirAbas, ArrowRight/Home,
+                                 tabindex itinerante; proibidos: abrirGaveta,
+                                 fBack, fFechar, .fbtn, aside hidden, chip 20px)
+build                            73 arquivos, exit 0, Full 19,60 MB; publicado
+                                 NAO tocado (Full das pastas segue 18h35)
+navegador, Full, 1366 x 768      barra lateral 250px em x=0; faixa azul e
+                                 conteudo em x=250 (1.101px); --abas-h 51px;
+                                 barra de leitura sticky top 51px; chip, lista
+                                 e caixinha com raio 8px; tabindex [0,-1,-1];
+                                 sem botao "Filtros" na barra de leitura
+recolher («)                     barra 46px, conteudo em x=46 (1.305px),
+                                 titulo/corpo/acoes ocultos, contador vermelho
+                                 "1" apos marcar o head Distribuicao (KPI
+                                 R$ 278,7 mi), botao » "Expandir filtros",
+                                 localStorage lateral = off; recarga ja abre
+                                 recolhida (script inline antes do desenho)
+rolagem 124px                    abas em y=0 e barra de leitura em y=51
+setas                            foco na aba + ArrowRight -> Bandeiras (painel
+                                 band, foco acompanha, tabindex [-1,0,-1]);
+                                 End -> Categorias; Home -> Visao Geral
+console                          abertura 5.884 ms · heap 192 MB · zero erro
+ajuste da matriz (apos a        antes: pagina rolava na horizontal (card da
+conferencia do Douglas)          matriz crescia ate a tabela); depois de
+                                 .card{min-width:0}: pagina scrollWidth =
+                                 clientWidth = 1.351px, tabela 1.607px rolando
+                                 dentro de .scroll de 1.025px (Visao Geral e
+                                 Bandeiras); 80 de 80
+publicacao (21h46, "pode          73 de 73 arquivos com MD5 identico ao build
+publicar" do Douglas)            (Get-FileHash -LiteralPath); publicacao
+                                 automatica LIGADA
+```

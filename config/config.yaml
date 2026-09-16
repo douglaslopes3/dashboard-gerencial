@@ -446,6 +446,15 @@ dashboard:
     # geracao leva as ondas 1 a 3 mais o item 7 inteiro (barra de leitura
     # sticky, gaveta de dimensoes com botao a esquerda, listas com caixinhas em
     # Canal/Categoria e a linha de recorte ativo).
+    # DESLIGADA em 15/09 (21h20) para a rodada D-81 (fechamento dos pontos
+    # visuais em aberto, decididos pelo Douglas por opcao tabulada): barra
+    # lateral de filtros fixa no padrao do DN (250 px, recolhivel para 46 px,
+    # comeca aberta), chips com raio de 8 px, abas fixas no topo e navegacao
+    # das abas por setas. Backup pre-D81 em
+    # _arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/template_v4_pre_D81.html.
+    # RELIGADA em 15/09 (21h46) com o "pode publicar" do Douglas, depois da
+    # conferencia dele na tela e do ajuste da matriz (card com min-width:0):
+    # a geracao leva a D-81 inteira para os 73 arquivos.
     ativo: true
     destino: "../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
