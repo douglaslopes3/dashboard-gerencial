@@ -416,6 +416,36 @@ dashboard:
     # publicar").
     # DESLIGADA em 11/09/2026 para a rodada D-79 (meses da matriz seguem o
     # filtro de periodo); RELIGADA em 11/09 com o ok dele ("pode publicar").
+    # DESLIGADA em 15/09/2026 para a frente de PADRONIZACAO VISUAL (onda 1,
+    # itens V-01 paleta e V-11 cores do grafico, aprovados item a item). Backup
+    # da versao anterior em _arquivo/backups-pre-fases/backup_2026-09-15_pre_visual.
+    # RELIGADA em 15/09 com o ok dele ("pode publicar"), depois de rodar o
+    # run_dashboard.py com a paleta nova.
+    # DESLIGADA de novo em 15/09 para a onda V-02 (escala tipografica): o
+    # Douglas aprovou a proposta, mas confere a legibilidade na tela antes de
+    # os 72 colaboradores receberem. Backup pre-V02 em
+    # _arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/template_v4_pre_V02.html.
+    # RELIGADA em 15/09 com o "pode publicar" do Douglas sobre a tela: a
+    # geracao leva V-01 (paleta), V-11 (cores do grafico) e V-02 (tipografia).
+    # DESLIGADA de novo em 15/09 para a onda V-03 (raios, sombras e espacos),
+    # aprovada com o chip mantido em pilula. Backup pre-V03 em
+    # _arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/template_v4_pre_V03.html.
+    # RELIGADA em 15/09 (16h54) com o "pode publicar" do Douglas: a geracao leva
+    # V-01, V-11, V-02, V-03 e V-04 (header em faixa) para os 73 arquivos.
+    # DESLIGADA de novo em 15/09 (16h57) para a onda V-05 (abas, opcao B: estilo
+    # + role/aria, sem sticky). Backup pre-V05 em
+    # _arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/template_v4_pre_V05.html.
+    # RELIGADA em 15/09 (17h08) com o "pode publicar" do Douglas sobre a tela:
+    # a geracao leva as ondas 1 a 3 inteiras (V-01, V-11, V-02, V-03, V-04,
+    # V-05 e V-07..V-10) para os 73 arquivos.
+    # DESLIGADA de novo em 15/09 (17h12) para o item 7a (filtros na opcao C:
+    # barra de leitura sticky + gaveta sobreposta). E o unico item que muda
+    # FLUXO, entao nao vai para as 72 pastas antes de o Douglas usar. Backup
+    # pre-7a em _arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/template_v4_pre_7a.html.
+    # RELIGADA em 15/09 (18h13) com o "aprovado" do Douglas sobre a tela: a
+    # geracao leva as ondas 1 a 3 mais o item 7 inteiro (barra de leitura
+    # sticky, gaveta de dimensoes com botao a esquerda, listas com caixinhas em
+    # Canal/Categoria e a linha de recorte ativo).
     ativo: true
     destino: "../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do

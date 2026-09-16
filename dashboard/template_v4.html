@@ -99,9 +99,10 @@
           logo abaixo do grafico de Evolucao, perto do conteudo que controla
           (pedido de 31/08). As abas Geografia e R$/kg ganharam a barra de
           Periodo que Bandeiras e SKU ja tinham.
-    P2-A3 (pedido seguinte de 31/08) o painel de filtros passou a existir em
-          TODAS as abas: e UM no DOM (#fPainel) e posicionarFiltros() o move
-          para a aba ativa — abaixo do grafico na Visao Geral, no topo nas
+    P2-A3 (pedido de 31/08; SUBSTITUIDA pelo item 7a de 15/09/2026, que trocou
+          o painel viajante pela barra sticky + gaveta) o painel de filtros
+          passou a existir em TODAS as abas: era UM no DOM (#fPainel) e
+          posicionarFiltros() o movia para a aba ativa — abaixo do grafico na Visao Geral, no topo nas
           demais. Os listeners viajam com o no. As copias avulsas da barra de
           Periodo sairam: o painel ja carrega a barra, e duas barras na mesma
           tela era a duplicacao que o L3 matou.
@@ -287,59 +288,141 @@
   ============================================================================
 -->
 <style>
+/* V-03 (15/09/2026, aprovado): dois patamares de raio — 8px para controle
+   (botao, lista, busca) e 12-14px para superficie (card, KPI, painel de
+   filtros); sombra unica 0 1px 2px rgba(20,30,60,.05); gap 12->10px e
+   margem do corpo 16/20/60. O CHIP FICA EM PILULA (20px) por decisao do
+   Douglas em 15/09: a silhueta dele volta a mesa no item 7, junto com o
+   redesenho dos filtros (opcao C). */
+/* V-02 (15/09/2026, aprovado): escala tipografica do template de referencia,
+   com UMA divergencia deliberada — piso de 9,5px nos rotulos em caixa alta
+   (o DN usa 8,5-9px). "Sup./Exec." e "Vend./RCA" em 8,5px ficam ilegiveis em
+   monitor de 1366px, e rotulo ilegivel nao e densidade, e ruido. Corpo de
+   tabela em 11,5px (DN: 11px) e th em 9,5px (DN: 9px) pelo mesmo motivo: as
+   celulas daqui carregam texto ("R$ 7 mi", D-55), nao so digitos. */
 :root{
-  --bg:#f4f6f8; --card:#fff; --linha:#e3e8ee; --txt:#16202b; --txt2:#5b6b7c;
-  --azul:#00539f; --azul2:#e8f0f9; --acento:#f5a623;
-  --gd:#1a7f4b; --gdbg:#e8f5ee; --bd:#c0392b; --bdbg:#fdecea;
-  --zebra:#fafbfc;
+  /* V-01 (15/09/2026, aprovado item a item): paleta do template de referencia
+     do Scorecard DN (Paineis - Alavancas\DN\template\template.html).
+     POSITIVO EM DOIS TONS, de proposito: --gd-marca (#009640) e a cor de marca
+     dos numeros grandes; --gd (#00713A) e a dos textos pequenos das tabelas,
+     porque #009640 sobre branco da 3,86:1 de contraste — abaixo do minimo de
+     4,5:1 para texto normal, e sobe/desce e lido em 11,5px. O vermelho do
+     template (#E30613) da 4,88:1 e vale para os dois usos, sem segundo tom. */
+  --bg:#F4F5F8; --card:#fff; --linha:#E4E6ED; --txt:#1A1D2B; --txt2:#7A7F94;
+  --txt3:#8C90A3;
+  --azul:#1E4FA1; --azul-esc:#16376E; --azul2:#EEF4FF;
+  --acento:#B5720C; --acento-txt:#A56A00; --acento-bg:#FEF6E7;
+  --gd:#00713A; --gd-marca:#009640; --gdbg:#EAF7EF;
+  --bd:#E30613; --bdbg:#FDEDED;
+  --zebra:#FAFBFC;
 }
 *{box-sizing:border-box}
 /* O atributo `hidden` perde para qualquer display de classe (ex.: .grid) —
    sem esta regra o card do drill ficava VISIVEL depois do "voltar ao
    agregado", com o conteudo velho (bug relatado em 28/08). */
 [hidden]{display:none !important}
-body{margin:0;padding:18px 22px 40px;background:var(--bg);color:var(--txt);
-  font:13px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
-h1{font-size:20px;margin:0 0 2px;letter-spacing:-.2px}
-h1 span{color:var(--azul)}
-.sub{color:var(--txt2);font-size:12px;margin-bottom:14px}
-.card{background:var(--card);border:1px solid var(--linha);border-radius:8px;
-  padding:12px 14px;box-shadow:0 1px 2px rgba(16,32,48,.04)}
-.card h3{margin:0 0 10px;font-size:13px;font-weight:600;display:flex;
+body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font:12.5px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+/* V-04 (15/09/2026, aprovado): cabecalho em faixa azul de largura inteira,
+   no conceito do template de referencia. O respiro que era do <body> passou
+   para o .wrap — troca de embalagem, nao de disposicao: abas, cards e
+   matrizes seguem na mesma ordem. SEM max-width (o DN usa 1150px), porque
+   as matrizes daqui precisam da largura inteira. */
+.top{background:var(--azul);color:#fff;padding:12px 20px;display:flex;
+  align-items:center;gap:14px;flex-wrap:wrap}
+.top h1{font-size:16px;font-weight:700;margin:0;letter-spacing:-.2px;color:#fff}
+.top h1 small{display:block;font-size:10px;font-weight:400;opacity:.72;
+  letter-spacing:.6px;text-transform:uppercase;margin-top:2px}
+.top .tag{background:var(--bd);padding:5px 10px;border-radius:20px;
+  font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.top .topinfo{font-size:10px;opacity:.72;letter-spacing:.2px}
+.top .sp{flex:1}
+.wrap{padding:16px 20px 60px}
+.card{background:var(--card);border:1px solid var(--linha);border-radius:12px;
+  padding:15px 17px;box-shadow:0 1px 2px rgba(20,30,60,.05)}
+.card h3{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--azul);display:flex;
   align-items:center;gap:8px;flex-wrap:wrap}
-.card h3 small{font-weight:400;color:var(--txt2);font-size:11px}
-.grid{display:grid;gap:12px;margin-bottom:12px}
+.card h3 small{font-weight:400;color:var(--txt3);font-size:11px}
+.grid{display:grid;gap:10px;margin-bottom:12px}
 /* D-70 (04/09/2026): as notas de rodape dos cards (.note) SAIRAM — o Douglas
    nao quer os textos explicativos na tela. O que era informacao viva (Σ do
    corte, contagem da busca) ficou na propria tabela: rotulo da linha Σ e o
    rodape "Total geral (...)". */
 
 /* ---------------------------------------------------------------- filtros
-   (28/08: "menos branco" — painel com fundo azulado, rotulo em azul, chip
-   com tinta leve e divisoria discreta entre as linhas)                      */
-.filters{background:linear-gradient(180deg,#e9f1fa,#eef3f8);
-  border:1px solid #cddcec;border-radius:10px;
-  padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(16,48,80,.06)}
-/* v2: cabecalho do painel de filtros — recolhivel, com resumo sempre a vista */
-.fcab{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.ftog{border:1px solid #bfd3e6;background:#fff;color:var(--azul);border-radius:5px;
-  padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer}
-.ftog:hover{border-color:var(--azul)}
-.fnum{color:var(--txt2);font-size:11.5px}
-.filters.fechado #fBody{display:none}
-.filters:not(.fechado) .fcab{margin-bottom:4px}
+   Item 7a (15/09/2026, opcao C aprovada): o painel viajante (.filters +
+   posicionarFiltros) saiu. No lugar: BARRA DE LEITURA sticky com Metrica,
+   Comparar e Ver por, e GAVETA SOBREPOSTA com as dimensoes. Sobreposta, e nao
+   fixa como a do DN, porque a largura e o recurso escasso aqui: as matrizes
+   tem ate 14 colunas de serie. */
+.fbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:16px;
+  flex-wrap:wrap;background:linear-gradient(180deg,#FFFFFF 0%,#FAFBFD 100%);
+  border:1px solid var(--linha);border-radius:14px;padding:9px 14px;
+  margin-bottom:12px;box-shadow:0 1px 2px rgba(20,30,60,.05)}
+.fbar .fbrow{display:flex;align-items:center;gap:7px;padding:0;border-bottom:0;flex:0 1 auto}
+.fbar .flab{min-width:0;padding-top:0}
+.fbtn{border:1px solid var(--azul);background:#fff;color:var(--azul);
+  border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:background .12s}
+.fbtn:hover{background:#E8EDF7}
+.fbtn .fchev{display:inline-block;font-size:9px;transition:transform .12s}
+.fbtn[aria-expanded="true"]{background:var(--azul);color:#fff;border-color:var(--azul)}
+.fbtn[aria-expanded="true"] .fchev{transform:rotate(90deg)}
+.fbtn[aria-expanded="true"] .fnum{background:#fff;color:var(--azul)}
+.fbtn:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
+.fnum{margin-left:7px;background:var(--azul);color:#fff;border-radius:10px;
+  padding:1px 7px;font-size:9.5px;font-weight:700}
+.fnum:empty{display:none}
+/* gaveta */
+.fback{position:fixed;inset:0;background:rgba(20,30,60,.28);z-index:48}
+.fgav{position:fixed;left:0;top:0;bottom:0;width:300px;z-index:49;background:#fff;
+  border-right:1px solid var(--linha);box-shadow:2px 0 14px rgba(20,30,60,.16);
+  padding:14px 16px 16px;overflow-y:auto;display:flex;flex-direction:column}
+.fgav[hidden],.fback[hidden]{display:none}
+.fgav-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.fgav-tit{font-size:12px;font-weight:800;color:var(--azul);text-transform:uppercase;
+  letter-spacing:.8px}
+.fgav-x{border:1px solid #BBCAE3;background:#F4F6FA;color:var(--azul);border-radius:8px;
+  width:28px;height:28px;font-size:15px;line-height:1;cursor:pointer;font-family:inherit}
+.fgav-x:hover{background:#E8EDF7}
+.fgav-x:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
+.fgav .frow{display:block;border-bottom:0;padding:0 0 12px}
+.fgav .flab{display:block;min-width:0;margin:0 0 5px;padding-top:0}
+.fgav .lista{min-width:0;width:100%}
+/* lista com caixinhas (Canal, Categoria) — mesma tinta da .lista */
+.msel{position:relative}
+.msel-b{width:100%;text-align:left;border:1px solid #BBCAE3;border-radius:8px;
+  padding:4px 9px;font-size:11.5px;font-family:inherit;background:#F4F6FA;
+  color:var(--txt);cursor:pointer}
+.msel-b:hover{border-color:var(--azul);background:#fff}
+.msel-b:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
+.msel-b::after{content:"▾";float:right;color:var(--azul);font-size:10px}
+.msel-b[aria-expanded="true"]{background:var(--azul);border-color:var(--azul);color:#fff}
+.msel-b[aria-expanded="true"]::after{content:"▴";color:#fff}
+.msel-b.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:700}
+.msel-b.on::after{color:#fff}
+.msel-p{margin-top:5px;border:1px solid #BBCAE3;border-radius:8px;background:#fff;
+  padding:7px 8px;max-height:190px;overflow-y:auto}
+.msel-p[hidden]{display:none}
+.msel-p .chips{gap:4px}
+.fgav .mon-wrap{max-height:132px}
+.fgav .estado{margin-top:4px}
+.fgav-acoes{margin-top:auto;border-top:1px solid var(--linha);padding-top:12px;
+  display:flex;flex-direction:column;gap:7px}
+.fgav-acoes .reset,.fgav-acoes .mini{width:100%;text-align:center}
+@media(max-width:700px){.fgav{width:100%}}
 .frow{display:flex;align-items:flex-start;gap:8px;padding:5px 0;flex-wrap:wrap;
-  border-bottom:1px dashed #d3e0ee}
+  border-bottom:1px dashed #D2DCEC}
 .frow:last-of-type{border-bottom:0}
-.flab{min-width:78px;font-size:11px;font-weight:700;color:var(--azul);
-  text-transform:uppercase;letter-spacing:.4px;padding-top:5px}
+.flab{min-width:78px;font-size:9.5px;font-weight:800;color:var(--azul);
+  text-transform:uppercase;letter-spacing:.9px;padding-top:6px}
 .chips{display:flex;gap:5px;flex-wrap:wrap;flex:1}
-.chip{border:1px solid #bfd3e6;background:#f7fafd;border-radius:20px;
-  padding:3px 11px;font-size:12px;cursor:pointer;user-select:none;
+.chip{border:1px solid #BBCAE3;background:#F4F6FA;border-radius:20px;
+  padding:3px 11px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;
   transition:background .12s,border-color .12s,box-shadow .12s;white-space:nowrap}
 .chip:hover{border-color:var(--azul);background:#fff}
-.chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600;
-  box-shadow:0 1px 3px rgba(0,83,159,.28)}
+.chip.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:700;
+  box-shadow:0 1px 3px rgba(30,79,161,.28)}
 /* D-51: estado "cinza" e PROIBIDO em qualquer template (regra global da
    reestruturacao) — .chip.semdado e .chip.off sairam com a marcacao de
    chips sem dado. Opcao sem linha no recorte mostra o vazio honestamente.
@@ -351,102 +434,112 @@ h1 span{color:var(--azul)}
 .chip .z0{font-style:normal;font-weight:700;font-size:9.5px;line-height:1;
   margin-left:5px;padding:1px 4px;border-radius:7px;vertical-align:1px;
   background:#fff;color:var(--bd);border:1px solid var(--bd)}
-.chip.on .z0{background:rgba(255,255,255,.92);color:#00539f;border-color:#fff}
+.chip.on .z0{background:rgba(255,255,255,.92);color:var(--azul);border-color:#fff}
 .mon-wrap{max-height:78px;overflow:auto}
 /* D-69: os tres niveis hierarquicos sao LISTAS SUSPENSAS de escolha unica
    (decisao de 04/09): no Full sao 13 gerentes, 55 sup./exec. e 154
    vendedores — chips nao cabem, e o caso de uso e um subordinado por vez.
    Mesma tinta dos chips; nada cinza (regra da D-51). */
-.lista{border:1px solid #bfd3e6;border-radius:5px;padding:4px 9px;font-size:12px;
-  min-width:320px;max-width:100%;background:#f7fafd;color:var(--txt);cursor:pointer}
+.lista{border:1px solid #BBCAE3;border-radius:8px;padding:4px 9px;font-size:11.5px;
+  min-width:320px;max-width:100%;background:#F4F6FA;color:var(--txt);cursor:pointer}
 .lista:hover{border-color:var(--azul);background:#fff}
 .lista.on{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
-.lista:focus{outline:none;box-shadow:0 0 0 2px rgba(0,83,159,.15)}
+.lista:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
 /* D-66 (03/09/2026): campo de busca das abas Bandeiras (bandeira) e
    Categorias (SKU). Acha qualquer item do escopo, dentro ou fora do corte de
    exibicao; sem acento e sem caixa. */
-.busca{border:1px solid #bfd3e6;border-radius:5px;padding:4px 9px;font-size:12px;
+.busca{border:1px solid #BBCAE3;border-radius:8px;padding:4px 9px;font-size:11.5px;
   min-width:280px;background:#fff;color:var(--txt)}
-.busca:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 2px rgba(0,83,159,.15)}
+.busca:focus-visible{border-color:var(--azul);outline:2px solid #E8710A;outline-offset:2px}
 /* a linha de busca mora dentro do card da matriz: sem a divisoria tracejada
    do painel de filtros, com respiro antes da tabela */
 .card .busca-linha{border-bottom:0;padding:0 0 8px;margin-top:-4px}
 .card .busca-linha .flab{padding-top:5px}
-.mini{border:1px solid #bfd3e6;background:#f7fafd;border-radius:5px;
-  padding:3px 9px;font-size:11px;cursor:pointer;color:var(--txt2)}
+.mini{border:1px solid #BBCAE3;background:#F4F6FA;border-radius:8px;
+  padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;color:var(--txt2);
+  transition:background .12s,border-color .12s,color .12s}
 .mini:hover{border-color:var(--azul);color:var(--azul);background:#fff}
-.reset{border:1px solid var(--bd);background:#fff;color:var(--bd);border-radius:5px;
-  padding:4px 12px;font-size:12px;cursor:pointer;font-weight:600}
+.reset{border:1px solid var(--bd);background:#fff;color:var(--bd);border-radius:8px;
+  padding:4px 12px;font-size:11.5px;cursor:pointer;font-weight:700;
+  transition:background .12s}
 .reset:hover{background:var(--bdbg)}
-.estado{background:#fff;border-left:3px solid var(--azul);border:1px solid #cddcec;
-  border-left-width:3px;border-left-color:var(--azul);border-radius:4px;
-  padding:6px 10px;font-size:11.5px;color:var(--txt);margin-top:8px}
+/* Item 7b: a linha declara o recorte em vigor abaixo da barra de leitura, no
+   conceito do .dnativos do template. Discreta de proposito — e contexto, nao
+   alerta. */
+.ativos{font-size:11px;color:var(--txt2);line-height:1.5;margin:-6px 0 12px;
+  padding:0 2px}
+.ativos:empty{display:none}
+.ativos b{color:var(--txt)}
 
 /* ------------------------------------------------------------------- abas */
-.tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:2px solid var(--linha);
-  flex-wrap:wrap}
-.tab{padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;
-  color:var(--txt2);border-bottom:2px solid transparent;margin-bottom:-2px}
-.tab:hover{color:var(--azul)}
-.tab.active{color:var(--azul);border-bottom-color:var(--azul)}
+/* V-05, opcao B (15/09/2026, aprovada): botao no padrao do template —
+   estilo + semantica de aba (role/aria). SEM barra sticky e SEM navegacao por
+   setas: sao comportamentos novos e ficaram para um item proprio. */
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{padding:8px 16px;cursor:pointer;font-size:12.5px;font-weight:700;
+  color:#5A5F75;background:#F4F6FA;border:1px solid transparent;border-radius:9px;
+  font-family:inherit;line-height:1.2;transition:background .12s,color .12s}
+.tab:hover{background:#E8EDF7;color:var(--azul)}
+.tab.active{background:var(--azul);color:#fff;border-color:var(--azul);
+  box-shadow:0 2px 6px rgba(30,79,161,.28)}
+.tab:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
 .panel{display:none}.panel.active{display:block}
 
 /* ------------------------------------------------------------------- kpis */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
-  gap:12px;margin-bottom:12px}
-.kpi{background:var(--card);border:1px solid var(--linha);border-radius:8px;
-  padding:12px 14px;box-shadow:0 1px 2px rgba(16,32,48,.04)}
-.kpi .rot{font-size:11px;color:var(--txt2);text-transform:uppercase;
-  letter-spacing:.4px;font-weight:600}
-.kpi .val{font-size:25px;font-weight:700;letter-spacing:-.6px;margin:3px 0 1px}
-.kpi .cmp{font-size:11.5px;color:var(--txt2)}
+  gap:10px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--linha);border-radius:12px;
+  padding:15px 17px;box-shadow:0 1px 2px rgba(20,30,60,.05)}
+.kpi .rot{font-size:9.5px;color:var(--txt2);text-transform:uppercase;
+  letter-spacing:.6px;font-weight:700}
+.kpi .val{font-size:21px;font-weight:700;letter-spacing:-.8px;margin:3px 0 1px}
+.kpi .cmp{font-size:9.5px;color:var(--txt2)}
 .kpi .cmp.meta{margin-top:2px;padding-top:2px;border-top:1px dashed var(--linha)}
-.kpi.destaque{border-left:3px solid var(--acento)}
+/* V-07 (15/09/2026, aprovado com a ressalva): o destaque marca a METRICA
+   SELECIONADA — nao e juizo de bom/ruim. Por isso a faixa passa a ser azul
+   (neutra) e nao verde/vermelha como as variantes .k.ok/.k.rk do template.
+   Grade fluida mantida (auto-fit), porque a contagem de cards muda entre
+   Full, N1, N2 e N3. */
+.kpi.destaque{border-left:3px solid var(--azul)}
 
 /* ----------------------------------------------------------------- tabelas */
 .scroll{overflow:auto;max-height:460px}
-table{border-collapse:collapse;width:100%;font-size:12px}
+table{border-collapse:collapse;width:100%;font-size:11.5px;
+  font-variant-numeric:tabular-nums}
 th,td{padding:5px 9px;text-align:right;white-space:nowrap;
   border-bottom:1px solid var(--linha)}
-th{position:sticky;top:0;background:#f0f3f7;z-index:2;font-weight:600;
-  font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--txt2);
+th{border-bottom:2px solid var(--linha);position:sticky;top:0;background:#F5F6FA;z-index:2;
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);
   cursor:pointer}
 /* v2: indicador da coluna ordenada (a ordenacao existe de verdade agora) */
-th.o-desc::after{content:" ▾";color:var(--azul)}
-th.o-asc::after{content:" ▴";color:var(--azul)}
+th.o-desc::after{content:" ▼";font-size:9px;color:var(--azul)}
+th.o-asc::after{content:" ▲";font-size:9px;color:var(--azul)}
 th:first-child,td:first-child{text-align:left;position:sticky;left:0;
   background:var(--card);z-index:1;max-width:340px;overflow:hidden;
   text-overflow:ellipsis}
-th:first-child{z-index:3;background:#f0f3f7}
+th:first-child{z-index:3;background:#F5F6FA}
 tbody tr:nth-child(even) td:first-child{background:var(--zebra)}
 tbody tr:nth-child(even){background:var(--zebra)}
 tbody tr:hover td{background:var(--azul2)}
-tfoot td{font-weight:700;border-top:2px solid var(--linha);background:#f0f3f7}
-tfoot td:first-child{background:#f0f3f7}
+tfoot td{font-weight:800;border-top:2px solid var(--linha);background:#F7F9FD}
+tfoot td:first-child{background:#F7F9FD}
 .sobe{color:var(--gd);font-weight:600}
 .desce{color:var(--bd);font-weight:600}
 .nd{color:var(--txt2);font-style:italic}
 /* v3 (F1-D): linha de AGREGACAO numa tabela de ranking — hoje so o balde
    "DEMAIS BANDEIRAS". Nao e um item comparavel aos outros e precisa parecer
    que nao e; o Sigma no rotulo diz isso sem depender da cor. */
-tr.balde td{background:#f2f5f9;color:var(--txt2);font-style:italic}
+tr.balde td{background:#F1F2F6;color:var(--txt2);font-style:italic}
 tr.balde td:first-child::before{content:"Σ ";font-style:normal;font-weight:700;
   color:var(--azul)}
 /* v3 (F1-C): o .alerta padrao e informativo (ambar). Este marca INCONSISTENCIA
    entre o que o filtro promete e o que a camada consegue aplicar. */
 .alerta.erro{background:var(--bdbg);border-left-color:var(--bd)}
-/* v3 (F1-A): barra de periodo. Mora FORA do #fBody de proposito — o painel de
-   filtros nasce fechado, e um seletor escondido atras do botao "Filtros" nao
-   resolveria o problema que ele existe para resolver. */
-.pbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;
-  padding-top:8px;border-top:1px dashed #d3e0ee}
-.pbar .plab{font-size:11px;font-weight:700;color:var(--azul);margin-right:4px;
-  text-transform:uppercase;letter-spacing:.4px}
+/* Item 7a: a .pbar saiu — o "Ver por" virou a terceira linha da barra de
+   leitura, ao lado de Metrica e Comparar. O motivo da F1-A continua valendo e
+   ficou mais forte: o controle nao pode morar atras de um botao. */
 /* L3-B: .pnav e .prot sairam com os atalhos de periodo.
    D-51: .mini[disabled] saiu — nada fica desabilitado/acinzentado. */
-/* v3 lote 2 (P2-A3): o painel de filtros movido para o TOPO de uma aba ganha
-   respiro embaixo; abaixo do grafico (Visao Geral) o .grid ja da o espaco. */
-.panel > .filters:first-child{margin-top:2px}
 /* v3 (F1-G): matriz item x periodo.
    D-55 (03/09/2026): a F1-G imprimia numero puro nas colunas da serie e
    declarava a escala UMA vez no cabecalho. A decisao de 03/09 inverte isso —
@@ -456,10 +549,10 @@ tr.balde td:first-child::before{content:"Σ ";font-style:normal;font-weight:700;
    duas linhas e desalinhe a matriz. */
 table.matriz th.serie,table.matriz td.serie{font-variant-numeric:tabular-nums;
   padding-left:7px;padding-right:7px;white-space:nowrap}
-table.matriz td.serie{color:#31465a}
-table.matriz th.serie{font-size:10.5px}
-table.matriz .zero{color:#c3ccd6}
-table.matriz th.corte,table.matriz td.corte{border-left:2px solid #cddcec}
+table.matriz td.serie{color:#33384A}
+table.matriz th.serie{font-size:9.5px}
+table.matriz .zero{color:#C3C7D4}
+table.matriz th.corte,table.matriz td.corte{border-left:2px solid #C7D3E8}
 /* A coluna do numero encolhe. Quem gruda na rolagem lateral e o NOME: sem
    isso, rolar ate a coluna do delta deixa o leitor sem saber de que item e a
    linha que ele esta lendo — e a matriz e larga de proposito. */
@@ -468,10 +561,10 @@ table.matriz th:first-child,table.matriz td:first-child{
 table.matriz th:nth-child(2),table.matriz td:nth-child(2){
   position:sticky;left:30px;z-index:1;text-align:left;background:var(--card);
   max-width:300px;overflow:hidden;text-overflow:ellipsis}
-table.matriz th:nth-child(2){z-index:3;background:#f0f3f7}
+table.matriz th:nth-child(2){z-index:3;background:#F5F6FA}
 table.matriz tbody tr:nth-child(even) td:nth-child(2){background:var(--zebra)}
-table.matriz tfoot td:nth-child(2){background:#f0f3f7}
-table.matriz tr.balde td:nth-child(2){background:#f2f5f9}
+table.matriz tfoot td:nth-child(2){background:#F5F6FA}
+table.matriz tr.balde td:nth-child(2){background:#F1F2F6}
 .barra{display:inline-block;height:7px;background:var(--azul);border-radius:2px;
   vertical-align:middle;margin-right:5px;min-width:1px}
 
@@ -482,15 +575,15 @@ table.matriz.niveis th:first-child,table.matriz.niveis td:first-child{
   width:auto;max-width:360px;text-align:left;padding:5px 9px;color:var(--txt);
   position:sticky;left:0;background:var(--card);overflow:hidden;
   text-overflow:ellipsis}
-table.matriz.niveis th:first-child{z-index:3;background:#f0f3f7}
+table.matriz.niveis th:first-child{z-index:3;background:#F5F6FA}
 table.matriz.niveis tbody tr:nth-child(even) td:first-child{background:var(--zebra)}
-table.matriz.niveis tfoot td:first-child{background:#f0f3f7}
-table.matriz.niveis tr.fora td:first-child{background:#f2f5f9}
+table.matriz.niveis tfoot td:first-child{background:#F5F6FA}
+table.matriz.niveis tr.fora td:first-child{background:#F1F2F6}
 table.matriz.niveis th:nth-child(2),table.matriz.niveis td:nth-child(2){
   position:static;left:auto;width:auto;max-width:none;text-align:right;
   background:transparent;overflow:visible}
-table.matriz.niveis th:nth-child(2){z-index:2;background:#f0f3f7}
-table.matriz.niveis tfoot td:nth-child(2){background:#f0f3f7}
+table.matriz.niveis th:nth-child(2){z-index:2;background:#F5F6FA}
+table.matriz.niveis tfoot td:nth-child(2){background:#F5F6FA}
 table.matriz td .exp{cursor:pointer;color:var(--azul);font-weight:600;
   user-select:none}
 table.matriz td .exp:hover{text-decoration:underline}
@@ -500,12 +593,12 @@ table.matriz .recuo2{padding-left:36px;display:inline-block}
 table.matriz .recuo3{padding-left:54px;display:inline-block}
 /* linha sintese "fora da hierarquia": agregacao, nao item — mesma linguagem
    visual do balde de bandeiras (Σ vem da classe .balde). */
-tr.fora td{background:#f2f5f9;color:var(--txt2);font-style:italic}
-tr.fora td:nth-child(2){background:#f2f5f9 !important}
+tr.fora td{background:#F1F2F6;color:var(--txt2);font-style:italic}
+tr.fora td:nth-child(2){background:#F1F2F6 !important}
 
 /* ---------------------------------------------------------------- ranking */
 .rank{display:flex;justify-content:space-between;gap:10px;padding:5px 0;
-  border-bottom:1px solid var(--linha);font-size:12px}
+  border-bottom:1px solid var(--linha);font-size:11.5px}
 .rank:last-child{border-bottom:0}
 .rank .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .rank .vl{font-weight:600;white-space:nowrap}
@@ -513,104 +606,143 @@ tr.fora td:nth-child(2){background:#f2f5f9 !important}
 /* ------------------------------------------------------ exportacao / drill */
 .expbtns{margin-left:auto;display:flex;gap:4px}
 .expbtns .mini{padding:2px 7px;font-size:10.5px}
-.drill{cursor:pointer;color:var(--azul);border-bottom:1px dotted var(--azul)}
-.drill:hover{color:#003a70;border-bottom-style:solid}
+/* V-10 (15/09/2026, aprovado com a ressalva): o drill adota a linguagem do
+   .dnlink — pontilhado azul que vira vermelho no hover. A ELEVACAO no hover
+   ficou so no que e clicavel: card parado nao sobe, para nao prometer clique
+   que nao existe. */
+.drill{cursor:pointer;color:var(--azul);border-bottom:1px dotted var(--azul);
+  transition:color .12s}
+.drill:hover{color:var(--bd);border-bottom-style:solid;border-bottom-color:var(--bd)}
+.chip:focus-visible,.mini:focus-visible,.reset:focus-visible,.ftog:focus-visible,
+.drill:focus-visible{outline:2px solid #E8710A;outline-offset:2px}
+tbody tr.clicavel:hover td,table.matriz td .exp:hover{cursor:pointer}
 
 canvas{max-height:280px}
 .vazio{padding:26px;text-align:center;color:var(--txt2);font-size:12.5px}
-.alerta{background:#fff8e6;border-left:3px solid var(--acento);border-radius:4px;
+.alerta{background:var(--acento-bg);border-left:3px solid var(--acento);border-radius:9px;
   padding:8px 11px;font-size:11.5px;margin-bottom:12px;line-height:1.5}
 @media(max-width:900px){.grid{grid-template-columns:1fr !important}
   .flab{min-width:100%}}
+/* V-12 (15/09/2026, aprovado): tela estreita e impressao.
+   Em tela estreita a barra de leitura deixa de ser sticky (em 700px ela ja
+   ocupa altura demais para ficar colada) e as abas quebram em duas linhas
+   menores. A gaveta ja vai a largura inteira desde o item 7a. */
+@media(max-width:700px){
+  .fbar{position:static;gap:10px}
+  .tab{padding:7px 11px;font-size:11.5px}
+  .top{padding:10px 14px}
+  .wrap{padding:12px 12px 40px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
+/* IMPRESSAO — o painel e aberto por duplo clique e as pessoas exportam em PDF.
+   Regras: some o que e controle (barra de leitura, gaveta, fundo escuro,
+   botoes de exportacao), a barra de leitura perde o sticky, a faixa azul do
+   cabecalho imprime com a cor (senao o titulo branco some no papel) e as
+   tabelas rolaveis abrem por inteiro, em vez de imprimir so os 460px visiveis.
+   Imprime SO A ABA ATIVA: as outras duas continuam ocultas, porque imprimir as
+   tres gera um documento longo que ninguem pediu. */
+@media print{
+  .fbar,.fgav,.fback,.expbtns,.busca-linha{display:none !important}
+  .top{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{padding:0}
+  .scroll{max-height:none;overflow:visible}
+  th{position:static}
+  th:first-child,td:first-child,
+  table.matriz th:nth-child(2),table.matriz td:nth-child(2){position:static}
+  .card,.kpi{box-shadow:none;break-inside:avoid}
+  .tab{display:none}.tab.active{display:inline-block}
+  canvas{max-height:220px}
+}
 </style>
 </head><body>
 
-<h1>Dashboard Gerencial de Canais <span>· Sell In</span></h1>
-<div class="sub" id="sub"></div>
-
-<!-- v3 lote 2 (P2-A2/A3): o bloco de filtros #fPainel e UNICO e viaja para a
-     aba ativa (posicionarFiltros): abaixo do grafico na Visao Geral, primeiro
-     elemento nas demais. Os filtros continuam globais no comportamento. -->
-<!-- D-51 (Fase 3): exatamente 3 abas. Geografia, SKU e R$/kg sairam — a
-     analise por SKU vive dentro de Categorias, pela expansao da matriz. -->
-<div class="tabs">
-  <div class="tab active" data-p="geral">Visão Geral</div>
-  <div class="tab" data-p="band">Bandeiras</div>
-  <div class="tab" data-p="catg">Categorias</div>
+<div class="top">
+  <h1>Dashboard Gerencial de Canais<small>Sell In</small></h1>
+  <span class="tag" id="topTag"></span>
+  <span class="topinfo" id="topInfo"></span>
+  <div class="sp"></div>
 </div>
 
-<div class="panel active" id="geral">
-  <div class="kpis" id="kpis"></div>
-  <div class="grid" style="grid-template-columns:1fr" id="gridEvo">
-    <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas></div>
-  </div>
-  <!-- v3 lote 2 (P2-A2/A3): controles logo abaixo da visao que eles comandam.
-       O painel e UNICO e viaja para a aba ativa via posicionarFiltros(). -->
-  <div class="filters fechado" id="fPainel">
-  <div class="fcab">
-    <button class="ftog" id="fToggle">▸ Filtros</button>
-    <span class="fnum" id="fAtivos"></span>
-    <button class="mini" id="copiarLink"
-      title="Copia um link que reabre o painel exatamente neste recorte">Copiar recorte</button>
+<div class="wrap">
+
+<!-- D-51 (Fase 3): exatamente 3 abas. Geografia, SKU e R$/kg sairam — a
+     analise por SKU vive dentro de Categorias, pela expansao da matriz. -->
+<nav class="tabs" role="tablist" aria-label="Seções do painel">
+  <button type="button" class="tab active" role="tab" id="tab-geral" data-p="geral" aria-controls="geral" aria-selected="true">Visão Geral</button>
+  <button type="button" class="tab" role="tab" id="tab-band" data-p="band" aria-controls="band" aria-selected="false">Bandeiras</button>
+  <button type="button" class="tab" role="tab" id="tab-catg" data-p="catg" aria-controls="catg" aria-selected="false">Categorias</button>
+</nav>
+
+<!-- Item 7a (15/09/2026, aprovado): OPCAO C dos filtros. A barra de LEITURA
+     (Metrica, Comparar, Ver por) fica sticky logo abaixo das abas, e as
+     DIMENSOES foram para uma gaveta lateral SOBREPOSTA — sobreposta, e nao
+     fixa como a do DN, porque largura e o recurso escasso aqui: as matrizes
+     tem ate 14 colunas de serie. Barra e gaveta sao GLOBAIS: o painel nao
+     viaja mais entre abas (posicionarFiltros saiu). Nenhuma regra de filtro
+     mudou — D-54 (linha some sem escolha), cascata Gerente > Sup. > Vend. e
+     persistencia do recorte por rotulo seguem iguais. -->
+<div class="fbar" id="fBar">
+  <button type="button" class="fbtn" id="fToggle" aria-expanded="false" aria-controls="fGaveta"><span class="fchev" aria-hidden="true">▸</span> Filtros<span class="fnum" id="fAtivos"></span></button>
+  <div class="fbrow"><span class="flab">Métrica</span><span class="chips" id="fMetrica"></span></div>
+  <div class="fbrow"><span class="flab">Comparar</span><span class="chips" id="fBase"></span></div>
+  <div class="fbrow"><span class="flab" title="Granularidade das colunas da matriz e das barras do gráfico">Ver por</span><span class="chips" id="fPeriodo"></span></div>
+</div>
+<!-- Item 7b / V-06 (15/09/2026): LINHA DE RECORTE ATIVO, no lugar do .estado
+     que morava dentro do painel de filtros — e o painel nasce fechado, entao
+     na pratica quase ninguem lia. Mesmo texto, mesma fonte de dado; o que
+     muda e estar onde se olha. Vazia, ela some (:empty). -->
+<div class="ativos" id="estado"></div>
+<div class="fback" id="fBack" hidden></div>
+<aside class="fgav" id="fGaveta" hidden aria-label="Filtros de dimensão">
+  <div class="fgav-cab">
+    <span class="fgav-tit">Filtros</span>
+    <button type="button" class="fgav-x" id="fFechar" aria-label="Fechar filtros">×</button>
   </div>
   <div id="fBody">
-  <div class="frow">
-    <div class="flab">Métrica</div>
-    <div class="chips" id="fMetrica"></div>
-  </div>
-  <div class="frow">
-    <div class="flab">Comparar</div>
-    <div class="chips" id="fBase"></div>
-    <!-- v3 lote 2 (P2-A): o chip "Agrupar por" saiu daqui. A granularidade
-         das colunas agora e SO o seletor "Ver por" da barra de Periodo:
-         dois controles com os mesmos rotulos dessincronizavam. -->
-  </div>
-  <!-- D-54: cada linha de filtro tem id porque ela some INTEIRA quando nao ha
-       escolha a fazer (menos de duas opcoes com dado no recorte atual). -->
-  <div class="frow" id="frowAno">
-    <div class="flab">Ano</div>
-    <div class="chips" id="fAno"></div>
-  </div>
+  <!-- D-54: cada linha tem id porque ela some INTEIRA quando nao ha escolha a
+       fazer (menos de duas opcoes com dado no recorte atual). -->
+  <div class="frow" id="frowAno"><div class="flab">Ano</div><div class="chips" id="fAno"></div></div>
   <div class="frow" id="frowMeses">
     <div class="flab">Meses</div>
     <div class="chips mon-wrap" id="fMeses"></div>
     <button class="mini" id="mTodos">Todos</button>
     <button class="mini" id="mNenhum">Nenhum</button>
   </div>
-  <div class="frow" id="frowCanal"><div class="flab">Canal</div><div class="chips" id="fCanal"></div></div>
-  <div class="frow" id="frowCat"><div class="flab">Categoria</div><div class="chips" id="fCat"></div></div>
-  <!-- L3-D: no arquivo por head esta LINHA fica oculta (iniciar()); o
-       componente e a logica continuam vivos para os demais perfis. -->
+  <!-- Item 7a-2 (15/09/2026, opcao A): Canal e Categoria viram LISTA COM
+       CAIXINHAS. O gatilho mostra o resumo ("3 selecionadas") e o painel
+       carrega os MESMOS chips de antes — por isso a multipla escolha, a D-54,
+       a cascata e o recorte salvo continuam valendo sem uma linha de logica
+       nova. Ano, Meses e Head seguem em chips: sao poucos e curtos. -->
+  <div class="frow" id="frowCanal"><div class="flab">Canal</div>
+    <div class="msel" data-msel="can">
+      <button type="button" class="msel-b" aria-expanded="false">Todos</button>
+      <div class="msel-p" hidden><div class="chips" id="fCanal"></div></div>
+    </div>
+  </div>
+  <div class="frow" id="frowCat"><div class="flab">Categoria</div>
+    <div class="msel" data-msel="cat">
+      <button type="button" class="msel-b" aria-expanded="false">Todas</button>
+      <div class="msel-p" hidden><div class="chips" id="fCat"></div></div>
+    </div>
+  </div>
+  <!-- L3-D: no arquivo por head esta LINHA fica oculta (iniciar()). -->
   <div class="frow" id="frowHead"><div class="flab">Head</div><div class="chips" id="fHead"></div></div>
-  <!-- D-69 (04/09/2026): FILTRO HIERARQUICO. Gerente, Sup./Exec. e Vend./RCA
-       voltam como filtros globais (a D-51 os tinha tirado): e assim que o
-       head ve um subordinado especifico nas abas Bandeiras e Categorias, e o
-       gerente ve um executivo. Seguem a D-54: so opcoes com dado no recorte
-       atual, linha some com menos de duas opcoes (no arquivo do N3 a linha
-       de Sup./Exec. some sozinha; a de Vend./RCA fica). Cascata pelo dado:
-       escolher um gerente encolhe a lista de Sup./Exec. Projeto, UF e as
-       buscas de Bandeira/SKU seguem fora (bandeira e SKU sao dimensoes das
-       abas, com busca propria desde a D-66). -->
-  <!-- Decisao do Douglas (04/09): LISTA SUSPENSA de escolha unica para os
-       tres niveis (55 sup./exec. e 154 vendedores no Full nao cabem em
-       chips; o caso de uso e "um subordinado por vez"). Canal, Categoria e
-       Head seguem em chips. -->
+  <!-- D-69 + decisao de 04/09: LISTA SUSPENSA de escolha unica nos tres niveis. -->
   <div class="frow" id="frowGer"><div class="flab">Gerente</div><select class="lista" id="fGer"></select></div>
   <div class="frow" id="frowSup"><div class="flab">Sup./Exec.</div><select class="lista" id="fSup"></select></div>
   <div class="frow" id="frowVend"><div class="flab">Vend./RCA</div><select class="lista" id="fVend"></select></div>
-  <!-- D-54: sem nenhum filtro de dimensao ativo nao ha o que limpar — a linha
-       inteira sai da tela (nunca acinzentada, regra global da D-51). -->
-  <div class="frow" id="frowLimpar">
-    <div class="flab">&nbsp;</div>
-    <button class="reset" id="limpar">Limpar filtros</button>
-  </div>
   </div><!-- /fBody -->
-  <!-- v3 (F1-A): FORA do #fBody, tem de aparecer com o painel fechado.
-       L3-B: os atalhos de periodo sairam; a barra carrega so o "Ver por". -->
-  <div class="pbar"><span class="plab"
-      title="Granularidade das colunas da matriz e das barras do gráfico">Ver por</span>
-    <span class="chips" id="fPeriodo"></span></div>
-  <div class="estado" id="estado"></div>
+  <div class="fgav-acoes">
+    <div id="frowLimpar"><button class="reset" id="limpar">Limpar filtros</button></div>
+    <button class="mini" id="copiarLink"
+      title="Copia um link que reabre o painel exatamente neste recorte">Copiar recorte</button>
+  </div>
+</aside>
+
+<div class="panel active" id="geral" role="tabpanel" aria-labelledby="tab-geral" tabindex="0">
+  <div class="kpis" id="kpis"></div>
+  <div class="grid" style="grid-template-columns:1fr" id="gridEvo">
+    <div class="card"><h3 id="tEvo">Evolução</h3><canvas id="cEvo"></canvas></div>
   </div>
   <!-- D-51 (Q8/Q11): Comparativo YTD e Evolucao por periodo sairam; o
        Detalhamento e o drill deram lugar a MATRIZ HIERARQUICA EXPANSIVEL
@@ -621,7 +753,7 @@ canvas{max-height:280px}
   </div>
 </div>
 
-<div class="panel" id="band">
+<div class="panel" id="band" role="tabpanel" aria-labelledby="tab-band" tabindex="0">
   <div class="frow" id="frowTop" style="margin-bottom:10px">
     <div class="flab">Top</div><div class="chips" id="topBan"></div>
   </div>
@@ -647,7 +779,7 @@ canvas{max-height:280px}
 <!-- D-51: aba nova, "mesmo layout e componentes" da aba Bandeiras
      (Step 2.4), com a dimensao trocada: analise por CATEGORIA e matriz
      expansivel Categoria > SKU. Sem seletor "Top": sao 12 categorias. -->
-<div class="panel" id="catg">
+<div class="panel" id="catg" role="tabpanel" aria-labelledby="tab-catg" tabindex="0">
   <div class="grid" style="grid-template-columns:1fr 1fr">
     <div class="card"><h3 style="color:var(--gd)">▲ Maiores ganhos <small id="sGanhoC"></small></h3>
       <div id="ganhoCat"></div></div>
@@ -669,6 +801,8 @@ canvas{max-height:280px}
 <!-- D-49: a aba Metas (D-44) saiu com a remocao do tema Metas. -->
 
 <!-- L3-G: o rodape textual saiu (decisao de 01/09/2026, Q3-b). -->
+
+</div><!-- /wrap -->
 
 <!--LIB:chart-->
 <script>
@@ -982,26 +1116,15 @@ function periodo(){
   return {atual:sel, pareado, ly:pareado.map(i=>CAL[i][C_LY]), ref,
           mesesComPar:comPar.length, meta, metaParcial};
 }
-/* P2-A3: a barra vive so dentro do #fPainel, que viaja para a aba ativa —
-   as copias por aba sairam junto com a duplicacao que elas criavam.
+/* Item 7a (15/09/2026): o "Ver por" passou a viver na barra de leitura sticky,
+   que e UNICA e global — nao ha mais copia por aba nem painel viajante.
    L3-B (01/09/2026, Q1-a): os ATALHOS de periodo (Mes|Trimestre|Semestre|
    Acumulado + setas de navegacao) sairam do layout — na leitura do usuario
    eram redundantes com o "Ver por". A selecao de meses continua nos chips
    "Meses" do painel de filtros; a barra carrega so o "Ver por". */
 const ALVOS_PERIODO = ["fPeriodo"];
-/* O painel de filtros e UM no DOM e muda de lugar com a aba: abaixo do
-   grafico de Evolucao na Visao Geral, primeiro elemento nas demais. Mover o
-   no preserva os listeners; nada e clonado nem re-ligado. */
-function posicionarFiltros(aba){
-  const fp=el("fPainel");
-  if(aba==="geral"){
-    const g=el("gridEvo");
-    if(fp.previousElementSibling!==g) g.after(fp);
-  }else{
-    const p=el(aba);
-    if(p && p.firstElementChild!==fp) p.insertBefore(fp, p.firstElementChild);
-  }
-}
+/* Item 7a: posicionarFiltros() saiu — a barra e a gaveta sao globais, ficam
+   fora dos paineis, e nao ha o que mover quando a aba troca. */
 function montarPeriodo(){
   /* v3 lote 2 (P2-A): "Ver por" define SO a granularidade das colunas/barras
      (F.gran), sem mexer na selecao de meses. Grupo incompleto aparece
@@ -1311,7 +1434,28 @@ function montarFiltros(){
   // Sup./Exec. ja e escolher ele.
   listaSuspensa("fVend", "frowVend", lista(P_VEND, p=>!vendEhSup(p)), OPC.vend, F.vend);
   montarTop();
+  rotularMsel();
   el("frowLimpar").hidden = !TEM_FILTRO_DIM();
+}
+/* Item 7a-2: o gatilho da lista com caixinhas declara a selecao — "Todos",
+   o nome quando e um so, ou "N selecionadas". Le o MESMO estado dos chips
+   (F.can / F.cat), entao nao existe segunda fonte de verdade. */
+const MSEL = {can:{conj:()=>F.can, todos:"Todos",  nome:v=>EXIBE(v)},
+              cat:{conj:()=>F.cat, todos:"Todas",  nome:v=>D.cat[v]}};
+function rotularMsel(){
+  document.querySelectorAll(".msel").forEach(m=>{
+    const cfg=MSEL[m.dataset.msel], sel=[...cfg.conj()], b=m.querySelector(".msel-b");
+    b.textContent = !sel.length ? cfg.todos
+      : (sel.length===1 ? cfg.nome(sel[0]) : sel.length+" selecionadas");
+    b.classList.toggle("on", sel.length>0);
+  });
+}
+function abrirMsel(m, v){
+  document.querySelectorAll(".msel").forEach(o=>{
+    const on = (o===m) && v;
+    o.querySelector(".msel-p").hidden = !on;
+    o.querySelector(".msel-b").setAttribute("aria-expanded", on ? "true" : "false");
+  });
 }
 /* D-69 (04/09/2026, decisao do Douglas): lista suspensa de escolha unica
    para os niveis hierarquicos. Mesmas regras dos chips (D-54): so opcoes com
@@ -1477,12 +1621,19 @@ function atualizarEstado(p){
   // dimensao" saiu dos dois lugares; com filtros ativos os textos continuam.
   if(d.length) partes.push("filtros: "+d.join(" · "));
   // v2: contagem no cabecalho recolhivel, visivel mesmo com o painel fechado.
-  el("fAtivos").textContent = d.length
-    ? d.length+" filtro(s) de dimensão ativo(s)" : "";
+  // Item 7a: a contagem virou o badge do botao "Filtros" da barra sticky.
+  el("fAtivos").textContent = d.length ? String(d.length) : "";
+  el("fToggle").title = d.length
+    ? d.length+" filtro(s) de dimensão ativo(s)" : "nenhum filtro de dimensão ativo";
   el("estado").innerHTML=partes.join(" &nbsp;·&nbsp; ");
   const mm = DB.meta.metas_meses || [];
-  el("sub").textContent =
-    `${DB.meta.periodo} · ${DB.meta.meses} meses · ${DB.meta.linhas.toLocaleString("pt-BR")} linhas de origem · atualizado em ${DB.meta.gerado_em}`
+  /* V-04: a mesma informacao do antigo .sub, em dois destinos da faixa —
+     a tag vermelha leva o periodo e a data do dado; a linha de apoio leva
+     o resto. Nenhum numero novo, nenhum numero a menos. */
+  el("topTag").textContent =
+    `${DB.meta.periodo} · atualizado em ${DB.meta.gerado_em}`;
+  el("topInfo").textContent =
+    `${DB.meta.meses} meses · ${DB.meta.linhas.toLocaleString("pt-BR")} linhas de origem`
     + (mm.length ? ` · meta: ${mm.length===1 ? mm[0] : mm[0]+" a "+mm[mm.length-1]}` : "");
 }
 
@@ -1655,7 +1806,7 @@ function renderEvolucao(p){
           // D-74: valor da meta e, embaixo, o atingimento do grupo
           // (realizado dos meses com meta / meta). D-77: dito por extenso
           // ("ating.") ou com o marcador ◎ quando nao cabe.
-          duas(abrev(v, m.un), "#8a5a00", rotAting(atingSerie[i]), "#8a5a00");
+          duas(abrev(v, m.un), "#A56A00", rotAting(atingSerie[i]), "#A56A00");
         }else if(ehAtual){
           // D-76: a linha de Δ% vs LY SAIU do grafico (e do eixo direito);
           // o Δ% do grupo vira a segunda linha do rotulo da barra Atual,
@@ -1663,12 +1814,12 @@ function renderEvolucao(p){
           // por extenso, ou ▲▼ quando nao cabe.
           const d=variacao[i];
           if(d===null||d===undefined){
-            g.font=negrito; g.fillStyle="#003a70";
+            g.font=negrito; g.fillStyle="#16376E";
             g.fillText(abrev(v, m.un), elb.x, v<0?elb.y+3:elb.y-3);
-          }else duas(abrev(v, m.un), "#003a70", rotDelta(d),
-                     d>0?"#1a7f4b":(d<0?"#c0392b":"#5b6b7c"));
+          }else duas(abrev(v, m.un), "#16376E", rotDelta(d),
+                     d>0?"#00713A":(d<0?"#E30613":"#7A7F94"));
         }else{
-          g.font=normal; g.fillStyle="#3f6e9b";
+          g.font=normal; g.fillStyle="#4B72B4";
           g.fillText(abrev(v, m.un), elb.x, v<0?elb.y+3:elb.y-3);
         }
       });
@@ -1683,17 +1834,18 @@ function renderEvolucao(p){
   // D-74: a barra Meta fica a DIREITA do Atual — passado, presente, alvo —
   // e so entra no grafico quando ha meta no periodo.
   // D-76 (08/09/2026, opcao A do Douglas, validada pelo kit de dataviz):
-  // LY azul medio (#5e94c9, tom do Atual), Atual azul Dori (#00539f), Meta
-  // laranja queimado (#c97b12). A linha "Δ% vs LY" e o eixo direito SAIRAM
+  // D-76 preservada, tons re-derivados na V-01/V-11 (15/09/2026): LY azul medio
+  // (#7895C7, tint 40% do Atual), Atual azul Dori (#1E4FA1), Meta laranja
+  // queimado (#B5720C, o ambar do template de referencia). A linha "Δ% vs LY" e o eixo direito SAIRAM
   // (dois eixos no mesmo grafico induzem leitura errada de escala); o Δ%
   // vive no rotulo da barra Atual e no tooltip dela.
   const dsMeta = mostraMeta ? [
-      {label:"Meta",data:metaSerie,backgroundColor:"#c97b12",borderRadius:3,
+      {label:"Meta",data:metaSerie,backgroundColor:"#B5720C",borderRadius:3,
        maxBarThickness:46,order:5}] : [];
   chart=new Chart(ctx,{type:"bar",data:{labels:rotulos,datasets:[
-      {label:"Ano anterior",data:anterior,backgroundColor:"#5e94c9",borderRadius:3,
+      {label:"Ano anterior",data:anterior,backgroundColor:"#7895C7",borderRadius:3,
        maxBarThickness:46,order:3},
-      {label:"Atual",data:atual,backgroundColor:"#00539f",borderRadius:3,
+      {label:"Atual",data:atual,backgroundColor:"#1E4FA1",borderRadius:3,
        maxBarThickness:46,order:4}].concat(dsMeta)},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       layout:{padding:{top:30}},
@@ -2382,6 +2534,10 @@ function ordenarTabela(tab, col){
   tab.querySelectorAll("thead th").forEach((h,i)=>{
     h.classList.toggle("o-desc", i===col && desc);
     h.classList.toggle("o-asc",  i===col && !desc);
+    // V-10/V-09: a ordenacao ja existia; agora ela se DECLARA para o leitor
+    // de tela, como no componente de tabela do template.
+    if(i===col) h.setAttribute("aria-sort", desc ? "descending" : "ascending");
+    else h.removeAttribute("aria-sort");
   });
 }
 
@@ -2404,7 +2560,8 @@ function recorteAtual(){
     ger:[...F.ger], sup:[...F.sup], vend:[...F.vend],     // D-69
     topBan:F.topBan, aba:F.aba,
     qBan:F.qBan, qSku:F.qSku,                 // D-66
-    fAberto:!el("fPainel").classList.contains("fechado")
+    fAberto:false   // Item 7a: a gaveta nasce sempre fechada; o campo fica so
+                    // para nao quebrar a leitura de recortes e links antigos
   };
 }
 function aplicarRecorte(r){
@@ -2438,7 +2595,7 @@ function aplicarRecorte(r){
   if(typeof r.qSku==="string") F.qSku=r.qSku.slice(0,80);
   // D-51: recorte salvo em aba que nao existe mais cai na Visao Geral.
   if(["geral","band","catg"].includes(r.aba)) F.aba=r.aba;
-  if(r.fAberto) el("fPainel").classList.remove("fechado");
+  // Item 7a: r.fAberto e ignorado de proposito — a gaveta nasce fechada.
 }
 function gravarRecorte(){
   const j=JSON.stringify(recorteAtual());
@@ -2456,8 +2613,16 @@ function lerRecorteInicial(){
   return null;
 }
 function atualizarToggle(){
-  const fechado=el("fPainel").classList.contains("fechado");
-  el("fToggle").textContent=(fechado?"▸":"▾")+" Filtros";
+  el("fToggle").setAttribute("aria-expanded", el("fGaveta").hidden ? "false" : "true");
+}
+/* Item 7a: gaveta sobreposta — abre pelo botao e fecha por clique fora, Esc ou
+   pelo x. Tres saidas, porque gaveta que so fecha num lugar irrita. O foco vai
+   para o x ao abrir e volta para o botao ao fechar. */
+function abrirGaveta(v){
+  el("fGaveta").hidden=!v;   // o ▸/▾ do botao segue o aria-expanded (CSS)
+  el("fBack").hidden=!v;
+  atualizarToggle();
+  (v ? el("fFechar") : el("fToggle")).focus();
 }
 async function copiarRecorte(){
   gravarRecorte();                       // garante que o hash esta atualizado
@@ -2501,6 +2666,21 @@ function ligar(){
   ligarChips("fMeses", k=>{ alterna(F.meses,+k); montarFiltros(); });
   el("mTodos").onclick=()=>{ mesesOferecidos().forEach(i=>F.meses.add(i)); montarFiltros(); render(); };
   el("mNenhum").onclick=()=>{ F.meses.clear(); montarFiltros(); render(); };
+  // Item 7a-2: o gatilho abre/fecha; clicar num chip DENTRO do painel nao
+  // fecha (o usuario costuma marcar mais de um). Fecha por clique fora ou Esc.
+  document.querySelectorAll(".msel-b").forEach(b=>{
+    b.onclick=()=>{ const m=b.closest(".msel");
+      abrirMsel(m, m.querySelector(".msel-p").hidden); };
+  });
+  document.addEventListener("click", ev=>{
+    if(!ev.target.closest(".msel")) abrirMsel(null,false);
+  });
+  document.addEventListener("keydown", ev=>{
+    // Esc fecha a lista aberta ANTES da gaveta: um toque desfaz uma camada,
+    // nunca as duas de uma vez.
+    if(ev.key!=="Escape") return;
+    if(document.querySelector(".msel-p:not([hidden])")){ abrirMsel(null,false); ev.stopPropagation(); }
+  }, true);
   ligarChips("fCat", k=>{ alterna(F.cat,+k); montarFiltros(); });
   ligarChips("fCanal", k=>{ alterna(F.can,k); montarFiltros(); });
   ligarChips("fHead", k=>{ alterna(F.head,k); montarFiltros(); });
@@ -2521,10 +2701,12 @@ function ligar(){
       if(c.dataset.g){ F.gran=c.dataset.g; render(); }
     });
   });
-  el("fToggle").onclick=()=>{
-    el("fPainel").classList.toggle("fechado");
-    atualizarToggle(); gravarRecorte();
-  };
+  el("fToggle").onclick=()=>abrirGaveta(el("fGaveta").hidden);
+  el("fFechar").onclick=()=>abrirGaveta(false);
+  el("fBack").onclick=()=>abrirGaveta(false);
+  document.addEventListener("keydown", ev=>{
+    if(ev.key==="Escape" && !el("fGaveta").hidden) abrirGaveta(false);
+  });
   // D-66: as buscas rerenderizam so a propria aba, com um respiro de 150 ms
   // para nao remontar a matriz a cada tecla.
   const ligarBusca=(id, campo, aba)=>{
@@ -2552,12 +2734,13 @@ function ligar(){
     montarFiltros(); render();
   };
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(x=>{
+      x.classList.remove("active"); x.setAttribute("aria-selected","false");   // V-05
+    });
     document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
+    t.classList.add("active"); t.setAttribute("aria-selected","true");         // V-05
     el(t.dataset.p).classList.add("active");
     F.aba=t.dataset.p;
-    posicionarFiltros(F.aba);       // P2-A3: o painel de filtros acompanha
     renderAba(F.aba);               // B1: renderiza sob demanda, se suja
     gravarRecorte();                // v2: a aba tambem faz parte do recorte
   });
@@ -2599,8 +2782,8 @@ function iniciar(){
      embute neste arquivo nenhuma linha de cubo de outro head. */
   if(DB.meta.recorte){
     document.title += " · " + DB.meta.recorte;
-    const sp=document.querySelector("h1 span");
-    if(sp) sp.textContent = "· Sell In · " + DB.meta.recorte;
+    const sp=document.querySelector(".top h1 small");
+    if(sp) sp.textContent = "Sell In · " + DB.meta.recorte;
   }
   // L3-D (Q4): no arquivo por head a LINHA do filtro Head fica oculta — o
   // componente, a logica e os listeners continuam; e visibilidade por perfil,
@@ -2619,9 +2802,9 @@ function iniciar(){
   document.querySelectorAll(".tab").forEach(t=>{   // restaura a aba do recorte
     const on=t.dataset.p===F.aba;
     t.classList.toggle("active", on);
+    t.setAttribute("aria-selected", on ? "true" : "false");   // V-05
     el(t.dataset.p).classList.toggle("active", on);
   });
-  posicionarFiltros(F.aba);   // P2-A3: recorte pode reabrir fora da Visao Geral
   atualizarToggle();
   render();
   // D-74 (Q7-a): abertura e heap MEDIDOS a cada carga, no console do

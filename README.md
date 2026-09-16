@@ -14,6 +14,14 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 
 ## Estado atual — medido em 08/09/2026 (execucao 20260908-105634; ago/26 fechado + set/26 parcial; metas set+out/26)
 
+> **15/09/2026 — IDENTIDADE VISUAL NOVA (D-80).** O painel foi padronizado pelo
+> template do **Scorecard DN** (`Documentos\Painéis - Alavancas\DN\template`):
+> paleta, tipografia, header em faixa azul, abas em botão e filtros numa barra
+> de leitura sticky + gaveta lateral. **Nada de dado, cálculo, ordem de aba ou
+> disposição de visual mudou** — os números desta seção seguem valendo.
+> Decisão completa, divergências e os 4 pontos em aberto: **docs/12, D-80**.
+> Backups em `_arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/`.
+
 ```
 29 arquivos de Sell In       3.134.928 linhas de fato    25 meses (2024-09 a 2026-09)
 receita liquida              R$ 2.329.190.649,47
@@ -384,12 +392,28 @@ _arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
 | 09 | [Arquitetura](docs/09_ARQUITETURA_SOLUCAO.md) — escolha de tecnologia e cortes, com medida |
 | 10 | [Guia operacional](docs/10_GUIA_OPERACIONAL.md) — **comece por aqui para operar** |
 | 11 | [Resultado dos testes](docs/11_RESULTADO_DOS_TESTES.md) — T-01 a T-58 |
-| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a D-72, com o porquê (a D-72 vem precedida da análise que a sustentou) |
+| 12 | [Registro de decisões](docs/12_REGISTRO_DE_DECISOES.md) — D-01 a **D-80**, com o porquê (a D-72 vem precedida da análise que a sustentou; a D-80 é a padronização visual de 15/09) |
 | 13 | [Fluxo de geração do painel](docs/13_FLUXO_GERACAO_PAINEL.md) — ponta a ponta, sem ler código (+ [diagrama](docs/fluxo_geracao_painel.html)) |
 | 14 | [Cadência de atualização](docs/14_CADENCIA_DE_ATUALIZACAO.md) — Sell In diário; estáticas e o que refazer |
 | 15 | [Plano SharePoint](docs/15_PLANO_SHAREPOINT.md) — migração, limitações e **decisões em aberto** |
 | — | [AUDIT.md](AUDIT.md) — auditoria de 5 camadas com medição; achados, correções (✔) e o que ficou aberto |
 | — | [docs/pedidos/](docs/pedidos/) — material pronto para encaminhar ao Comercial e ao BI |
+
+## Roadmap — fechamento de 15/09/2026 (padronizacao visual)
+
+**Feito em 15/09 (D-80, aprovado item a item e publicado):** frente de
+padronizacao visual pelo template do Scorecard DN. 12 itens (V-01 a V-12) em 4
+ondas: paleta · cores do grafico (D-76 preservada) · escala tipografica ·
+raios, sombras e espacos · header em faixa azul com tag de contexto · abas em
+botao com role/aria · cards, blocos, tabelas e interativos · filtros na
+**opcao C** (barra de leitura sticky com Metrica/Comparar/Ver por + botao
+Filtros a esquerda + gaveta sobreposta de 300px; Canal e Categoria em lista
+com caixinhas) · linha de recorte ativo · impressao e telas estreitas.
+`posicionarFiltros()` saiu. Template 146,3 KB -> 158,1 KB; Full 19,59 MB.
+
+**Em aberto, por decisao do Douglas (docs/12 D-80):** chip em pilula x 8px do
+template · barra de abas sticky · navegacao das abas por setas · aviso de uma
+linha aos usuarios sobre a cara nova.
 
 ## Roadmap — fechamento de 08/09/2026
 

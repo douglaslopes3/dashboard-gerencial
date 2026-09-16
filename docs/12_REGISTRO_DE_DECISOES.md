@@ -2902,3 +2902,90 @@ Bandeira › Vend./RCA › Cliente na aba Bandeiras, para "quem atende esta rede
 duas. Perguntas pendentes: A', C ou ambas; cliente abre em categoria ou não;
 só N2/N3 ou Full/N1 também; na C, bandeira de um cliente só pula o nível
 vendedor como já pula o nível cliente.
+---
+
+## D-80 · Padronização visual pelo template do Scorecard DN (15/09/2026)
+
+**Pedido do Douglas.** Reaproveitar no Dashboard Gerencial o padrão visual, a
+identidade gráfica e a experiência de navegação de
+`Documentos\Painéis - Alavancas\DN\template\template.html` — **sem copiar a
+estrutura de conteúdo**. Diretrizes fixadas por ele: não alterar ordem de
+páginas, abas ou seções; não alterar a disposição de visuais, gráficos,
+tabelas, cards ou indicadores; não alterar fluxos de navegação; foco exclusivo
+em padronização visual e usabilidade. Governança: analisar, mapear, documentar
+e recomendar primeiro; **nada implementado sem aprovação explícita, item a
+item**; na dúvida, não alterar. Regra adicional dele: **backup da versão atual
+antes de qualquer alteração**, para poder voltar se a versão modificada não
+atender. Em 15/09 acrescentou que "o DN é só uma referência, quero o mais
+próximo possível mas não precisamos seguir à risca" — é o que autoriza as
+divergências abaixo.
+
+**Análise entregue antes de qualquer alteração.**
+`Plano_Padronizacao_Visual_Dashboard_Gerencial.md` (pasta Cowork): mapeamento
+dos componentes do template (header, abas, barra lateral de filtros, cards,
+blocos, tabelas, interativos), comparação com o `template_v4.html`, tabela de
+diferenças de token e 12 itens de adaptação (V-01 a V-12) em 4 ondas, cada um
+com motivo, benefício, impacto visual, impacto funcional, riscos e
+dependências. Todos foram aprovados individualmente; os aplicados estão
+comentados no próprio `template_v4.html`, ao lado do código que afetam.
+
+**O que foi aplicado.**
+
+| Item | Conteúdo |
+|---|---|
+| V-01 | Paleta do DN em `:root`: `--azul:#1E4FA1`, `--azul-esc:#16376E`, `--bd:#E30613`, `--gd:#00713A` + `--gd-marca:#009640`, `--acento:#B5720C` / `--acento-txt:#A56A00` / `--acento-bg:#FEF6E7`, `--txt:#1A1D2B`, `--txt2:#7A7F94`, `--txt3:#8C90A3`, `--linha:#E4E6ED`, `--bg:#F4F5F8`. 15 hex soltos passaram a usar as variáveis ou os tons do template |
+| V-11 | Trio da Evolução re-derivado **preservando a D-76**: Atual `#1E4FA1`, LY `#7895C7` (tint 40% do Atual), Meta `#B5720C`; rótulos do canvas acompanharam. Valores literais — canvas e Chart.js não resolvem `var(--…)` |
+| V-02 | Escala tipográfica: corpo 12,5 px · `h1` 16 px · rótulos 9,5 px/800 em caixa alta · chips 11 px · KPI 21 px (`letter-spacing:-.8px`) · tabela 11,5 px com `tabular-nums` · `th` 9,5 px |
+| V-03 | Dois patamares de raio — 8 px para controle, 12–14 px para superfície; sombra única `0 1px 2px rgba(20,30,60,.05)`; `gap` 10 px; corpo 16/20/60 |
+| V-04 | Header em **faixa azul de largura inteira**: `h1` branco com `small` (que recebe o recorte do colaborador nos arquivos N1–N3), **tag vermelha** com período e "atualizado em", e linha de apoio com meses, linhas de origem e janela de meta. O `padding` do `body` passou para um `.wrap` |
+| V-05 | Abas: `div` → `button` com `role="tab"`, `aria-controls` e `aria-selected`; painéis com `role="tabpanel"`. Botão arredondado, ativa em azul sólido, hover `#E8EDF7`, foco laranja `#E8710A`. **Opção B**: sem sticky e sem navegação por setas |
+| V-07 a V-10 | Destaque de KPI **neutro** (azul) · `.card h3` azul · `th` com borda de 2 px, marcadores ▲/▼ e `aria-sort` na ordenação · `tfoot` no padrão `tr.tot` · foco laranja padronizado em chips, botões, listas e busca · `.drill` na linguagem do `.dnlink` |
+| Item 7 (seção 6 do plano, **opção C**) | `.fbar` sticky com Métrica · Comparar · Ver por e o botão **Filtros à esquerda** (chevron ▸/▾ e badge de contagem); `.fgav` — gaveta de 300 px **sobreposta**, com Ano, Meses, Canal, Categoria, Head, Gerente, Sup./Exec., Vend./RCA e `Limpar filtros` / `Copiar recorte` no pé; fecha por clique fora, Esc ou ×. **Canal e Categoria viraram lista com caixinhas** (`.msel`), reaproveitando os mesmos chips de antes. `posicionarFiltros()` **removida** |
+| V-06 | O `.estado` saiu da gaveta e virou a linha `.ativos` sob a barra de leitura — mesmo texto, mesma fonte de dado, agora onde se olha |
+| V-12 | Corte de 700 px e regras de impressão: controles somem, a faixa azul imprime com a cor, as tabelas roláveis abrem por inteiro, **só a aba ativa é impressa** |
+
+**Divergências deliberadas do template**, cada uma com o porquê: verde em
+**dois tons**, porque `#009640` sobre branco dá 3,86:1 — abaixo do mínimo de
+4,5:1 — e "sobe/desce" é lido em 11,5 px, então o texto usa `#00713A` (6,13:1)
+e `#009640` fica para número grande · **piso de 9,5 px** nos rótulos, onde o DN
+usa 8,5–9 px, porque "Sup./Exec." e "Vend./RCA" ficam ilegíveis em monitor de
+1366 px · corpo de tabela 11,5 px e `th` 9,5 px, porque as células carregam
+texto ("R$ 7 mi", D-55) e não só dígitos · **zebra mantida**, porque as matrizes
+daqui são bem mais largas que as do DN · **grade fluida** de KPIs, porque a
+contagem de cards varia entre Full, N1, N2 e N3 · **sem `max-width`** (o DN usa
+1150 px), porque as matrizes precisam da largura inteira · gaveta
+**sobreposta** em vez da barra lateral fixa de 250 px, pelo mesmo motivo ·
+destaque de KPI **neutro**, porque ele marca a métrica selecionada e não um
+juízo de bom/ruim · **sem elevação** no hover dos cards, para não prometer
+clique que não existe · impressão **só da aba ativa**.
+
+**O que NÃO mudou.** A ordem das três abas (Visão Geral · Bandeiras ·
+Categorias); a disposição de cards, gráfico, rankings e matrizes dentro de
+cada aba; o drill por expansão (Head › Gerente › Sup./Exec. › Vend./RCA;
+Bandeira › Cliente › Categoria; Categoria › SKU); toda regra de cálculo; o
+recorte por nível; a formatação da D-55; as colunas da D-75; o período das
+colunas da D-79; a visibilidade da D-54; a cascata hierárquica e as listas
+suspensas da D-69; a proibição de elemento acinzentado da D-51; e os 73
+arquivos com seu destino de publicação. As únicas mudanças de JS reposicionam
+texto que já existia, declaram `aria-*` e trocam o painel viajante pela
+gaveta.
+
+**Processo seguido em cada item.** Backup → publicação desligada
+(`dashboard.publicacao.ativo: false`) → alteração → o Douglas roda
+`python run_dashboard.py` e confere a tela → "pode publicar" → publicação
+religada. Onze pontos de retorno em
+`_arquivo\backups-pre-fases\backup_2026-09-15_pre_visual\`: `template_v4.html`
+(original), `_pre_V02`, `_pre_V03`, `_pre_V04`, `_pre_V05`, `_pre_V07-V10`,
+`_pre_7a`, `_pre_7a2`, `_pre_msel`, `_pre_7b` e `_pre_V12`, mais o
+`config.yaml` original. **Reverter = restaurar o arquivo desejado e rodar
+`run_dashboard.py`** — a mudança é só de template, não há mais nenhuma etapa.
+Template de 146,3 KB → 158,1 KB; Full medido em 19,59 MB (teto 35 MB).
+
+**Em aberto, por decisão do Douglas — nenhuma é pendência técnica.**
+
+| # | Assunto | Situação |
+|---|---|---|
+| 1 | **Chip em pílula (raio 20 px) × 8 px do template** | adiado no V-03 ("pode deixar como está e ajustamos lá na frente"); reaberto no item 7 e ainda não decidido |
+| 2 | **Barra de abas sticky** | adiado no V-05, em que ele escolheu a opção B (estilo + ARIA, sem sticky) |
+| 3 | **Navegação das abas por setas do teclado** | adiado no V-05 — comportamento novo, pede item próprio |
+| 4 | **Aviso de uma linha aos usuários** sobre a cara nova e o painel de filtros em novo lugar | sugerido; texto ainda não redigido |
