@@ -212,11 +212,14 @@ suspensas de escolha única ("Todos" = sem filtro): é assim que um head vê um
 subordinado específico em qualquer aba, e um gerente vê um executivo. As
 listas só trazem quem tem dado no recorte; escolher um gerente encolhe a lista
 de Sup./Exec.; no arquivo de um Sup./Exec. só a linha de Vend./RCA aparece, e
-some se ele mesmo é o único vendedor (D-71). Na barra de Período, o seletor **Ver por** (Mês / Trimestre / Semestre /
-Ano) define a granularidade das colunas e das barras; grupo com menos meses
-que a granularidade pede sai rotulado **(parcial)** ou com `*`. O painel de
-filtros existe em todas as abas: abaixo do gráfico na Visão Geral, no topo
-nas demais.
+some se ele mesmo é o único vendedor (D-71). O seletor **Ver por** (Mês /
+Trimestre / Semestre / Ano) define a granularidade das colunas e das barras;
+grupo com menos meses que a granularidade pede sai rotulado **(parcial)** ou
+com `*`. **Onde estão (D-80, 15/09/2026):** Métrica, Comparar e Ver por ficam
+na barra fixa do topo, com o botão **Filtros** à esquerda (o número no botão
+é a quantidade de filtros ativos); o resto abre numa gaveta lateral, que fecha
+por clique fora, Esc ou ×. Canal e Categoria são listas com caixinhas. A barra
+e a gaveta são as mesmas nas três abas.
 
 **Botão que não tem dado atrás não aparece** (D-54): opção sem linha no
 recorte atual some; a que você já selecionou fica com o contador "0"; uma
@@ -233,12 +236,13 @@ em ` cx`; o preço médio (`R$ x,xx /kg`) nunca é abreviado.
 que está na tela (filtros valem; nas matrizes, as linhas visíveis na expansão
 atual), com **número como número** (sem "R$", decimal com ponto).
 
-**A linha azul de estado** sempre diz o que está ativo: métrica, base,
-período, quantos meses do ano anterior estão cobertos e os filtros ligados.
+**A linha de recorte ativo**, logo abaixo da barra do topo (D-80), sempre diz
+o que está ativo: métrica, base, período, quantos meses do ano anterior estão
+cobertos e os filtros ligados.
 
 **Sem notas de rodapé** (D-70): os cards não têm texto explicativo; o que
 importa está na tabela (rótulo da linha Σ, "Total geral (N de M exibidas)",
-`*` de período parcial) e na linha de estado.
+`*` de período parcial) e na linha de recorte ativo.
 
 **O que o painel declara na própria tela.**
 

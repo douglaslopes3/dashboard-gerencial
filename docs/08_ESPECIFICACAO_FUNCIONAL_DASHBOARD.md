@@ -15,7 +15,7 @@ no template.
 |---|---|---|---|
 | **Métrica** | fixo | 1 de 3 | Valor R$ · Volume (t) · Caixas |
 | **Comparar** (base de comparação) | fixo | **1 de 2** | YTD Fiscal · YTD Calendário. O LY está **embutido**: o período é a seleção de meses e o anterior são os mesmos meses do ano anterior (D-28) |
-| **Ver por** (granularidade) | fixo | 1 de 4 | Mês · Trimestre · Semestre · Ano (D-38), na barra de Período |
+| **Ver por** (granularidade) | fixo | 1 de 4 | Mês · Trimestre · Semestre · Ano (D-38); desde a D-80 vive na barra de leitura, ao lado de Métrica e Comparar |
 | **Ano** | `DIM_CALENDARIO.ANO_FISCAL_ROTULO` ou `ANO` | 1 | qual dos dois manda depende de "Comparar"; ver §1.1 |
 | **Meses** | `DIM_CALENDARIO` | N | multisseleção + `Todos` / `Nenhum`. D-74: mês que só tem **meta** (sem sell-in ainda) aparece com a marca "0" e o título "tem meta" |
 | **Canal** | `DIM_CLIENTE.CANAL` | N | de `bases/Canais/Canais.xlsx`, 100% de cobertura (D-19) |
@@ -24,6 +24,17 @@ no template.
 | **Gerente** | perfil do cubo (N2) | 1 (lista suspensa) | D-69: vale nas três abas; cascata pelo dado; some no arquivo em que só há uma opção |
 | **Sup./Exec.** | perfil do cubo (N3) | 1 (lista suspensa) | idem |
 | **Vend./RCA** | perfil do cubo (N4) | 1 (lista suspensa) | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível. Vendedor que é o próprio Sup./Exec. (mesma pessoa, D-71) não é opção |
+
+**Onde ficam (D-80, 15/09/2026).** Métrica, Comparar e Ver por estão na
+**barra de leitura** fixa no topo (`sticky`), junto com o botão **Filtros**
+(à esquerda, com o contador de filtros ativos). Os demais (Ano, Meses, Canal,
+Categoria, Head, Gerente, Sup./Exec., Vend./RCA, `Limpar filtros`, `Copiar
+recorte`) ficam numa **gaveta sobreposta** de 300 px que abre pelo botão e
+fecha por clique fora, Esc ou ×. Canal e Categoria são **listas com caixinhas**
+(o gatilho declara a seleção: "Todos" ou os itens marcados); Ano, Meses e Head
+seguem em chips. A gaveta nasce sempre fechada; o recorte vem do hash/`localStorage`
+como antes. Antes da D-80 esses filtros eram um painel que viajava entre as
+abas (`posicionarFiltros()`, removida).
 
 Saíram na D-51 (Q9) e não voltaram: Projeto e UF (o eixo UF saiu dos cubos,
 Q10; projeto continua no perfil do cubo, sem filtro na tela). Bandeira e SKU
@@ -64,8 +75,10 @@ pediu. Trocar a base recompõe a lista de anos; nada fica desabilitado.
   (N1/N2/N3) já nasce sem as dimensões que não existem no escopo dele
   (`filtrar_por_nivel`): não há filtro, link ou parâmetro capaz de trazer de
   volta o que não está no arquivo.
-* **Estado visível**: uma linha de status permanente diz o que está ativo, por
-  ex.: *"FY2026 · set/25–ago/26 · 3 categorias · 1 head · métrica: Valor R$"*.
+* **Estado visível**: uma linha de recorte ativo permanente, logo abaixo da
+  barra de leitura (D-80/V-06; antes ficava dentro do painel de filtros), diz o
+  que está ativo, por ex.: *"FY2026 · set/25–ago/26 · 3 categorias · 1 head ·
+  métrica: Valor R$"*.
 * **Título dinâmico**: cada card diz período e base de comparação; o título e o
   cabeçalho do arquivo declaram o recorte por colaborador.
 * **Nenhum elemento fica desabilitado ou acinzentado** em estado algum (D-51).
@@ -77,10 +90,12 @@ pediu. Trocar a base recompõe a lista de anos; nada fica desabilitado.
 
 ## 2. Abas
 
-O painel de filtros (com a barra de Período, o "Ver por" e a linha de estado)
-existe nas três abas: abaixo do gráfico de Evolução na Visão Geral, no topo nas
-demais. Toda navegação entre níveis é pela **expansão da matriz** (▸); não há
-drill-down nem "voltar".
+A barra de leitura, a gaveta de filtros e a linha de recorte ativo (D-80) são
+globais: valem nas três abas e ficam no mesmo lugar em todas (até a D-80 o
+painel de filtros ficava abaixo do gráfico de Evolução na Visão Geral e no
+topo nas demais). As abas são botões com `role="tab"` (D-80/V-05, sem barra
+fixa e sem navegação por setas: pontos em aberto). Toda navegação entre níveis
+é pela **expansão da matriz** (▸); não há drill-down nem "voltar".
 
 ### Aba 1 — Visão Geral
 
@@ -104,9 +119,10 @@ drill-down nem "voltar".
   direito saíram na **D-76** (um eixo só). **D-77:** a segunda linha nomeia
   o percentual ("Δ LY −88,7%", "ating. 9,6%") enquanto cabe na largura da
   barra; quando não cabe, vira marcador ("▼ −88,7%", "◎ 9,6%") e o título
-  do gráfico explica os marcadores. Cores (opção A, validadas): LY
-  azul médio `#5e94c9`, Atual azul Dori `#00539f`, Meta laranja queimado
-  `#c97b12`. Período sem par no LY fica **sem a barra clara e sem o Δ%**,
+  do gráfico explica os marcadores. Cores (opção A da D-76, re-derivadas
+  na **D-80/V-11** a partir da paleta do template DN, mesma estrutura): LY
+  azul médio `#7895C7` (tint 40% do Atual), Atual azul `#1E4FA1`, Meta âmbar
+  `#B5720C`. Período sem par no LY fica **sem a barra clara e sem o Δ%**,
   nunca zero. A granularidade é o "Ver por"; grupo incompleto sai
   **(parcial)**. **Meta
   (D-74):** barra âmbar à direita do Atual só nos grupos com mês de meta,
@@ -256,8 +272,9 @@ explicativas sob os cards. O que o painel declara, e onde:
 
 * **título e cabeçalho:** período coberto, execução e, nos arquivos por
   colaborador, o recorte (nível e nome);
-* **linha de estado:** métrica, base, período, quantos meses do LY estão
-  pareados e os filtros ativos (um só item hierárquico aparece pelo nome);
+* **linha de recorte ativo** (sob a barra de leitura, D-80): métrica, base,
+  período, quantos meses do LY estão pareados e os filtros ativos (um só item
+  hierárquico aparece pelo nome);
 * **dentro das tabelas:** rótulo da linha Σ com a contagem ("DEMAIS BANDEIRAS
   (N bandeiras)", "Sem estrutura comercial", "Inativos..."), rodapé "Total
   geral (N de M exibidas + síntese)" ou "(busca: N de M)", `*` no cabeçalho

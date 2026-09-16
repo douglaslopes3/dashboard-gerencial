@@ -1384,12 +1384,18 @@ def test_d74_template_mostra_meta_so_quando_o_periodo_tem():
                   'const ehMeta=ds.label==="Meta"', "atingSerie[c.dataIndex]"):
         assert termo in corpo, f"template v4 perdeu a D-74: {termo}"
     # D-76: um eixo so; a linha de Δ% saiu e virou rotulo/tooltip da barra
-    # Atual; cores da opcao A (validadas pelo kit de dataviz)
+    # Atual; cores da opcao A (validadas pelo kit de dataviz). D-80/V-11
+    # (15/09/2026): o trio foi re-derivado da paleta do template DN
+    # preservando a estrutura da D-76 (LY = tint do Atual, Meta ambar):
+    # Atual #1E4FA1, LY #7895C7, Meta #B5720C. Os hex antigos (#5e94c9,
+    # #00539f, #c97b12) NAO podem voltar.
     assert 'yAxisID:"y1"' not in corpo and 'label:"Δ% vs LY"' not in corpo, \
         "a linha de Δ% (e o segundo eixo) voltou ao grafico (D-76)"
-    for termo in ('backgroundColor:"#5e94c9"', 'backgroundColor:"#00539f"',
-                  'backgroundColor:"#c97b12"', "const d=variacao[c.dataIndex];"):
-        assert termo in corpo, f"template v4 perdeu a D-76: {termo}"
+    for termo in ('backgroundColor:"#7895C7"', 'backgroundColor:"#1E4FA1"',
+                  'backgroundColor:"#B5720C"', "const d=variacao[c.dataIndex];"):
+        assert termo in corpo, f"template v4 perdeu a D-76/V-11: {termo}"
+    for antigo in ("#5e94c9", "#00539f", "#c97b12"):
+        assert antigo not in corpo, f"cor pre-D-80 voltou ao template v4: {antigo}"
     # D-77: o percentual diz o que e ("Δ LY", "ating.") enquanto cabe na
     # barra (measureText); senao marcador (▲▼, ◎) + explicacao no titulo
     for termo in ("const cabe=txt=>g.measureText(txt).width<=slot-4;",

@@ -1297,3 +1297,36 @@ navegador, Full (http.server)    aba Categorias, soma da serie = coluna do ano
                                  out/26 · Visao Geral com a mesma serie · zero
                                  erro no console
 ```
+
+## T-65 · D-80: padronizacao visual pelo template do Scorecard DN (15/09/2026)
+
+```
+escopo                           so template_v4.html (CSS, marcacao, aria e o
+                                 reposicionamento de texto que ja existia);
+                                 gerador, cubos, regras e recorte intactos
+unitarios                        79 de 79 depois de a guarda da D-76 passar a
+                                 ler os tons re-derivados na V-11 (Atual
+                                 #1E4FA1, LY #7895C7, Meta #B5720C) e proibir
+                                 os hex antigos; antes da correcao: 78 de 79
+                                 (a guarda ainda pedia #5e94c9/#00539f/#c97b12)
+cenarios                         6 de 6 (pipeline final exit 0)
+build x publicado (15/09 18:35)  73 de 73 com MD5 identico
+                                 (Get-FileHash -LiteralPath); comparar_paineis
+                                 publicado x build: 73 de 73, 0 centavo em
+                                 total, mes e bandeira; SKU e dims identicos
+tamanho                          template 146,3 KB -> 158,1 KB; Full
+                                 20.544.514 bytes (19,59 MB; teto 35 MB)
+navegador, Full (http.server)    faixa azul com tag de periodo; abas em botao
+                                 com aria-selected (Visao Geral ativa); barra
+                                 de leitura sticky com "▸ Filtros" + Metrica
+                                 Valor (R$); linha de recorte ativo "Valor (R$)
+                                 · YTD Fiscal (set→) · periodo: set/25 a ago/26
+                                 (12 meses) · LY: 12 de 12 meses cobertos ·
+                                 meta: nenhum mes selecionado tem meta"; KPI
+                                 R$ 1,2 bi (LY R$ 1,1 bi, ▲ +4,4%); gaveta abre
+                                 pelo botao com Ano, Meses, Canal, Categoria,
+                                 Head, Gerente, Sup./Exec., Vend./RCA e fecha
+                                 por Esc; console: "abertura 8497 ms · heap 443
+                                 MB · cubo 735.371 + sku 688.167 + meta
+                                 146.106 linhas", zero erro
+```
