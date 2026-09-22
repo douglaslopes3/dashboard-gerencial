@@ -3122,3 +3122,134 @@ template e rodar `run_dashboard.py`.
 e do ajuste da matriz: 73 arquivos gerados e publicados nas pastas, MD5
 idêntico ao build em 73/73 (`Get-FileHash -LiteralPath`). Publicação
 automática LIGADA de novo: todo `run_dashboard.py` republica.
+
+---
+
+## PROPOSTA APROVADA, AINDA NÃO EXECUTADA · Filtros de Bandeira e Cliente na barra lateral (22/09/2026, opção A do Douglas)
+
+**Pedido (22/09/2026).** "Estou sentindo falta dos filtros de bandeira e
+cliente aqui na lateral; avalie se faz sentido; não execute nada sem minha
+permissão." Análise entregue no mesmo dia; ele escolheu a **opção A** e pediu
+o registro aqui e no README. **Nenhum código foi alterado**; a rodada abre
+só com novo ok dele.
+
+### O que existe e o que falta
+
+- Bandeira e cliente só existem como **busca** dentro do card da aba
+  Bandeiras (D-66 e D-78). A busca filtra aquela tabela e nada mais: os KPIs,
+  a Evolução, a matriz hierárquica, ganhos/quedas e as metas não mudam.
+  "Quanto do meu número é Atacadão" ou "como está o cliente X no ano" não tem
+  resposta no painel de hoje. É a mesma lacuna que a D-69 fechou para
+  Gerente/Sup./Vend.
+- A barra lateral (D-81) tem hoje Ano, Meses, Canal, Categoria, Head,
+  Gerente, Sup./Exec. e Vend./RCA; `DIMS_FILTRO = cat, can, head, ger, sup,
+  vend`; `passaPrincipal` decide categoria + perfil e `passaSku` o mesmo no
+  cubo de SKU.
+
+### Medido em 22/09/2026 (build de 15/09, 73 arquivos, fato de 3.180.977 linhas)
+
+**Custo zero nas duas primeiras abas.** Bandeira (índice 1) e cliente (índice
+4) já estão no cubo principal e no cubo de meta de **todos** os 73 arquivos
+(`filtrar_por_nivel` reindexa os dois). O filtro é só template, como Canal e
+a D-69: vale para KPIs, Evolução, matriz hierárquica, ganhos/quedas, aba
+Bandeiras e metas sem 1 byte a mais.
+
+**Custo alto na aba Categorias.** A matriz Categoria › SKU e os
+ganhos/quedas de SKU leem o cubo de SKU, que **não tem bandeira nem cliente**
+(a D-64 tirou a bandeira de lá de propósito). Devolver os eixos custaria:
+
+| Cubo de SKU | Linhas (base inteira) | Só Atacado | Efeito no Full (19,6 MB hoje, teto 35 MB) |
+|---|---|---|---|
+| como está (mês × SKU × perfil) | 694.480 | 512.060 | 0 |
+| + bandeira | 1.937.296 | 1.589.113 | cerca de +16 MB (13 bytes/linha em gzip+base64), estoura o teto |
+| + cliente | 3.180.977 | 1.814.858 | cerca de +32 MB, inviável |
+
+Com cliente o cubo vira o próprio fato (uma linha por mês × cliente × SKU).
+Nos N3 caberia na maioria (Atacado, mediana por supervisor 55.933 linhas),
+mas RS/SC iria a 521.643 (+6,8 MB num arquivo de 4,2 MB). Não dá para
+prometer o filtro na aba Categorias em todos os arquivos.
+
+**Tamanho das listas** (o widget precisa aguentar dois mundos):
+
+| Arquivo | Bandeiras | Clientes | Bandeiras com mais de um cliente |
+|---|---|---|---|
+| Full | 10.369 | 14.597 | 744 |
+| N1 Atacado | 9.489 | 11.147 | 541 |
+| N1 KA Nacional | 16 | 776 | 7 |
+| N2 mediana (máx Sul/CO) | 23 (3.415) | 399 (4.094) | 14 (233) |
+| N3 mediana (máx RS/SC) | 6 (2.930) | 50 (3.339) | 3 (180) |
+
+Três N3 do KA Nacional têm **uma** bandeira (Assaí, Atacadão): a linha some
+pela D-54. Lista suspensa igual à de Gerente serve nos N3, mas é inusável
+com 10 mil opções no Full e no Atacado.
+
+### Opções apresentadas (22/09/2026)
+
+| Opção | Escopo | Custo | Leitura |
+|---|---|---|---|
+| **A (escolhida)** | Bandeira e Cliente na barra, valendo em Visão Geral, Bandeiras e metas; a aba Categorias **avisa na tela** que esses dois filtros não se aplicam ao SKU (precedente D-19: "o painel não finge que o filtro foi aplicado") | só template, 0 MB, 73 arquivos | recomendada |
+| B | A + eixo bandeira no cubo de SKU | Full estoura o teto; só com dois formatos de cubo (N2/N3 com, Full/N1 sem) | não agora |
+| C | só Bandeira, sem Cliente | igual à A, lista menor | meio-termo; o cliente é a unidade do vendedor (D-56) |
+| D | não fazer, ficar com a busca da aba Bandeiras | nada | não resolve KPIs e Evolução |
+
+### Como ficaria (opção A)
+
+1. **Duas linhas novas na barra lateral, abaixo de Vend./RCA:** "Bandeira" e
+   "Cliente", escolha única cada, "Todos" = sem filtro. Estado em `F.ban` e
+   `F.cli` (Set vazio ou com um índice), entram em `DIMS_FILTRO`, no
+   "Limpar filtros", no contador da barra e no nome do export.
+2. **Widget:** caixa de busca com sugestões (as primeiras N que casam, sem
+   acento e sem caixa, por rótulo da bandeira e por código ou nome do
+   cliente), reaproveitando `semAcento` e `BAN_CLIS`. Nos arquivos com poucas
+   opções pode degradar para a lista suspensa da D-69; a decidir na rodada.
+   Regra D-54 igual às outras linhas: só opções com dado no recorte, a
+   escolhida fica mesmo com "(0)", linha some com menos de duas.
+3. **Cascata:** bandeira escolhida restringe a lista de clientes aos dela;
+   cliente escolhido implica a bandeira (o cubo garante). Clientes RTM
+   aparecem como a linha acumulada "RTM (soma de N clientes)" da D-72, não um
+   a um.
+4. **Predicados:** `passaPrincipal` ganha `F.ban`/`F.cli` (índices 1 e 4;
+   `ignorar` continua valendo para o denominador da participação); o cubo de
+   meta usa os mesmos índices, então metas e atingimento seguem o filtro.
+   `passaSku` **não muda**.
+5. **Aba Categorias:** com bandeira ou cliente ativo, aviso fixo no card
+   ("Os filtros de Bandeira e Cliente não se aplicam a esta aba: o cubo de SKU
+   não tem esses eixos, D-64") e os números da aba seguem sem esses dois
+   filtros. A linha de recorte ativo sob a barra de leitura diz a mesma coisa.
+6. **Aba Bandeiras:** bandeira filtrada fora do Top N do Full/N1 aparece
+   mesmo assim (como a busca já faz, D-66); a busca da caixa continua
+   funcionando por cima do filtro.
+7. **Recorte salvo e link "Copiar recorte":** bandeira pelo rótulo, cliente
+   pelo código (os índices mudam de arquivo para arquivo, como Gerente já é
+   salvo pelo nome). Chave do localStorage sobe de versão só se o formato
+   antigo quebrar a leitura.
+8. **Teste:** guarda nova (`DIMS_FILTRO` com `ban`/`cli`, `passaSku` sem
+   eles, aviso presente no card de Categorias) e cenário no navegador: Full
+   com bandeira ATACADAO = soma das linhas dela na aba Bandeiras; N3 com
+   cliente único = KPI igual à linha do cliente.
+
+### Riscos mapeados
+
+- **Leitura errada na aba Categorias**: alguém lê o SKU achando que está
+  filtrado por bandeira. Mitigação = aviso no card + linha de recorte; é o
+  mesmo desenho da D-19.
+- **Widget novo** (busca com sugestões) é a única peça de UI que não existe
+  no template; o resto é reuso da D-69.
+- **Desempenho no Full/Atacado**: montar sugestões sobre 14.597 clientes por
+  tecla; medir (limite de N sugestões e índice pronto na carga).
+
+### Rodada sugerida (quando ele der o ok)
+
+`publicacao.ativo: false` antes de qualquer build (publicação automática está
+LIGADA); template + teste + docs/08, 10, 11, 12 e README no mesmo turno;
+build, conferência no navegador em Full, N1 Atacado, N2 e N3; ok dele; religar
+e publicar com MD5 73/73 e `comparar_paineis.py` (0 centavo esperado, é só
+template).
+
+### Decisões pendentes (viram a D-82)
+
+1. Widget único de busca com sugestões nos 73 arquivos, ou lista suspensa
+   quando há poucas opções (sugiro o limite em 50).
+2. Texto do aviso na aba Categorias.
+3. Se o filtro de cliente oferece a linha "RTM (soma de N clientes)" como
+   opção ou só clientes nominais (sugiro oferecer).
