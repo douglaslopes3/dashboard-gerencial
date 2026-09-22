@@ -1428,6 +1428,8 @@ arquivo grande)                  modo BUSCA; "rtm" -> "nada encontrado neste
                                  FY2027 com o filtro: meta R$ 20.631,45 =
                                  soma da meta por bandeira ignorando o filtro
                                  (cubo de meta segue passaPrincipal)
-publicacao                       NAO feita; aguarda o "pode publicar" do
-                                 Douglas depois da conferencia dele na tela
+publicacao ("pode publicar"      religada; 73 arquivos nas pastas; MD5
+do Douglas, 22/09)               identico ao build em 73/73; comparar_paineis
+                                 publicado x build 73/73, 0 centavo; publicacao
+                                 automatica LIGADA
 ```

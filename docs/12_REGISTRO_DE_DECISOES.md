@@ -3316,10 +3316,13 @@ lista, N3 RS/SC em modo busca; zero erro de console nos três arquivos.
 linha):** widget = lista até 50 opções, busca acima (`LISTA_MAX`); texto do
 aviso = o do `#avisoCatg`; RTM = linha acumulada como opção.
 
-**Publicação.** Desligada em `b40f50d`; build feito e conferido; **NÃO
-publicada**: aguarda o "pode publicar" do Douglas depois da conferência dele
-na tela. Ao religar: `run_dashboard.py`, MD5 73/73 publicado = build,
-`ferramentas/comparar_paineis.py` (0 centavo esperado: só template).
+**Publicação.** Desligada em `b40f50d`; build feito e conferido; código,
+teste e docs commitados em `03e5d8b`. **RELIGADA e PUBLICADA em 22/09/2026
+com o "pode publicar" do Douglas:** 73 arquivos gerados nas pastas (72 por
+usuário + Full em `Dashboard - Full\`), MD5 idêntico ao build em 73/73,
+`ferramentas/comparar_paineis.py` publicado × build 73/73 com 0 centavo de
+desvio (só template mudou). Publicação automática LIGADA de novo: todo
+`run_dashboard.py` republica. Pendente dele: o aviso aos usuários (abaixo).
 
 **Aviso aos usuários (texto proposto):** "O Dashboard Gerencial ganhou dois
 filtros na barra lateral, Bandeira e Cliente: escolha um e os números, o

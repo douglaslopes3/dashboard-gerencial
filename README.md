@@ -25,8 +25,8 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 > Backups em `_arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/`.
 >
 > **22/09/2026 — D-82:** filtros de **Bandeira** e **Cliente** na barra lateral
-> (opção A do Douglas). Build feito e conferido; **publicação desligada até o
-> ok dele**. Detalhes: docs/12 D-82, docs/11 T-67.
+> (opção A do Douglas). **Publicada em 22/09 com o ok dele** (73/73 MD5 = build).
+> Detalhes: docs/12 D-82, docs/11 T-67.
 
 ```
 29 arquivos de Sell In       3.134.928 linhas de fato    25 meses (2024-09 a 2026-09)
@@ -436,9 +436,9 @@ principal e no de meta (KPIs, Evolucao, matriz, ganhos/quedas, Bandeiras,
 metas); a aba Categorias le o cubo de SKU sem esses eixos (D-64) e AVISA em
 vez de fingir. Recorte/link guardam rotulo da bandeira e codigo do cliente.
 Medido: KPI = soma da linha ao centavo (Full, N3 pequeno, N3 RS/SC, meta);
-81/81; build 73 em 22,9 s, Full 19.77 MB. **Publicacao DESLIGADA, NAO
-publicada: aguarda o "pode publicar" dele.** Texto do aviso aos usuarios em
-docs/12 D-82. Backup em `_arquivo/backups-pre-fases/backup_2026-09-22_pre_D82/`.
+81/81; build 73 em 22,9 s, Full 19.77 MB. **PUBLICADA em 22/09 com o "pode
+publicar" dele: 73/73 MD5 = build, comparar_paineis 0 centavo; publicacao
+automatica LIGADA.** Pendente dele: aviso aos usuarios (texto em docs/12 D-82). Backup em `_arquivo/backups-pre-fases/backup_2026-09-22_pre_D82/`.
 
 ## Roadmap — fechamento de 08/09/2026
 
@@ -472,7 +472,7 @@ explicado no título do gráfico.
 | **D-78 (08/09 à tarde, PUBLICADA com o ok)** | busca por cliente na aba Bandeiras: a mesma caixa acha a bandeira pelo rótulo ou por qualquer cliente dela (código ou nome); bandeira achada por cliente abre mostrando só os clientes que casam. 73/73 publicados idênticos ao build | feito |
 | **D-79 (11/09, PUBLICADA com o ok)** | as colunas de mês das três matrizes seguem o filtro de período (meses selecionados, pelo "Ver por"), como o gráfico de Evolução; antes eram sempre os 12 últimos meses do arquivo (nov/25 a out/26). Soma da série = coluna do ano em 5 recortes; 79/79 + 6/6. Dados iguais ao publicado anterior (comparar_paineis 73/73, 0 centavo); publicação religada ("pode publicar"), 73/73 publicados idênticos ao build (MD5) | feito |
 | **Reavaliar após a carga de 16/09/2026** (nova Hierarquia_Consolidada, clientes e metas, pelo Douglas) | as duas propostas abaixo e a regra do nível N4 por head (medido em 15/09: vendedor como pessoa só existe no Atacado, 9 de 18 executivos com equipe, R$ 278,3 mi; no KA Nacional o N4 é a rede por UF, R$ 248 mi; Distribuição e KA Regional já recolhem pela D-71; opções A/B/C em docs/12, "Proposta em aberto · Vendedor × Bandeira") | depois da carga |
-| **D-82 (22/09/2026, opção A do Douglas; EXECUTADA, build feito, AGUARDA o ok dele para publicar)** | filtros de **Bandeira** e **Cliente** na barra lateral, escolha única (lista suspensa até 50 opções, busca com sugestões acima disso), valendo em Visão Geral, aba Bandeiras e metas (só template, 0 MB: os dois já são índices do cubo principal e do de meta nos 73 arquivos); a aba Categorias **avisa** que os dois não se aplicam ao SKU (D-64). Medido 22/09: KPI filtrado = soma da linha ao centavo no Full, no N3 pequeno e no N3 RS/SC (inclusive a meta); 81/81; Full 19.77 MB. Publicação DESLIGADA (`b40f50d`). Análise, opções e desenho em docs/12 ("Proposta aprovada" + D-82); T-67 em docs/11 | **Douglas** confere na tela e diz "pode publicar"; então religar, publicar, MD5 73/73, comparar_paineis |
+| **D-82 (22/09/2026, opção A do Douglas; EXECUTADA e PUBLICADA com o "pode publicar" dele: 73/73 MD5 = build, comparar_paineis 0 centavo)** | filtros de **Bandeira** e **Cliente** na barra lateral, escolha única (lista suspensa até 50 opções, busca com sugestões acima disso), valendo em Visão Geral, aba Bandeiras e metas (só template, 0 MB: os dois já são índices do cubo principal e do de meta nos 73 arquivos); a aba Categorias **avisa** que os dois não se aplicam ao SKU (D-64). Medido 22/09: KPI filtrado = soma da linha ao centavo no Full, no N3 pequeno e no N3 RS/SC (inclusive a meta); 81/81; Full 19.77 MB. Publicação automática LIGADA de novo. Análise, opções e desenho em docs/12 ("Proposta aprovada" + D-82); T-67 em docs/11 | **Douglas** manda o aviso de uma linha aos usuários (texto em docs/12 D-82) |
 | **Próxima rodada** (decisão dele) | canal como dimensão (análise pronta em docs/12 "Proposta em aberto", 08/09: só template, custo zero de MB, recomendação B = matriz Canal › Categoria na Visão Geral; ele decidiu NÃO abrir por ora); Vendedor × Bandeira para o N3 (análise em docs/12 "Proposta em aberto": bandeira não pode ficar sob o vendedor porque mais de um a atende; unidade do vendedor é o cliente: A' Vend./RCA › Cliente ou C Bandeira › Vend./RCA › Cliente; ele decidiu NÃO abrir por ora) | quando ele pedir |
 
 **Feito em 03 e 04/09 (D-54 a D-71, tudo publicado em 04/09 ~00:25):**
