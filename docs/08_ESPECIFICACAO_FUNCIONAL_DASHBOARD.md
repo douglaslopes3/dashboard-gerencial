@@ -24,11 +24,13 @@ no template.
 | **Gerente** | perfil do cubo (N2) | 1 (lista suspensa) | D-69: vale nas três abas; cascata pelo dado; some no arquivo em que só há uma opção |
 | **Sup./Exec.** | perfil do cubo (N3) | 1 (lista suspensa) | idem |
 | **Vend./RCA** | perfil do cubo (N4) | 1 (lista suspensa) | idem; no arquivo de um Sup./Exec. é o único filtro hierárquico visível. Vendedor que é o próprio Sup./Exec. (mesma pessoa, D-71) não é opção |
+| **Bandeira** | `DIM_CLIENTE.BANDEIRA` (índice 1 do cubo principal e do de meta) | 1 (lista suspensa até 50 opções com dado; acima disso, caixa de busca com sugestões) | **D-82** (22/09/2026): vale em Visão Geral, Bandeiras e metas; **não** vale na aba Categorias (o cubo de SKU não tem o eixo, D-64), que mostra um aviso. A lista ignora o filtro de Cliente |
+| **Cliente** | `DIM_CLIENTE` (índice 4 do cubo principal e do de meta, D-72) | 1 (idem) | **D-82**: idem; a lista segue a bandeira escolhida; clientes RTM aparecem como a linha acumulada da D-72. Recorte e link guardam o código |
 
 **Onde ficam (D-80 e D-81, 15/09/2026).** Métrica, Comparar e Ver por estão
 na **barra de leitura** fixa (`sticky`) logo abaixo das abas. Os demais (Ano,
-Meses, Canal, Categoria, Head, Gerente, Sup./Exec., Vend./RCA, `Limpar
-filtros`, `Copiar recorte`) ficam na **barra lateral fixa** de 250 px à
+Meses, Canal, Categoria, Head, Gerente, Sup./Exec., Vend./RCA, Bandeira,
+Cliente, `Limpar filtros`, `Copiar recorte`) ficam na **barra lateral fixa** de 250 px à
 esquerda, no padrão do Scorecard DN (D-81): começa aberta, o botão « a recolhe
 para um trilho de 46 px que mostra só o » e o contador vermelho dos filtros
 ativos; o conteúdo desloca. O estado aberta/recolhida fica no navegador
@@ -43,7 +45,13 @@ Saíram na D-51 (Q9) e não voltaram: Projeto e UF (o eixo UF saiu dos cubos,
 Q10; projeto continua no perfil do cubo, sem filtro na tela). Bandeira e SKU
 são dimensões das abas Bandeiras e Categorias, com **busca** própria (D-66).
 Gerente, Sup./Exec. e Vend./RCA voltaram na **D-69** como filtros globais: é
-como o head vê um subordinado específico em qualquer aba.
+como o head vê um subordinado específico em qualquer aba. Bandeira e Cliente
+viraram filtros globais na **D-82** (22/09/2026, opção A do Douglas): valem
+no cubo principal e no de meta (KPIs, Evolução, matriz hierárquica,
+ganhos/quedas, aba Bandeiras, metas). A aba Categorias lê o cubo de SKU, que
+não tem esses eixos (D-64): com um dos dois ativo ela mostra um aviso no topo
+e segue sem os dois; os demais filtros valem lá normalmente. O painel não
+finge (precedente D-19).
 
 ### 1.1 Ano fiscal e ano calendário — comportamento declarado
 

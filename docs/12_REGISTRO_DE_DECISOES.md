@@ -3125,7 +3125,7 @@ automática LIGADA de novo: todo `run_dashboard.py` republica.
 
 ---
 
-## PROPOSTA APROVADA, AINDA NÃO EXECUTADA · Filtros de Bandeira e Cliente na barra lateral (22/09/2026, opção A do Douglas)
+## PROPOSTA APROVADA · Filtros de Bandeira e Cliente na barra lateral (22/09/2026, opção A do Douglas; EXECUTADA na D-82, abaixo)
 
 **Pedido (22/09/2026).** "Estou sentindo falta dos filtros de bandeira e
 cliente aqui na lateral; avalie se faz sentido; não execute nada sem minha
@@ -3253,3 +3253,79 @@ template).
 2. Texto do aviso na aba Categorias.
 3. Se o filtro de cliente oferece a linha "RTM (soma de N clientes)" como
    opção ou só clientes nominais (sugiro oferecer).
+
+---
+
+## D-82 · Filtros de Bandeira e Cliente na barra lateral (22/09/2026, opção A do Douglas)
+
+**Pedido.** "Estou sentindo falta dos filtros de bandeira e cliente aqui na
+lateral" (22/09/2026, com captura da barra). Análise e opções na seção
+"Proposta aprovada" logo acima; ele escolheu a **opção A**, pediu o registro
+(commit `4440867`) e depois "pode abrir a rodada da D-82, desliga a publicação
+primeiro". Publicação desligada em commit próprio (`b40f50d`) antes de
+qualquer build.
+
+**Decisão.** Bandeira e Cliente viram **filtros globais de escolha única** na
+barra lateral, abaixo de Vend./RCA, aplicados **só no cubo principal e no de
+meta** (índices 1 e 4, presentes nos 73 arquivos): valem em KPIs, Evolução,
+matriz hierárquica, ganhos/quedas, aba Bandeiras e metas. A aba **Categorias**
+lê o cubo de SKU, que não tem esses eixos (D-64): **não aplica os dois e
+avisa** na tela (aviso laranja no topo da aba + nota na linha de estado),
+precedente D-19 ("o painel não finge que o filtro foi aplicado"). Custo de
+dado: zero (só template).
+
+**Como ficou (template `template_v4.html`).**
+
+1. Estado `F.ban`/`F.cli` (Set de um índice), `DIMS_FILTRO` com 8 dimensões
+   (o "Limpar filtros", o contador da barra e o export leem daí).
+2. `passaPrincipal` ganhou os dois testes; `ignorar` aceita `"ban"`, `"cli"`
+   e `"ban+cli"`. `passaSku` **não muda** (guarda no teste). O cubo de meta
+   já passa por `passaPrincipal`, então metas e atingimento seguem o filtro.
+3. Opções (D-54): `OPC.ban` é montado ignorando **ban+cli** (escolher um
+   cliente não esconde a linha Bandeira); `OPC.cli` ignora só **cli** (a
+   lista de clientes segue a bandeira escolhida). Bandeira de um cliente só:
+   a linha Cliente some (menos de duas opções).
+4. Widget `filtroBuscavel`: até `LISTA_MAX = 50` opções com dado, a mesma
+   lista suspensa da D-69 (`listaSuspensa` ganhou `rot` e devolve as
+   opções); acima disso, caixa de busca com sugestões (`ligarSugestoes`:
+   `SUG_MAX = 30` itens, sem acento via `semAcento`, quem **começa** com o
+   texto vem antes de quem só o contém, "Todos (limpar)" quando há escolha,
+   Enter = primeira sugestão, Esc fecha, apagar o texto e sair da caixa
+   limpa; `mousedown` com `preventDefault` para o blur não fechar antes do
+   clique). Ordem alfabética decidida uma vez na carga (`ORD_BAN`/`ORD_CLI`,
+   `ausenciaPorUltimo`).
+5. Linha de estado: "bandeira <nome> · cliente <código - nome>" e, com um dos
+   dois ativo, "(Bandeira/Cliente não valem na aba Categorias)". Aviso
+   `#avisoCatg` no topo da aba Categorias.
+6. Recorte salvo e link: bandeira pelo **rótulo**, cliente pelo **código**
+   (índices mudam por arquivo); o que não existe no arquivo é descartado em
+   silêncio, como a D-69. Chave do localStorage segue v5 (recorte antigo sem
+   os campos continua legível). Nome do export ganha `slug(bandeira)` e o
+   código do cliente.
+7. Clientes RTM: aparecem como a linha acumulada "RTM (soma de N clientes)"
+   da D-72, nunca um a um (é o que o cubo tem).
+
+**Medido (T-67 em docs/11).** 81/81 unitários; build 73 arquivos em 22,9 s,
+Full 19.77 MB (template 167.6 KB); Full no navegador: 8.390 bandeiras e
+12.020 clientes com dado no período (modo busca), KPI com bandeira ATACADAO
+= R$ 85.705.934,68 = soma da linha, cliente 1000816 = R$ 97.130,17 = soma da
+linha, meta FY27 no RS/SC segue o filtro ao centavo; N3 pequeno em modo
+lista, N3 RS/SC em modo busca; zero erro de console nos três arquivos.
+
+**Decisões pendentes da proposta, fechadas por padrão (mudam com uma
+linha):** widget = lista até 50 opções, busca acima (`LISTA_MAX`); texto do
+aviso = o do `#avisoCatg`; RTM = linha acumulada como opção.
+
+**Publicação.** Desligada em `b40f50d`; build feito e conferido; **NÃO
+publicada**: aguarda o "pode publicar" do Douglas depois da conferência dele
+na tela. Ao religar: `run_dashboard.py`, MD5 73/73 publicado = build,
+`ferramentas/comparar_paineis.py` (0 centavo esperado: só template).
+
+**Aviso aos usuários (texto proposto):** "O Dashboard Gerencial ganhou dois
+filtros na barra lateral, Bandeira e Cliente: escolha um e os números, o
+gráfico, a matriz e a meta passam a ser só daquela bandeira ou cliente. Na
+aba Categorias esses dois filtros não se aplicam, e a aba avisa."
+
+**Backup** em `_arquivo/backups-pre-fases/backup_2026-09-22_pre_D82/`
+(`template_v4_pre_D82.html`, `config_pre_D82.yaml`). Reverter = restaurar o
+template e rodar `run_dashboard.py`.

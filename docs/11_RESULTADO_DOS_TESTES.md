@@ -1370,3 +1370,64 @@ publicacao (21h46, "pode          73 de 73 arquivos com MD5 identico ao build
 publicar" do Douglas)            (Get-FileHash -LiteralPath); publicacao
                                  automatica LIGADA
 ```
+
+## T-67 · D-82: filtros de Bandeira e Cliente na barra lateral (22/09/2026)
+
+```
+escopo                           so template_v4.html (+ teste); gerador, cubos
+                                 e regras intactos; config: publicacao
+                                 DESLIGADA (commit proprio) antes do build
+unitarios                        81 de 81 (novo: guarda D-82 — F.ban/F.cli,
+                                 passaPrincipal com indices 1 e 4, OPC.cli,
+                                 filtroBuscavel, LISTA_MAX 50 / SUG_MAX 30,
+                                 linhas frowBan/frowCli com select + caixa,
+                                 aviso #avisoCatg, recorte ban/cli, ligarLista
+                                 com parse, ligarSugestoes; passaSku SEM F.ban
+                                 e F.cli; D-69 passa a exigir os 8 DIMS_FILTRO)
+sintaxe                          node --check nos 3 blocos <script> inline: ok
+build                            73 arquivos, exit 0, 22,9 s; Full 19.77 MB
+                                 (template 167.6 KB); publicado NAO tocado
+                                 (Full das pastas segue com o mtime de 21/09
+                                 09:21 e o tamanho antigo)
+navegador, Full                  zero erro de console; linhas Bandeira e
+                                 Cliente em modo BUSCA (8.390 bandeiras e
+                                 12.020 clientes com dado em set/25-ago/26,
+                                 de 10.369/14.597 do arquivo); "atacad" ->
+                                 ATACADAO primeiro (prefixo antes de "ADONAI
+                                 ATACADISTA"); Enter escolhe; KPI Valor =
+                                 R$ 85.705.934,68 = soma da linha ATACADAO
+                                 (somar por bandeira ignorando o filtro), ao
+                                 centavo; lista de clientes cai para 404 (modo
+                                 busca); cliente 1000816 ATACADAO S.A. -> KPI
+                                 R$ 97.130,17 = soma da linha do cliente;
+                                 badge 2; linha de estado "filtros: bandeira
+                                 ATACADAO · cliente 1000816 - ATACADAO S.A.
+                                 (Bandeira/Cliente nao valem na aba
+                                 Categorias)"; link #r= leva ban:["ATACADAO"]
+                                 e cli:["1000816"], recarga restaura; export
+                                 tabGeral_atacadao_1000816_ytd-fiscal_2026-08;
+                                 "Todos (limpar)" limpa o cliente; apagar o
+                                 texto + sair da caixa limpa a bandeira; Esc
+                                 fecha sem escolher; Limpar filtros zera os 8
+aba Bandeiras (filtro ATACADAO)  matriz com 1 linha (▸ ATACADAO)
+aba Categorias (filtro ativo)    aviso laranja visivel no topo; matriz segue
+                                 com as 12 categorias (cubo de SKU sem os
+                                 eixos, D-64)
+navegador, N3 Amanda Duarte      6 bandeiras / 9 clientes: as duas linhas em
+(KA Regional, arquivo pequeno)   modo LISTA (select "Todos" + opcoes com
+                                 rotulo); cliente 1003101 JAD ZOGHEIB pela
+                                 lista -> KPI R$ 42.812,29 = soma da linha;
+                                 linha Bandeira continua visivel (a lista de
+                                 bandeiras ignora o filtro de cliente)
+navegador, N3 RS/SC (Atacado,    2.508 bandeiras / 2.794 clientes com dado:
+arquivo grande)                  modo BUSCA; "rtm" -> "nada encontrado neste
+                                 recorte" (nao ha RTM no Atacado); "super" ->
+                                 26 sugestoes, SUPER COMERCIAL/SUPER DALPOZZO
+                                 antes de PRASS SUPER; bandeira de 1 cliente
+                                 escolhida -> linha Cliente some (D-54);
+                                 FY2027 com o filtro: meta R$ 20.631,45 =
+                                 soma da meta por bandeira ignorando o filtro
+                                 (cubo de meta segue passaPrincipal)
+publicacao                       NAO feita; aguarda o "pode publicar" do
+                                 Douglas depois da conferencia dele na tela
+```

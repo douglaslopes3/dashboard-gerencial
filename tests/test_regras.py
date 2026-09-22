@@ -859,7 +859,7 @@ def test_d69_filtro_hierarquico_vale_nos_dois_cubos():
     for termo in ("function passaPerfil", 'id="fGer"', 'id="fSup"', 'id="fVend"',
                   "F.ger.has(p[P_GER])", "F.sup.has(p[P_SUP])",
                   "F.vend.has(p[P_VEND])", "ger:[...F.ger]",
-                  'DIMS_FILTRO = ["cat","can","head","ger","sup","vend"]'):
+                  'DIMS_FILTRO = ["cat","can","head","ger","sup","vend","ban","cli"]'):
         assert termo in corpo, f"template v4 perdeu o filtro hierarquico: {termo}"
     # lista suspensa (decisao de 04/09), alimentada pelo perfil do cubo (D-54)
     assert "function listaSuspensa" in corpo
@@ -1430,6 +1430,40 @@ def test_d81_template_barra_lateral_chips_abas():
     for antigo in ("abrirGaveda", "abrirGaveta", "fBack", "fFechar", "atualizarToggle",
                    '.fbtn', 'id="fGaveta" hidden', ".chip{border:1px solid #BBCAE3;background:#F4F6FA;border-radius:20px"):
         assert antigo not in corpo, f"a gaveta sobreposta / chip em pilula voltou (D-81): {antigo}"
+
+
+def test_d82_filtros_bandeira_e_cliente_na_barra_lateral():
+    """D-82 (22/09/2026, opcao A do Douglas): Bandeira e Cliente sao filtros
+    globais de escolha unica na barra lateral, aplicados SO no cubo principal
+    e no de meta (indices 1 e 4). O cubo de SKU nao tem os eixos (D-64):
+    `passaSku` nao pode aplica-los e a aba Categorias avisa. Ate LISTA_MAX
+    opcoes a linha e lista suspensa (D-69); acima, busca com sugestoes."""
+    corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
+    for termo in ('ban:new Set(), cli:new Set(),',
+                  'F.ban.has(l[1])', 'F.cli.has(l[4])',
+                  'if(passaPrincipal(l, "ban+cli")) ban.add(l[1]);',
+                  'if(passaPrincipal(l, "cli"))   cli.add(l[4]);',
+                  'OPC = {can, cat, head, ger, sup, vend, ban, cli, mes, mesMeta, ano, fy};',
+                  'const LISTA_MAX = 50, SUG_MAX = 30;',
+                  'function filtroBuscavel(base, idLinha, itens, comDado, sel, rot)',
+                  'filtroBuscavel("fBan", "frowBan", ORD_BAN, OPC.ban, F.ban, i=>D.ban[i]);',
+                  'filtroBuscavel("fCli", "frowCli", ORD_CLI, OPC.cli, F.cli, rotCli);',
+                  '<select class="lista" id="fBanSel">', '<select class="lista" id="fCliSel">',
+                  '<input class="busca" id="fBan"', '<input class="busca" id="fCli"',
+                  '<div class="aviso" id="avisoCatg" hidden>',
+                  'el("avisoCatg").hidden = !semSku;',
+                  'ban:[...F.ban].map(i=>D.ban[i]),', 'cli:[...F.cli].map(i=>D.cli[i][0]),',
+                  'setDe(F.ban, r.ban, x=>idx(D.ban,x));',
+                  'ligarLista("fBanSel","ban",v=>+v); ligarLista("fCliSel","cli",v=>+v);',
+                  'ligarSugestoes("fBan","ban",()=>ORD_BAN,i=>D.ban[i]);',
+                  'ligarSugestoes("fCli","cli",()=>ORD_CLI,rotCli);'):
+        assert termo in corpo, f"template v4 perdeu a D-82: {termo}"
+    # o cubo de SKU continua sem os dois filtros (D-64): passaSku so tem perfil e categoria
+    ini = corpo.index("function passaSku(l, ignorar){")
+    fim = corpo.index("}", corpo.index("return true;", ini))
+    trecho = corpo[ini:fim]
+    assert "F.ban" not in trecho and "F.cli" not in trecho, "passaSku nao pode filtrar bandeira/cliente (D-64/D-82)"
+    assert "F.cat.has(D.sku[l[1]][2])" in trecho
 
 
 # ================================================================== runner

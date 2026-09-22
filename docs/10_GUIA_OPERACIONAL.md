@@ -224,6 +224,18 @@ caixinhas. As abas ficam fixas no topo ao rolar e, com o foco nelas, as setas
 do teclado trocam de aba. Barra lateral e barra de leitura são as mesmas nas
 três abas.
 
+**Bandeira e Cliente (D-82, 22/09/2026).** Duas linhas abaixo de Vend./RCA,
+escolha única. Com até 50 opções com dado a linha é uma lista suspensa como a
+de Gerente; com mais, uma caixa de busca: digite parte do nome (ou o código do
+cliente) e escolha na lista de sugestões (quem começa com o texto vem
+primeiro; Enter pega a primeira; Esc fecha; "Todos (limpar)" ou apagar o
+texto e sair da caixa limpam o filtro). Escolher uma bandeira encolhe a lista
+de clientes aos dela. Os dois valem em Visão Geral, Bandeiras e nas metas, e
+entram no recorte salvo, no link "Copiar recorte" e no nome do arquivo
+exportado. Na aba **Categorias** eles **não** valem (os dados por SKU não são
+abertos por bandeira nem por cliente) e um aviso laranja no topo da aba diz
+isso; período, canal, categoria e hierarquia seguem valendo lá.
+
 **Botão que não tem dado atrás não aparece** (D-54): opção sem linha no
 recorte atual some; a que você já selecionou fica com o contador "0"; uma
 linha de filtro com menos de duas opções sai inteira; `Limpar filtros` só
