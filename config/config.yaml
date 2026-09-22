@@ -455,7 +455,12 @@ dashboard:
     # RELIGADA em 15/09 (21h46) com o "pode publicar" do Douglas, depois da
     # conferencia dele na tela e do ajuste da matriz (card com min-width:0):
     # a geracao leva a D-81 inteira para os 73 arquivos.
-    ativo: true
+    # DESLIGADA em 22/09/2026 para a rodada D-82 (filtros de Bandeira e
+    # Cliente na barra lateral, opcao A do Douglas): os 73 arquivos ja estao
+    # compartilhados e toda geracao substitui. Backup pre-D82 em
+    # _arquivo/backups-pre-fases/backup_2026-09-22_pre_D82/. Religar so com
+    # o "pode publicar" dele, depois da conferencia na tela.
+    ativo: false
     destino: "../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
     # destino e passa a ser gravado nesta subpasta, porque ele precisou
