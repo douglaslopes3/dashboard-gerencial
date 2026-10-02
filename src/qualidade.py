@@ -406,7 +406,7 @@ def _secao_metas(linha, fato_meta, dim_cliente, meta_metas: dict,
     linha("## 11. Metas por cliente (D-74)")
     linha()
     if fato_meta is None or fato_meta.empty:
-        linha("Sem base de metas nesta execução (`bases/Metas/` vazia): o "
+        linha("Sem base de metas nesta execução (nenhum `Metas_*.xlsx` em `../bases compartilhadas/`, D-87): o "
               "painel sai **sem meta** — ausência, nunca zero.")
         linha()
         return

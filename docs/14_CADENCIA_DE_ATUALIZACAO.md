@@ -161,6 +161,6 @@ depois.
 
 ### 2.8 O que NÃO dispara nada
 
-`bases/Metas/` não tem leitor desde a D-49; Sell Out, Previsão, Estoque,
+As metas (`Metas_*.xlsx`) são lidas desde a D-74 e ficam em `../bases compartilhadas/` desde a D-87: substituir o arquivo muda o Gerencial E o ROTA. Sell Out, Previsão, Estoque,
 Alavancas e scorecards-comerciais estão em `_arquivo/bases-fora-do-escopo/`
 (D-53). Atualizá-los não muda o painel gerencial.

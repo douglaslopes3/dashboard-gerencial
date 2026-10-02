@@ -75,7 +75,7 @@ def main() -> int:
     avisos_negocio += avisos_rtm
     faltando, avisos_falt = cadastros.ler_faltando()
     avisos_negocio += avisos_falt
-    # D-74 (08/09/2026): metas por cliente x categoria x mes (bases/Metas).
+    # D-74 (08/09/2026): metas por cliente x categoria x mes (../bases compartilhadas/Metas_*.xlsx, D-87).
     # Fonte opcional: sem arquivo o painel sai sem meta, com aviso.
     fato_meta, meta_metas, avisos_metas = metas.ler()
     avisos_negocio += avisos_metas

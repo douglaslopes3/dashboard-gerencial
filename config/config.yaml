@@ -207,9 +207,12 @@ fontes:
   #   - meta negativa entra como esta (Q1) e sai listada em
   #     data/quality/metas_negativas*.csv;
   #   - sem arquivo nenhum o painel roda SEM meta (ausencia, nunca zero).
+  # D-87 (02/10/2026, Douglas): o arquivo de metas passou para a pasta
+  # COMPARTILHADA com o ROTA (que le dele a meta do sell-in por loja). Como a
+  # pasta tem outras bases, o padrao agora exige o prefixo `Metas_`.
   metas:
-    pasta: "bases/Metas"
-    padroes_aceitos: ["*.xlsx", "*.xlsm"]
+    pasta: "../bases compartilhadas"
+    padroes_aceitos: ["Metas_*.xlsx", "Metas_*.xlsm"]
     # null = primeira aba (o nome da aba carrega o ano fiscal: "Metas FY27").
     aba: null
     colunas_obrigatorias: ["CÓDIGO CLIENTE", "CATEGORIA", "Período", "Tipo Meta", "Valor"]

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Leitura das METAS por cliente (D-74, 08/09/2026) -> FATO_META.
 
-Formato do arquivo (`bases/Metas/Metas_FY'27.xlsx`, medido em 08/09/2026):
+Formato do arquivo (`Metas_FY'27.xlsx`, medido em 08/09/2026; desde a D-87 em `../bases compartilhadas/`):
 uma linha por CLIENTE x CATEGORIA x PERIODO x TIPO DE META, com o valor na
 coluna `Valor`. E o formato certo para crescer: mes novo e linha nova, nunca
 coluna nova. O leitor devolve a FATO_META LARGA — uma linha por (ANO_MES,

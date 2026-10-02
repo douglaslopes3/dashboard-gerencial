@@ -3512,3 +3512,22 @@ DIM_CALENDARIO, FATO_META e FATO_SELLIN idênticas exceto `DIM_CLIENTE.DISTRIBUI
 em 146 clientes RTM ("DISPAN DISTRIBUIDORA DE PRODUTOS LT" → "DISPAN") e a linha
 correspondente do relatório de qualidade. Nada da tela muda; 83/83 testes
 (novo `test_d86_...`). Sem publicação nova.
+
+## D-87 · Arquivo de metas na pasta compartilhada com o ROTA (02/10/2026)
+
+**Pedido.** O Douglas decidiu que o ROTA lê a meta do sell-in de cada loja do
+mesmo arquivo de metas do Gerencial (D-52 do ROTA), em vez do orçado do export
+do BI, que deixava de fora 12 lojas da rota (R$ 145.410,53 em set/26).
+
+**Feito.** `Metas_FY'27.xlsx` saiu de `bases/Metas/` (pasta removida) para
+`../bases compartilhadas/`, MD5 igual (`43578f7a…`). `fontes.metas.pasta` aponta
+para lá e `padroes_aceitos` passou a `Metas_*.xlsx`/`Metas_*.xlsm`, porque a
+pasta tem as outras bases comuns. Mensagens do relatório de qualidade e
+docstrings atualizadas.
+
+**Medido.** `run_pipeline.py` exit 0; FATO_META (176.840 pares, set/26
+R$ 122.594.233,85 e out/26 R$ 120.033.623,75) e DIM_CLIENTE idênticas às de
+antes. Nada da tela muda; sem publicação nova.
+
+**Regra a partir de agora.** Revisão de meta = substituir o `Metas_*.xlsx` na
+pasta compartilhada; o mesmo mês em dois arquivos aborta nos dois painéis.

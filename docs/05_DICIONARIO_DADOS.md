@@ -126,7 +126,7 @@ SKU que aparece no sell-in e não está no cadastro entra com
 `FORA_DO_CADASTRO = true`, usando descrição e categoria do próprio sell-in e
 `MARCA` nula.
 
-## 3b. `bases/Metas/*.xlsx` → `FATO_META` (D-74, 08/09/2026)
+## 3b. `../bases compartilhadas/Metas_*.xlsx` → `FATO_META` (D-74, 08/09/2026; pasta compartilhada com o ROTA desde a D-87)
 
 > A `FATO_META` da D-43 (grão head × bandeira × categoria, rota A) saiu na
 > D-49. A tabela de hoje é a da **D-74**: meta por **cliente**, cruzada pela

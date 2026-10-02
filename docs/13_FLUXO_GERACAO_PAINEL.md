@@ -39,7 +39,7 @@
 
 **O que NÃO entra:** Sell Out (MTRIX/FEMSA/KAN), Previsão, Estoque, Alavancas
 e o arquivo de Metas foram para `_arquivo/bases-fora-do-escopo/` (D-53) ou
-ficaram em `bases/Metas/` sem leitor (D-49). Nenhum é lido.
+ficaram em `bases/Metas/` sem leitor (D-49). Nenhum é lido. As METAS voltaram na D-74 (`Metas_FY'27.xlsx`) e, desde a D-87 (02/10/2026), ficam em `../bases compartilhadas/` — lidas também pelo ROTA.
 
 ---
 

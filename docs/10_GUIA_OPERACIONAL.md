@@ -294,12 +294,14 @@ pipeline com as bases reais. Nada sintético sobrevive.
 
 ```
 bases/Sell In/              origem (somente leitura)
-bases/Canais/, bases/Metas/  canal por cliente e metas FY27
+bases/Canais/              canal por cliente
 ../bases compartilhadas/     Hierarquia_AAAAMMDD (N1-N4, vale a mais recente)
                             e Estrutura de Clientes_AAAAMMDD (bandeira do
                             cadastro), comuns ao DN e ao ROTA (D-83, 02/10/2026);
                             Produtos e RTM_DePara_Transicao (de-para cliente ->
-                            distribuidor, D-50), comuns ao DN (D-85, 02/10/2026)
+                            distribuidor, D-50), comuns ao DN (D-85, 02/10/2026);
+                            Distribuidores_DePara (D-86) e Metas_*.xlsx (D-87,
+                            comum ao ROTA)
 _arquivo/bases-fora-do-escopo/ copias antigas (Consolidada e Faltando ate a D-83;
                             Produtos e RTM do Gerencial ate a D-85)
 data/raw/sell_in/           pasta do ciclo diario
