@@ -156,6 +156,9 @@ no período) e o sell-in tem duas que o cadastro não tem, nos 7 SKUs órfãos.
 
 ### 2.2 `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` (D-34, D-50, D-56)
 
+> **02/10/2026 (D-83):** a `Hierarquia_Consolidada.xlsx` deixou de ser lida. A hierarquia vem da `Hierarquia_AAAAMMDD.xlsx` mais recente em `../bases compartilhadas/` (comum ao DN e ao ROTA; aba `Hierarquia Vendas`, 1 linha por cliente, N1 a N4 com código e nome, rótulo "código - nome") e a bandeira do cadastro da `Estrutura de Clientes_AAAAMMDD.xlsx` da mesma pasta. O texto abaixo descreve a base anterior (histórico). Ver docs/12 D-83.
+
+
 Substituiu o `DePara_Estrutura_Comercial.xlsx` em 28/08/2026 (D-34) e, desde
 a D-56 (03/09/2026), é a **única fonte** da estrutura comercial: o complemento
 foi aposentado (D-49) e o desempate dos 13 clientes com dois códigos N4 foi
@@ -293,6 +296,9 @@ não é usada para isso (a herdada é a do distribuidor no sell-in), e a bandeir
 de origem fica em `DIM_CLIENTE.BANDEIRA_ORIGINAL`.
 
 ### 2.7 `bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx` (D-50, 02/09/2026)
+
+> **02/10/2026 (D-83, opção B do Douglas):** base DESLIGADA no config (`fontes.hierarquia_faltando: {}`); a hierarquia nova cobre 849 dos 850 clientes. Texto abaixo = histórico.
+
 
 Saneamento da hierarquia: 850 clientes sem vínculo, coluna `Hierarquia` com
 **SIM (70)** / **NÃO (780)**. SIM deve constar da Hierarquia_Consolidada

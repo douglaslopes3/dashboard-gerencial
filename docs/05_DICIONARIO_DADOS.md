@@ -34,6 +34,9 @@ relatório de valores não reconhecidos. Toda correção de rótulo é **declara
 
 ## 2. `Hierarquia_Consolidada.xlsx` → `DIM_CLIENTE` (D-34; única fonte desde a D-56)
 
+> **02/10/2026 (D-83):** a `Hierarquia_Consolidada.xlsx` deixou de ser lida. A hierarquia vem da `Hierarquia_AAAAMMDD.xlsx` mais recente em `../bases compartilhadas/` (comum ao DN e ao ROTA; aba `Hierarquia Vendas`, 1 linha por cliente, N1 a N4 com código e nome, rótulo "código - nome") e a bandeira do cadastro da `Estrutura de Clientes_AAAAMMDD.xlsx` da mesma pasta. O texto abaixo descreve a base anterior (histórico). Ver docs/12 D-83.
+
+
 Os cabeçalhos do arquivo têm quebra de linha interna — o leitor normaliza todo
 espaçamento para um espaço antes de validar. Cada nível vira **um rótulo**
 concatenando `código - papel - nome` com `" - "` (parte vazia é omitida).

@@ -869,24 +869,24 @@ def test_d69_filtro_hierarquico_vale_nos_dois_cubos():
 
 def test_d71_vendedor_que_e_o_proprio_sup_nao_desce_um_nivel():
     """D-71: a flag do perfil (posicao 6) marca o Vend./RCA que e a mesma
-    pessoa do Sup./Exec. (pelo NOME; codigo e papel sempre diferem). O
+    pessoa do Sup./Exec. (pelo NOME; o codigo sempre difere). O
     template usa a flag para nao expandir a linha e nao oferecer o vendedor
     no filtro. Rotulos de ausencia nunca casam."""
     from src.load import cubos
     fato, dim_cli, dim_prod, dim_cal = _mini_modelo()
     dim = dim_cli.copy()
-    # clientes 1-2: sup e vendedor sao a MESMA pessoa (nomes iguais, codigos e
-    # papeis diferentes, um deles com " - " dentro dos colchetes)
-    dim.loc[dim["COD_CLIENTE"].isin(["1", "2"]), "SUPERVISOR"] = "1100 - Superv_X - [VAGO - JOAO 1]"
-    dim.loc[dim["COD_CLIENTE"].isin(["1", "2"]), "VENDEDOR"] = "900 - TT Superv_X - [VAGO - JOAO 1]"
+    # clientes 1-2: sup e vendedor sao a MESMA pessoa (nomes iguais, codigos
+    # diferentes; D-83: rotulo "codigo - nome", nome com " - " dentro)
+    dim.loc[dim["COD_CLIENTE"].isin(["1", "2"]), "SUPERVISOR"] = "1100 - JOAO - FILIAL 1"
+    dim.loc[dim["COD_CLIENTE"].isin(["1", "2"]), "VENDEDOR"] = "900 - JOAO - FILIAL 1"
     pac = cubos.construir(fato, dim, dim_prod, dim_cal)
     assert all(len(p) == 7 for p in pac["dims"]["perfil"])
     flags = {(p[2], p[5]): p[6] for p in pac["dims"]["perfil"]}
-    assert flags[("1100 - Superv_X - [VAGO - JOAO 1]", "900 - TT Superv_X - [VAGO - JOAO 1]")] == 1
-    assert all(v == 0 for k, v in flags.items() if k[0] != "1100 - Superv_X - [VAGO - JOAO 1]")
+    assert flags[("1100 - JOAO - FILIAL 1", "900 - JOAO - FILIAL 1")] == 1
+    assert all(v == 0 for k, v in flags.items() if k[0] != "1100 - JOAO - FILIAL 1")
     assert cubos._mesma_pessoa("NÃO ATRIBUÍDO", "NÃO ATRIBUÍDO") is False
-    assert cubos._mesma_pessoa("2140 - Exec TA_SPC - RONALDO SILVA",
-                               "540 - TT Rep DAT - (540) Rep DAT") is False
+    assert cubos._mesma_pessoa("2140 - RONALDO SILVA",
+                               "540 - REP DAT") is False
     corpo = _sem_comentarios(_ler_templates()["template_v4.html"])
     assert "P_VEND_E_SUP=6" in corpo and "vendEhSup(pf)) caminho.pop()" in corpo
 

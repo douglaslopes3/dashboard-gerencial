@@ -109,6 +109,9 @@ depois.
 
 ### 2.2 `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` (D-34, D-50, D-56)
 
+> **02/10/2026 (D-83):** a `Hierarquia_Consolidada.xlsx` deixou de ser lida. A hierarquia vem da `Hierarquia_AAAAMMDD.xlsx` mais recente em `../bases compartilhadas/` (comum ao DN e ao ROTA; aba `Hierarquia Vendas`, 1 linha por cliente, N1 a N4 com código e nome, rótulo "código - nome") e a bandeira do cadastro da `Estrutura de Clientes_AAAAMMDD.xlsx` da mesma pasta. O texto abaixo descreve a base anterior (histórico). Ver docs/12 D-83.
+
+
 | | |
 |---|---|
 | **O que caracteriza alteração** | troca de head/gerente/sup./exec./vendedor de um cliente; cliente novo; posto que fica vago ou é preenchido; mudança de projeto; correção de duplicidade (como o desempate dos 13 clientes com dois códigos N4, incorporado na origem em 03/09/2026, D-56) |
@@ -125,6 +128,9 @@ depois.
 | **Atenção** | o cliente RTM herda do distribuidor hierarquia, canal, projeto **e bandeira** (D-59, parâmetro `saneamento.rtm_herda_bandeira`); o distribuidor precisa ter sell-in próprio para ceder o perfil, senão o cliente vira exceção |
 
 ### 2.4 `bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx` (D-50)
+
+> **02/10/2026 (D-83, opção B do Douglas):** base DESLIGADA no config (`fontes.hierarquia_faltando: {}`); a hierarquia nova cobre 849 dos 850 clientes. Texto abaixo = histórico.
+
 
 | | |
 |---|---|

@@ -1433,3 +1433,12 @@ do Douglas, 22/09)               identico ao build em 73/73; comparar_paineis
                                  publicado x build 73/73, 0 centavo; publicacao
                                  automatica LIGADA
 ```
+
+## T-68 · D-83: hierarquia comum, rótulo "código - nome", saneamento desligado (02/10/2026)
+
+- `python tests/test_regras.py`: **81 de 81** (teste da D-71 reescrito com rótulo de duas partes).
+- `run_pipeline.py`: exit 0; hierarquia vigente `Hierarquia_20261001.xlsx`; Estrutura de Clientes 16.171 clientes (3.505 clientes da hierarquia sem linha nela); cobertura da estrutura 99,94% (piso 95%); canal 99,98%; saneamento sem inativos nem pendentes (base Faltando desligada); 647 perfis, 86 com Vend./RCA = Sup./Exec. (D-71); fato 3.226.678 linhas.
+- `run_dashboard.py`: 74 arquivos, Full 20,10 MB; particionamento N1/N2/N3 e da meta fecham; publicados 74/74 com MD5 = build.
+- `ferramentas/diagnostico_cobertura.py`: 99,94%, 17.922 clientes na hierarquia, 16.180 casam (99,8% dos que faturam).
+- Receita out/25 a set/26 por head antes × depois na tabela da D-83 (total igual, R$ 1.172,62 mi).
+- Não rodados: `tests/cenarios.py` (publicação ligada) e conferência no navegador.

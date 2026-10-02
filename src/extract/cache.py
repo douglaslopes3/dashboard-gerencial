@@ -19,6 +19,9 @@ Checagem que não roda é pior do que checagem que não existe, porque dá a sen
 de proteção.
 
 v1 (26/08/2026) — versão inicial deste projeto.
+v8 (02/10/2026) — D-83: o leitor da estrutura passou a ler a Hierarquia_AAAAMMDD
+   (rotulo "codigo - nome", sem PROJETO) e a bandeira do cadastro vem da Estrutura
+   de Clientes. Um cache v7 entregaria os rotulos antigos.
 v7 (02/09/2026) — D-50: o leitor da estrutura passou a montar o VENDEDOR (N4)
    como quarto nível concatenado. Um cache v6 entregaria a estrutura SEM a
    coluna — e o fillna mascararia todo mundo como NÃO ATRIBUÍDO (aconteceu na
@@ -58,7 +61,7 @@ import pandas as pd
 from ..utils.config import PASTA_STAGING, RAIZ
 from ..utils.log import log
 
-VERSAO_CACHE = 7
+VERSAO_CACHE = 8
 
 _KB64 = 65536
 

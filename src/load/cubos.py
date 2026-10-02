@@ -61,10 +61,10 @@ def _indexar(valores) -> tuple[list, dict]:
 
 
 def _nome_do_rotulo(rotulo) -> str:
-    """Nome de pessoa de um rotulo "codigo - papel - nome" (cadastros.py).
-    Split em no maximo 2 separadores: o nome pode conter " - " dentro de
-    colchetes ("[VAGO - FRANCISCO 1]") e tem de ficar inteiro."""
-    partes = str(rotulo).split(" - ", 2)
+    """Nome de pessoa de um rotulo "codigo - nome" (D-83, cadastros.py).
+    Split so no 1o separador: o nome pode conter " - " ("JOSE CARLOS - LUNIER")
+    e tem de ficar inteiro. (Ate a D-83 o rotulo era "codigo - papel - nome".)"""
+    partes = str(rotulo).split(" - ", 1)
     return partes[-1].strip().upper()
 
 

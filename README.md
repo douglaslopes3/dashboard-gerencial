@@ -12,6 +12,15 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 
 ---
 
+> **02/10/2026 — D-83 (PUBLICADA):** hierarquia nova comum ao DN e ao ROTA
+> (`../bases compartilhadas/Hierarquia_AAAAMMDD.xlsx`, a mais recente; bandeira do
+> cadastro pela `Estrutura de Clientes_AAAAMMDD.xlsx`), rótulo **"código - nome"**
+> nos 4 níveis, PROJETO fora, saneamento pela `Hierarquia_Clientes_Faltando`
+> desligado, pastas de `Painéis Comerciais/Gerencial` renomeadas pelo código.
+> Cobertura da estrutura 97,65% → **99,94%**; 74 arquivos publicados (MD5 74/74).
+> O projeto mora em `Documentos/PAINÉIS - SCORECARDS/` desde 02/10. Detalhes:
+> docs/12 D-83, docs/11 T-68. Os números abaixo são de 08/09 (base anterior).
+
 ## Estado atual — medido em 08/09/2026 (execucao 20260908-105634; ago/26 fechado + set/26 parcial; metas set+out/26)
 
 > **15/09/2026 — IDENTIDADE VISUAL NOVA (D-80).** O painel foi padronizado pelo

@@ -140,7 +140,7 @@ válido.
 | `X linha(s) fora do grao declarado` | o mesmo mês/cliente/SKU aparece duas vezes (segunda defesa, para arquivo sem rodapé de filtro) | idem: a mensagem nomeia a chave e os arquivos |
 | `a fato NAO bate com a linha 'Total' da fonte` | a soma dos dados não fecha com o rodapé do próprio arquivo | o arquivo veio truncado ou foi editado. Peça a reextração |
 | `integridade referencial: ... fora de DIM_...` | chave órfã | não deveria acontecer (as dimensões adotam órfãos). Se acontecer, é bug: abra o log |
-| `cobertura da estrutura comercial ... (piso: 95%)` | a `Hierarquia_Consolidada.xlsx` deixou de cobrir a receita | rode `python ferramentas/diagnostico_cobertura.py`: ele diz quem ficou fora e se a causa é a **cascata do RTM** (distribuidor removido da hierarquia arrasta os 1.596 clientes RTM que apontam para ele; foi o caso de 03/09/2026, D-61) ou a chave que parou de casar. Corrija a base; **não** afrouxe `validacao.cobertura_minima_head` para o número passar |
+| `cobertura da estrutura comercial ... (piso: 95%)` | a hierarquia (`../bases compartilhadas/Hierarquia_AAAAMMDD.xlsx` mais recente, D-83; antes a `Hierarquia_Consolidada.xlsx`) deixou de cobrir a receita | rode `python ferramentas/diagnostico_cobertura.py`: ele diz quem ficou fora e se a causa é a **cascata do RTM** (distribuidor removido da hierarquia arrasta os 1.596 clientes RTM que apontam para ele; foi o caso de 03/09/2026, D-61) ou a chave que parou de casar. Corrija a base; **não** afrouxe `validacao.cobertura_minima_head` para o número passar |
 | `cobertura de canal ... (piso: 95%)` | o `Canais.xlsx` deixou de casar com os clientes | conferir se o arquivo mudou de layout (código zero-preenchido é o caso clássico) |
 | `cubos.json e resumo.json vem de execucoes DIFERENTES` | gravação anterior interrompida no meio | rode `python run_pipeline.py` de novo antes de gerar o painel |
 | `nao foi possivel apagar ... OneDrive` | o sincronizador está segurando o arquivo | pause a sincronização e rode de novo |
@@ -295,10 +295,12 @@ pipeline com as bases reais. Nada sintético sobrevive.
 ```
 bases/Sell In/              origem (somente leitura)
 bases/RTM-Transicao/        de-para cliente -> distribuidor (D-50)
+../bases compartilhadas/     Hierarquia_AAAAMMDD (N1-N4, vale a mais recente)
+                            e Estrutura de Clientes_AAAAMMDD (bandeira do
+                            cadastro), comuns ao DN e ao ROTA (D-83, 02/10/2026)
 bases/Bases para tabelas dimensões/
-                            Hierarquia_Consolidada (N1-N4, unica fonte da
-                            estrutura, D-56), Hierarquia_Clientes_Faltando
-                            (saneamento), Produtos
+                            Produtos; Hierarquia_Consolidada e
+                            Hierarquia_Clientes_Faltando sem uso desde a D-83
 data/raw/sell_in/           pasta do ciclo diario
 data/staging/               cache de leitura (pode apagar; sera refeito)
 data/curated/               modelo estrela + cubos  <- o que o painel consome

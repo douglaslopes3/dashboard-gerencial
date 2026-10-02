@@ -9,6 +9,7 @@ ainda via o antigo.
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -23,6 +24,7 @@ _EST = CFG["fontes"]["estrutura_comercial"]
 _CAN = CFG["fontes"]["canais"]
 _RTM = CFG["fontes"].get("rtm_transicao") or {}
 _FALT = CFG["fontes"].get("hierarquia_faltando") or {}
+_ECL = CFG["fontes"].get("estrutura_clientes") or {}
 _DIMCFG = CFG["dimensoes"]["estrutura_comercial"]
 
 
@@ -171,82 +173,121 @@ def _conferir_assinatura_canais(filtro: str | None) -> list[str]:
 
 
 # ------------------------------------------------------- ESTRUTURA COMERCIAL
-# Cada nivel da Hierarquia_Consolidada vira UM rotulo: codigo + papel + nome,
-# unidos por " - " (D-34). A parte vazia e omitida — ha 106 linhas de gerente
-# sem nome, e o codigo+papel seguram o rotulo sozinhos.
-_NIVEIS = {
-    "HEAD": ["(N1) CÓDIGO HEAD", "CRIAR NO BI (N1) HEAD", "(N1) NOME HEAD"],
-    "GERENTE": ["(N2) CÓDIGO GERENTE", "(N2) GERENTE", "(N2) NOME GERENTE"],
-    "SUPERVISOR": ["(N3) CÓDIGO SUP./EXEC.", "(N3) SUP./EXEC.",
-                   "(N3) NOME SUP./EXEC."],
-    # D-50 (Fase 2): o N4 passou a ser ingerido — nivel de ponta da matriz.
-    "VENDEDOR": ["(N4) CÓDIGO VEND./RCA", "(N4) VEND./RCA",
-                 "(N4) NOME VEND./RCA"],
-}
+# D-83 (02/10/2026): a hierarquia oficial e a Hierarquia_AAAAMMDD.xlsx da pasta
+# compartilhada com o DN e o ROTA; a bandeira do cadastro vem da Estrutura de
+# Clientes_AAAAMMDD.xlsx da mesma pasta. Vale o arquivo de data mais recente no
+# NOME; arquivo do padrao sem data AAAAMMDD valida ABORTA (uma copia de conflito
+# do OneDrive, "Hierarquia_20261001 (1).xlsx", nao vira desempate silencioso).
+def arquivo_datado(cfg: dict, chave_cfg: str) -> Path | None:
+    pasta = caminho(cfg["pasta"])
+    if not pasta.is_dir():
+        return None
+    rx = re.compile(cfg["data_regex"])
+    datas: dict[datetime, Path] = {}
+    fora: list[str] = []
+    for a in sorted(pasta.glob(cfg["padrao"])):
+        if a.name.startswith("~$"):
+            continue
+        m = rx.match(a.name)
+        try:
+            d = datetime.strptime(m.group(1), "%Y%m%d") if m else None
+        except ValueError:
+            d = None
+        if d is None:
+            fora.append(a.name)
+        else:
+            datas[d] = a
+    if fora:
+        abortar(f"arquivo(s) fora do padrao {cfg['data_regex']} em {pasta}:\n    "
+                + "\n    ".join(fora) + "\n  Renomeie para o padrao com a data "
+                f"AAAAMMDD ou tire da pasta (config/config.yaml -> fontes.{chave_cfg}).")
+    return datas[max(datas)] if datas else None
 
 
-def _rotulo_concatenado(df: pd.DataFrame, cols: list[str]) -> pd.Series:
-    out: pd.Series | None = None
-    for c in cols:
-        s = texto(df[c], maiuscula=False)
-        out = s.fillna("") if out is None else out + (" - " + s).fillna("")
-    return out.str.strip(" -").replace({"": pd.NA})
+# Cada nivel vira UM rotulo "codigo - nome" (D-83, mesmo formato do DN e do
+# ROTA). O nome e limpo so quando termina com "(codigo)" igual ao codigo da
+# linha: sai o "(codigo)" e o "_" inicial. Fora disso entra como veio (ex.:
+# "(5000 ) SUP. SPC (KA/VJ)", "KAN_VAGO").
+def _nome_limpo(cod: pd.Series, nome: pd.Series) -> tuple[pd.Series, pd.Series]:
+    partes = nome.str.extract(r"^_?(.+?)\s*\(\s*(\d+)\s*\)$")
+    casa = partes[0].notna() & (partes[1] == cod)
+    return nome.where(~casa, partes[0].str.strip()), casa.fillna(False)
 
 
 def _ler_estrutura(arq: Path) -> tuple[pd.DataFrame, dict]:
     df = _ler_aba(arq, _EST["aba"], "estrutura_comercial", dtype=str)
-    _validar(df, _EST["colunas_obrigatorias"], arq)
+    niveis = _EST["niveis"]
+    _validar(df, [_EST["coluna_cliente"]] + [c for cols in niveis.values() for c in cols], arq)
 
     out = pd.DataFrame(index=df.index)
-    # O sell-in traz o numero puro ("1010846") — a base anterior vinha
-    # zero-preenchida e a atual nao; `digitos()` cobre as duas.
-    out["COD_CLIENTE"] = digitos(df["CÓDIGO CLIENTE"])
-    for destino, cols in _NIVEIS.items():
-        out[destino] = _rotulo_concatenado(df, cols)
-    if "PROJETO" in df.columns:
-        out["PROJETO"] = texto(df["PROJETO"], maiuscula=False)
-    # D-42: a hierarquia carrega o cadastro de bandeiras do Comercial (serie
-    # 82xxxxx). Nasceu como ponte por codigo com a base de metas antiga; desde
-    # a D-49 e ATRIBUTO do cadastro, sem funcao de join. O nome vai junto como
-    # BANDEIRA_ESTRUTURA para nao colidir com a BANDEIRA do sell-in (grafias
-    # divergem em 9% dos clientes — o rotulo de tela continua sendo o do
-    # sell-in). Cliente sem as colunas fica <NA>, nunca inventado.
-    if "CÓDIGO BANDEIRA" in df.columns:
-        out["COD_BANDEIRA"] = digitos(df["CÓDIGO BANDEIRA"])
-    if "BANDEIRA" in df.columns:
-        out["BANDEIRA_ESTRUTURA"] = texto(df["BANDEIRA"])
+    # O sell-in traz o numero puro ("1010846"); `digitos()` cobre zero-preenchido.
+    out["COD_CLIENTE"] = digitos(df[_EST["coluna_cliente"]])
+    fora_padrao = {}
+    for destino, (c_cod, c_nome) in niveis.items():
+        cod = texto(df[c_cod], maiuscula=False)
+        nome, limpo = _nome_limpo(cod, texto(df[c_nome], maiuscula=False))
+        out[destino] = (cod.fillna("") + (" - " + nome).fillna("")).str.strip(" -").replace({"": pd.NA})
+        fora_padrao[destino] = int(out.loc[~limpo, destino].dropna().nunique())
 
     sem_chave = out["COD_CLIENTE"].isna()
     if sem_chave.any():
-        # C12 (auditoria): mostrar o valor CRU descartado — o dono do arquivo
-        # so corrige o que consegue ver. (Na Hierarquia_Consolidada sao 71
-        # linhas de codigo vazio carregando estrutura real da Izabela.)
-        crus = sorted(set(df.loc[sem_chave, "CÓDIGO CLIENTE"]
+        # C12 (auditoria): mostrar o valor CRU descartado.
+        crus = sorted(set(df.loc[sem_chave, _EST["coluna_cliente"]]
                           .astype("string").fillna("(vazio)")))[:6]
-        log(f"de-para de estrutura: {int(sem_chave.sum())} linha(s) sem "
-            f"CÓDIGO CLIENTE aproveitavel, descartadas — valores crus: "
-            f"{crus}", "aviso")
-    # A granularidade do arquivo e cliente x VENDEDOR (nivel N4, nao ingerido):
-    # linhas repetidas por cliente sao esperadas e os niveis N1-N3 nao
-    # conflitam (medido em 28/08/2026: zero conflitos). A deduplicacao e a
-    # checagem de conflito ficam em `ler_estrutura`, depois das correcoes.
-    return out.dropna(subset=["COD_CLIENTE"]).reset_index(drop=True), {}
+        log(f"hierarquia: {int(sem_chave.sum())} linha(s) sem codigo de cliente "
+            f"aproveitavel, descartadas — valores crus: {crus}", "aviso")
+    # Medido em 02/10/2026: 1 linha por cliente. A deduplicacao e a checagem de
+    # conflito continuam em `ler_estrutura`, depois das correcoes.
+    return out.dropna(subset=["COD_CLIENTE"]).reset_index(drop=True), {"fora_padrao_nome": fora_padrao}
+
+
+def _ler_estrutura_clientes(arq: Path) -> tuple[pd.DataFrame, dict]:
+    df = _ler_aba(arq, _ECL["aba"], "estrutura_clientes", dtype=str)
+    _validar(df, [_ECL["coluna_cliente"], _ECL["coluna_cod_bandeira"], _ECL["coluna_bandeira"]], arq)
+    out = pd.DataFrame(index=df.index)
+    out["COD_CLIENTE"] = digitos(df[_ECL["coluna_cliente"]])
+    # D-42: cadastro de bandeiras do Comercial. O nome vai como BANDEIRA_ESTRUTURA
+    # para nao colidir com a BANDEIRA do sell-in (o rotulo de tela segue o sell-in).
+    out["COD_BANDEIRA"] = digitos(df[_ECL["coluna_cod_bandeira"]])
+    out["BANDEIRA_ESTRUTURA"] = texto(df[_ECL["coluna_bandeira"]])
+    out = out.dropna(subset=["COD_CLIENTE"])
+    return out.drop_duplicates("COD_CLIENTE", keep="first").reset_index(drop=True), {}
 
 
 def ler_estrutura() -> tuple[pd.DataFrame, list[str]]:
     """Devolve (estrutura, avisos). Ausência do arquivo NÃO derruba o pipeline."""
     avisos: list[str] = []
-    arq = caminho(_EST["arquivo"])
-    if not arq.exists():
-        msg = (f"de-para de estrutura comercial ausente ({arq.name}) — todos os "
+    arq = arquivo_datado(_EST, "estrutura_comercial")
+    if arq is None:
+        msg = (f"hierarquia ausente ({_EST['padrao']} em {_EST['pasta']}) — todos os "
                "clientes ficam sem head/gerente/supervisor")
         if _EST.get("obrigatorio"):
             abortar(msg)
         log(msg, "aviso")
         return pd.DataFrame(columns=["COD_CLIENTE", "HEAD", "GERENTE",
                                      "SUPERVISOR"]), [msg]
+    log(f"hierarquia vigente: {arq.name} (data mais recente em {arq.parent.name})", "ok")
+    est, extra = cache.ler(arq, _ler_estrutura)
+    fp = {k: v for k, v in (extra.get("fora_padrao_nome") or {}).items() if v}
+    if fp:
+        log(f"hierarquia: rotulos com nome fora do padrao 'NOME (codigo)', usados como vieram: {fp}", "ok")
 
-    est = cache.ler(arq, _ler_estrutura)[0]
+    # D-83: bandeira do cadastro pela Estrutura de Clientes (ligacao por codigo do cliente)
+    arq_c = arquivo_datado(_ECL, "estrutura_clientes") if _ECL else None
+    if arq_c is None:
+        msg = "Estrutura de Clientes ausente — COD_BANDEIRA/BANDEIRA_ESTRUTURA ficam <NA>"
+        if _ECL.get("obrigatorio"):
+            abortar(msg)
+        log(msg, "aviso")
+        avisos.append(msg)
+    else:
+        ecl = cache.ler(arq_c, _ler_estrutura_clientes)[0]
+        antes = len(est)
+        est = est.merge(ecl, on="COD_CLIENTE", how="left", validate="m:1")
+        assert len(est) == antes, "o merge da Estrutura de Clientes multiplicou clientes"
+        sem = int(est["COD_BANDEIRA"].isna().sum())
+        log(f"Estrutura de Clientes: {arq_c.name} · {len(ecl):,} clientes · "
+            f"{sem:,} cliente(s) da hierarquia sem linha (bandeira do cadastro <NA>)", "ok")
 
     # O COMPLEMENTO (D-34) foi aposentado na D-49 (02/09/2026): o arquivo saiu
     # de bases/ em definitivo e os clientes dele viraram as bases RTM-Transicao

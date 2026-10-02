@@ -6,7 +6,10 @@
 Ferramenta de investigacao (nao e etapa do pipeline). NAO altera base, config,
 cubo nem Parquet: so le, mede e escreve DUAS listas novas em data/quality/
 para o Comercial. Rode sempre que o pipeline abortar no piso de cobertura da
-estrutura depois de uma edicao da Hierarquia_Consolidada.xlsx.
+estrutura depois de uma edicao da hierarquia. Desde a D-83 (02/10/2026) a
+hierarquia e a Hierarquia_AAAAMMDD.xlsx mais recente de ../bases compartilhadas
+(lida por cadastros.ler_estrutura, a mesma do pipeline); o historico abaixo
+fala da Hierarquia_Consolidada, que era a base ate 01/10/2026.
 
 POR QUE ELE EXISTE
 ------------------
@@ -99,8 +102,8 @@ def main() -> int:
         f"({r_fora / total:.2%} da receita, {len(fora):,} clientes)")
     log(f"cobertura .............. {1 - r_fora / total:.2%}  "
         f"(piso {float(CFG['validacao']['cobertura_minima_head']):.0%})")
-    log(f"na execucao de 02/09 ... 97,65% — a fato NAO mudou, "
-        f"so a Hierarquia_Consolidada")
+    log("referencia: 97,65% em 02/09 (Hierarquia_Consolidada); 99,94% em "
+        "02/10/2026 (Hierarquia_20261001, D-83)")
 
     # ---------------------------------------------------- 2. quem esta fora
     titulo("2 · os 30 maiores que ficaram fora")
@@ -173,7 +176,7 @@ def main() -> int:
     cods_est = set(estrutura["COD_CLIENTE"].dropna())
     inter = cods_fato & cods_est
     log(f"clientes distintos na fato ............ {len(cods_fato):,}")
-    log(f"clientes na Hierarquia_Consolidada .... {len(cods_est):,}")
+    log(f"clientes na hierarquia vigente ....... {len(cods_est):,}")
     log(f"casam pela chave ...................... {len(inter):,} "
         f"({len(inter) / max(len(cods_fato), 1):.1%} dos que faturam)")
     if len(inter) / max(len(cods_fato), 1) > 0.5:

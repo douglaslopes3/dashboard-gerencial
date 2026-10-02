@@ -3332,3 +3332,96 @@ aba Categorias esses dois filtros não se aplicam, e a aba avisa."
 **Backup** em `_arquivo/backups-pre-fases/backup_2026-09-22_pre_D82/`
 (`template_v4_pre_D82.html`, `config_pre_D82.yaml`). Reverter = restaurar o
 template e rodar `run_dashboard.py`.
+
+## D-83 · Hierarquia comum ao DN e ao ROTA, rótulo "código - nome" e pastas renomeadas (02/10/2026)
+
+**Pedido.** O Douglas tirou a `Hierarquia_Consolidada` e subiu duas bases novas,
+para facilitar a manutenção dos três painéis (DN, Gerencial e ROTA):
+`Hierarquia_20261001.xlsx` (hierarquia de vendas N1 a N4, uma linha por
+cliente, aba `Hierarquia Vendas`) e `Estrutura de Clientes_20261001.xlsx`
+(rede, bandeira e cliente, aba `Planilha1`), ligadas pelo código do cliente.
+Na mesma rodada os projetos mudaram para `Documentos/PAINÉIS - SCORECARDS/`
+(Fase 1, sem mudança de regra) e as duas bases foram para
+`PAINÉIS - SCORECARDS/bases compartilhadas/`, lida pelos três.
+
+**Decisões do Douglas (02/10/2026, opções tabuladas).**
+
+1. Rótulo de cada nível = **"código - nome"** nos três painéis (antes
+   "código - papel - nome"); separador " - " mantido.
+2. Nome limpo só quando termina com **"(código)" igual ao código da linha**:
+   sai o "(código)" e o "_" inicial. Fora disso entra como veio
+   (`30 - KAN_VAGO`, `5000 - (5000 ) SUP. SPC (KA/VJ)`).
+3. Vale o arquivo de **data mais recente no nome** (`Hierarquia_AAAAMMDD.xlsx`);
+   arquivo do padrão sem data válida aborta. Abas com nome fixo.
+4. **PROJETO sai**: sem a coluna, o eixo do perfil fica com o rótulo de
+   ausência ("NÃO ATRIBUÍDO"); template intacto (PROJETO nunca foi filtro).
+5. **Bandeira do cadastro** (`COD_BANDEIRA`, `BANDEIRA_ESTRUTURA`) passa a vir
+   da Estrutura de Clientes. Uso inalterado: atributo e bandeira só do
+   cliente que tem meta sem sell-in (hoje 0); a bandeira da tela segue a do
+   sell-in.
+6. As 5 correções de "[Vago]" (`dimensoes.estrutura_comercial`) saíram: o
+   rótulo mudou e a base nova grafa um nome por código (medido nos 4 níveis).
+7. **Saneamento pela `Hierarquia_Clientes_Faltando` DESLIGADO (opção B):** a
+   base nova cobre 849 dos 850 clientes da lista (607 dos 608 inativados e os
+   162 pendentes da Q5 têm posição real). `fontes.hierarquia_faltando: {}`;
+   religar = restaurar o bloco do backup.
+8. **Pastas renomeadas pelo código** em `Painéis Comerciais/Gerencial`
+   (72 → 71 renomeadas; a 33000, que não existe na base nova, foi para
+   `_arquivo/pastas_publicadas_antigas_2026-10-02/`, com o registro em
+   `_arquivo/pastas_publicadas_antigas_2026-10-02_renomeacoes.json`). Os 89
+   arquivos de nome antigo que ficaram nas pastas (71 do Gerencial, 18 do DN)
+   foram para `_arquivo/quarentena_paineis_2026-10-02/` (`lista.json`), como
+   na D-60.
+
+**Como ficou.** `fontes.estrutura_comercial` (pasta, padrão, data_regex, aba,
+coluna do cliente e `niveis` com código e nome de N1 a N4) e
+`fontes.estrutura_clientes` no config; `cadastros.arquivo_datado`,
+`_nome_limpo`, `_ler_estrutura` e `_ler_estrutura_clientes`;
+`VERSAO_CACHE` 7 → 8; `cubos._nome_do_rotulo` separa só no 1º " - "
+(D-71 com rótulo de duas partes; nome com " - " dentro fica inteiro);
+`validacao.valores_esperados.head` com os rótulos novos; teste da D-71
+reescrito no formato novo; `ferramentas/diagnostico_cobertura.py` com os
+textos da base nova.
+
+**Medido (T-68 em docs/11).**
+
+| Ponto | Antes (Consolidada) | Depois (Hierarquia_20261001) |
+|---|---|---|
+| Clientes na base | 13.516 | 17.922 (1 linha por cliente) |
+| Cobertura da estrutura sobre a receita | 97,65% | 99,94% |
+| Clientes de sell-in sem estrutura | 1.124 | 27 |
+| Os 27 distribuidores do RTM (D-61) | presentes | 27 de 27 |
+| Receita out/25 a set/26: 10 / 20 / 30 / 40 | 275,01 / 455,62 / 243,05 / 178,55 | 290,45 / 456,41 / 243,09 / 182,18 |
+| NÃO ATRIBUÍDO / INATIVO (R$ mi, 12 m) | 19,50 / 0,90 | 0,48 / 0 |
+| Total 12 m | R$ 1.172,62 mi | R$ 1.172,62 mi |
+
+Mudanças de hierarquia que vieram da base (não de regra): 33000 (LASA+)
+deixou de existir e os clientes foram para o 31000 (116 clientes,
+R$ 108,1 mi em 12 m); 2320 → 2310 (1.107 clientes, R$ 23,4 mi); 4310 → 4320
+(R$ 21,8 mi); nomes novos (1250 FLAVIO SOUSA, 1320 DIRCEU SEIXAS JR,
+21000 HEBER ACACIO, 22000 VAGO_ERBINO, 23000 VAGO_HUNTER, 3240 ALAN
+FIGUEIREDO, 42000 THIAGO LOBATO e outros); posições novas 4270 RAFAEL
+TEIXEIRA e 4280 VAGO (pastas criadas na publicação). Nenhum cliente RTM
+mudou de N3.
+
+**Publicação.** Desligada antes da troca; build conferido; RELIGADA e
+PUBLICADA em 02/10/2026 com o "pode publicar" do Douglas: 74 arquivos (eram
+73: entrou uma posição nova), MD5 publicado = build em 74/74; Full 20,10 MB
+(teto 35); particionamento N1/N2/N3 fecha (R$ 2.408.168.017,49 + fora da
+hierarquia R$ 1.527.754,31 = R$ 2.409.695.771,80); meta fecha nos três
+níveis. No mesmo turno o DN publicou os 18 painéis por usuário nas pastas
+renomeadas. **Não conferido no navegador** (template sem mudança; só dado e
+rótulo). `tests/cenarios.py` não foi rodado (roda o pipeline e o dashboard
+com a publicação ligada).
+
+**Pendências.** ROTA ainda grava com o rótulo antigo (publicação travada,
+`liberada: false`); `Hierarquia_Consolidada.xlsx` e
+`Hierarquia_Clientes_Faltando.xlsx` continuam em `bases/` sem uso (mover para
+`_arquivo` só com o ok dele); `docs/pedidos/pedido_Q5_hierarquia_158.*`
+perdeu o objeto (os 162 têm posição na base nova).
+
+**Backup** em `_arquivo/backups-pre-fases/backup_2026-10-02_pre_hierarquia/`
+(config, cadastros, cache, cubos, dimensoes, qualidade, test_regras).
+Reverter = restaurar os arquivos, restaurar a Consolidada no config e rodar
+`run_pipeline.py` e `run_dashboard.py` (as pastas teriam de voltar aos nomes
+antigos pelo `.json` de renomeações).

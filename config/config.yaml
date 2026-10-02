@@ -74,39 +74,43 @@ fontes:
     colunas_opcionais: ["Marca"]
 
   estrutura_comercial:
-    # Hierarquia oficial desde 28/08/2026 (D-34): substitui o
-    # DePara_Estrutura_Comercial.xlsx. Os cabeçalhos do arquivo têm QUEBRA DE
-    # LINHA interna ("CÓDIGO\nCLIENTE") — o leitor normaliza todo espaçamento
-    # para um espaço antes de validar; os nomes abaixo já estão normalizados.
-    # Head, gerente e supervisor viram UM rótulo por nível, concatenando
-    # código + papel + nome com " - " (parte vazia é omitida — há linhas de
-    # gerente sem nome, e o código+papel seguram o rótulo).
-    arquivo: "bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx"
-    aba: "Planilha1"
-    colunas_obrigatorias:
-      - "CÓDIGO CLIENTE"
-      - "(N1) CÓDIGO HEAD"
-      - "CRIAR NO BI (N1) HEAD"
-      - "(N1) NOME HEAD"
-      - "(N2) CÓDIGO GERENTE"
-      - "(N2) GERENTE"
-      - "(N2) NOME GERENTE"
-      - "(N3) CÓDIGO SUP./EXEC."
-      - "(N3) SUP./EXEC."
-      - "(N3) NOME SUP./EXEC."
-      # D-50 (Fase 2): o N4 (vendedor/RCA) passou a ser ingerido — e o nivel
-      # de ponta da matriz hierarquica. Medido em 02/09/2026: 100% preenchido
-      # na base (14.054 linhas, 191 vendedores).
-      - "(N4) CÓDIGO VEND./RCA"
-      - "(N4) VEND./RCA"
-      - "(N4) NOME VEND./RCA"
-    # CÓDIGO BANDEIRA/BANDEIRA (D-42): cadastro de bandeiras do Comercial
-    # (serie 82xxxxx). Nasceu como ponte por codigo com a base de metas antiga;
-    # com a remocao do tema Metas (D-49) segue como ATRIBUTO do cadastro, sem
-    # funcao de join — a futura base de metas cruza pela chave do CLIENTE.
-    colunas_opcionais: ["PROJETO", "CÓDIGO BANDEIRA", "BANDEIRA"]
-    # A ausência deste arquivo NÃO derruba o pipeline: o painel roda sem
+    # 02/10/2026 (D-83, Douglas): a Hierarquia_Consolidada saiu. A hierarquia
+    # oficial e a Hierarquia_AAAAMMDD.xlsx da pasta COMPARTILHADA com o DN e o
+    # ROTA (1 linha por cliente, N1-N4). Vale o arquivo de data MAIS RECENTE no
+    # nome; arquivo do padrao sem data AAAAMMDD valida aborta (copia de conflito
+    # do OneDrive nao vira desempate silencioso).
+    # Rotulo de cada nivel = "codigo - nome" (mesmo formato no DN e no ROTA). O
+    # nome e limpo so quando termina com "(codigo)" igual ao codigo da linha:
+    # sai o "(codigo)" e o "_" inicial; fora disso entra como veio.
+    # PROJETO saiu (decisao de 02/10): sem a coluna, o eixo do perfil fica com
+    # o rotulo de ausencia, sem mudar o template.
+    pasta: "../bases compartilhadas"
+    padrao: "Hierarquia_*.xlsx"
+    data_regex: '^Hierarquia_(\d{8})\.xlsx$'
+    aba: "Hierarquia Vendas"
+    coluna_cliente: "Cód. cliente"
+    niveis:                       # nivel -> [coluna do codigo, coluna do nome]
+      HEAD: ["Cód. Head Vendas (N1)", "Nome Head Vendas (N1)"]
+      GERENTE: ["Cód. Gerente Vendas (N2)", "Nome Gerente Vendas (N2)"]
+      SUPERVISOR: ["Cód. Executivo Vendas (N3)", "Nome Executivo Vendas (N3)"]
+      VENDEDOR: ["Cód. Representante (N4)", "Nome Representante (N4)"]
+    # A ausência da hierarquia NÃO derruba o pipeline: o painel roda sem
     # hierarquia, com todo mundo em "NÃO ATRIBUÍDO" e um aviso na tela.
+    obrigatorio: false
+
+  # 02/10/2026 (D-83): CÓDIGO BANDEIRA/BANDEIRA do cadastro passam a vir da
+  # Estrutura de Clientes da mesma pasta compartilhada (antes vinham da
+  # Hierarquia_Consolidada, D-42). Ligacao pelo codigo do cliente. Uso: atributo
+  # do cadastro e bandeira do cliente SO com meta (sem sell-in, D-74); a bandeira
+  # da tela continua sendo a do sell-in.
+  estrutura_clientes:
+    pasta: "../bases compartilhadas"
+    padrao: "Estrutura de Clientes_*.xlsx"
+    data_regex: '^Estrutura de Clientes_(\d{8})\.xlsx$'
+    aba: "Planilha1"
+    coluna_cliente: "Cód. cliente"
+    coluna_cod_bandeira: "Cód. Bandeira cliente"
+    coluna_bandeira: "Bandeira cliente"
     obrigatorio: false
     # COMPLEMENTO (D-34) — APOSENTADO na D-49 (02/09/2026, decisao do Douglas):
     # o Hierarquia_Complemento.xlsx foi excluido de bases/ em definitivo. Os
@@ -151,11 +155,13 @@ fontes:
 
   # D-50 (Fase 2, Step 5): clientes sem vinculo na hierarquia consolidada.
   # A coluna Hierarquia (SIM/NAO) decide o tratamento — ver `saneamento`.
-  hierarquia_faltando:
-    arquivo: "bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx"
-    aba: "Planilha1"
-    colunas_obrigatorias: ["CÓDIGO CLIENTE", "CLIENTE", "Hierarquia"]
-    obrigatorio: false
+  # DESLIGADA em 02/10/2026 (D-83, opcao B do Douglas): a Hierarquia_20261001
+  # cobre 849 dos 850 clientes desta lista (607 dos 608 inativados e os 162
+  # pendentes da Q5 tem posicao real), entao o saneamento por ela deixou de
+  # valer. Vazio = nenhum cliente e inativado e nada fica pendente. Para
+  # religar, restaurar o bloco (arquivo, aba, colunas) do backup
+  # _arquivo/backups-pre-fases/backup_2026-10-02_pre_hierarquia/config.yaml.
+  hierarquia_faltando: {}
 
   # D-74 (08/09/2026): METAS por CLIENTE x CATEGORIA x MES (formato longo,
   # uma linha por tipo de meta). Substitui a base FY 26/27 por bandeira que
@@ -242,13 +248,11 @@ dimensoes:
     # As 106 linhas do gerente 33000 sem nome nenhum recebem o [VAGO] também,
     # senão viram um segundo rótulo do mesmo gerente.
     # (A correção do Maykon, da base anterior, saiu com ela — D-34.)
-    correcoes_head:
-      "30 - KA Nacional - [Vago]": "30 - KA Nacional - [VAGO]"
-    correcoes_gerente:
-      "31000 - Ger. Reg._ASSAI+ - [Vago]": "31000 - Ger. Reg._ASSAI+ - [VAGO]"
-      "32000 - Ger. Reg._ATACADAO+ - [Vago]": "32000 - Ger. Reg._ATACADAO+ - [VAGO]"
-      "33000 - Ger. Reg._LASA+ - [Vago]": "33000 - Ger. Reg._LASA+ - [VAGO]"
-      "33000 - Ger. Reg._LASA+": "33000 - Ger. Reg._LASA+ - [VAGO]"
+    # 02/10/2026 (D-83): as 5 correcoes de "[Vago]" sairam com a troca da base;
+    # o rotulo agora e "codigo - nome" e a Hierarquia_AAAAMMDD grafa a vaga de
+    # um jeito so por codigo (medido: 1 nome por codigo nos 4 niveis).
+    correcoes_head: {}
+    correcoes_gerente: {}
     correcoes_supervisor: {}
     correcoes_vendedor: {}
     # Cliente com duas linhas e supervisores diferentes: declare aqui quem vence.
@@ -296,8 +300,8 @@ validacao:
     categoria:
       ["AMENDOIM", "BALA", "CHOCOLATE", "COMPOUND", "GELATINA", "GOMAS",
        "GRANULADO", "JUBES FRUIT SNACK", "PIRULITO", "REGALIZ"]
-    head: ["10 - DISTRIBUICAO - MICHEL MEIRA", "20 - ATACADO - ADEMIR TAVARES",
-           "30 - KA Nacional - [VAGO]", "40 - KA REGIONAL - IZABELA SANTOS"]
+    # 02/10/2026 (D-83): rotulos "codigo - nome" da Hierarquia_20261001
+    head: ["10 - MICHEL", "20 - ADEMIR", "30 - KAN_VAGO", "40 - IZABELA"]
     canal:
       ["ATACADO ESPECIALIZADO", "ATACADO GENERALISTA", "VAREJO ESPECIALIZADO",
        "VAREJO", "CASH & CARRY", "NOVOS CANAIS", "DISTRIBUIDOR"]
@@ -462,6 +466,12 @@ dashboard:
     # o "pode publicar" dele, depois da conferencia na tela.
     # RELIGADA em 22/09/2026 com o "pode publicar" do Douglas: a geracao leva
     # a D-82 (filtros de Bandeira e Cliente) para os 73 arquivos.
+    # DESLIGADA em 02/10/2026 para a D-83 (troca da Hierarquia_Consolidada pela
+    # Hierarquia_AAAAMMDD da pasta compartilhada, rotulo "codigo - nome", pastas
+    # renomeadas). Backup em _arquivo/backups-pre-fases/backup_2026-10-02_pre_hierarquia/.
+    # Religar so com o ok do Douglas, depois da comparacao.
+    # RELIGADA em 02/10/2026 com o "pode publicar" do Douglas (itens 1 a 3: pastas
+    # renomeadas pelo codigo, 73 arquivos da D-83, DN por usuario).
     ativo: true
     destino: "../../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
