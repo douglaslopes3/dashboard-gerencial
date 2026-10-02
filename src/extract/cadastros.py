@@ -25,6 +25,7 @@ _CAN = CFG["fontes"]["canais"]
 _RTM = CFG["fontes"].get("rtm_transicao") or {}
 _FALT = CFG["fontes"].get("hierarquia_faltando") or {}
 _ECL = CFG["fontes"].get("estrutura_clientes") or {}
+_DIST = CFG["fontes"].get("distribuidores") or {}
 _DIMCFG = CFG["dimensoes"]["estrutura_comercial"]
 
 
@@ -380,6 +381,47 @@ def _ler_rtm(arq: Path) -> tuple[pd.DataFrame, dict]:
     return out.drop_duplicates("COD_CLIENTE", keep="first"), extra
 
 
+# ------------------------------------- DISTRIBUIDORES — CADASTRO UNICO (D-86)
+def _ler_distribuidores(arq: Path) -> tuple[pd.DataFrame, dict]:
+    """Codigo interno do distribuidor -> nome reduzido, do cadastro comum ao
+    DN. Um codigo com dois nomes vale o 1o (contado no extra, vira aviso)."""
+    df = _ler_aba(arq, _DIST["aba"], "distribuidores", dtype=str)
+    _validar(df, [_DIST["coluna_codigo"], _DIST["coluna_nome"]], arq)
+    out = pd.DataFrame({"COD_DISTRIBUIDOR": digitos(df[_DIST["coluna_codigo"]]),
+                        "NOME": texto(df[_DIST["coluna_nome"]])}).dropna()
+    extra = {"codigos_com_dois_nomes":
+             int((out.groupby("COD_DISTRIBUIDOR")["NOME"].nunique() > 1).sum())}
+    return out.drop_duplicates("COD_DISTRIBUIDOR", keep="first").reset_index(drop=True), extra
+
+
+def _nomear_destinos(rtm: pd.DataFrame, avisos: list[str]) -> pd.DataFrame:
+    """D-86: o nome do destino sai do cadastro unico pelo codigo; o texto do
+    RTM fica so para codigo fora do cadastro."""
+    if not _DIST:
+        return rtm
+    arq = caminho(_DIST["arquivo"])
+    if not arq.exists():
+        msg = (f"cadastro de distribuidores ausente ({arq.name}) — o nome do "
+               "destino RTM fica o escrito na base RTM")
+        log(msg, "aviso")
+        avisos.append(msg)
+        return rtm
+    nomes, extra = cache.ler(arq, _ler_distribuidores)
+    if extra.get("codigos_com_dois_nomes"):
+        msg = (f"{extra['codigos_com_dois_nomes']} codigo(s) com dois nomes no "
+               "cadastro de distribuidores — vale a 1a linha")
+        log(msg, "aviso")
+        avisos.append(msg)
+    nome = rtm["COD_DISTRIBUIDOR"].map(nomes.set_index("COD_DISTRIBUIDOR")["NOME"])
+    trocou = nome.notna() & (nome != rtm["DISTRIBUIDOR"])
+    fora = rtm["COD_DISTRIBUIDOR"].notna() & nome.isna()
+    log(f"D-86: nome do destino pelo cadastro em {int(nome.notna().sum()):,} clientes RTM "
+        f"({int(trocou.sum()):,} com nome diferente do escrito no RTM) · "
+        f"{rtm.loc[fora, 'COD_DISTRIBUIDOR'].nunique()} codigo(s) fora do cadastro "
+        "ficam com o nome do RTM", "ok")
+    return rtm.assign(DISTRIBUIDOR=nome.fillna(rtm["DISTRIBUIDOR"]).astype("string"))
+
+
 def ler_rtm() -> tuple[pd.DataFrame, list[str]]:
     """Devolve (rtm, avisos). Ausência do arquivo NÃO derruba o pipeline —
     o painel roda sem a reatribuição, com o aviso registrado."""
@@ -402,6 +444,7 @@ def ler_rtm() -> tuple[pd.DataFrame, list[str]]:
                "com o Comercial")
         log(msg, "aviso")
         avisos.append(msg)
+    rtm = _nomear_destinos(rtm, avisos)
     sem = int(rtm["COD_DISTRIBUIDOR"].isna().sum())
     log(f"RTM-Transicao: {len(rtm):,} clientes · "
         f"{rtm['COD_DISTRIBUIDOR'].nunique():,} distribuidores · "

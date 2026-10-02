@@ -159,12 +159,28 @@ fontes:
   rtm_transicao:
     arquivo: "../bases compartilhadas/RTM_DePara_Transicao.xlsx"   # D-85
     aba: "De-Para RTM"
+    # D-86 (02/10/2026): o NOME do distribuidor de destino vem do cadastro unico
+    # (`fontes.distribuidores`, abaixo) pelo `Cód. Cliente [Distribuidor]`; o
+    # texto livre da coluna "Dsitribuidor Nome Reduzido" so vale para codigo
+    # que nao esta no cadastro (ex.: NOVO RIBEIRAO PRETO / NOVO SJRP, sem codigo).
     colunas_obrigatorias:
       - "Cód. Cliente [Antigo]"
       - "Bandeira cliente [Antigo]"
       - "Dsitribuidor Nome Reduzido"
       - "Cód. Cliente [Distribuidor]"
     # Sem o arquivo o pipeline RODA (sem reatribuicao, com aviso).
+    obrigatorio: false
+
+  # D-86 (02/10/2026, Douglas): CADASTRO UNICO de distribuidores, o mesmo do DN
+  # (pasta compartilhada). Aqui so da o NOME do destino do RTM (DIM_CLIENTE.
+  # DISTRIBUIDOR e relatorio de qualidade). A TELA nao muda: o distribuidor
+  # continua aparecendo pela bandeira e pelo nome do BI (decisao de 02/10).
+  # Sem o arquivo o pipeline RODA com o nome escrito no RTM (aviso).
+  distribuidores:
+    arquivo: "../bases compartilhadas/Distribuidores_DePara.xlsx"
+    aba: "Planilha1"
+    coluna_codigo: "Cód. Interno Cliente"
+    coluna_nome: "Distribuidora Nome Reduzido"
     obrigatorio: false
 
   # D-50 (Fase 2, Step 5): clientes sem vinculo na hierarquia consolidada.

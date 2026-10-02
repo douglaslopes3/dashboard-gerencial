@@ -54,6 +54,26 @@ def test_d84_skus_que_nao_sao_produto_saem_depois_da_reconciliacao():
     assert round(out["RECEITA"].sum() + ret["RECEITA"].sum(), 2) == round(df["RECEITA"].sum(), 2)
 
 
+def test_d86_nome_do_destino_rtm_vem_do_cadastro_pelo_codigo():
+    """D-86: com o codigo no cadastro unico vale o nome do cadastro; codigo fora
+    do cadastro ou sem codigo fica com o texto escrito no RTM."""
+    from pathlib import Path
+    from src.extract import cadastros as cad
+    rtm = pd.DataFrame({"COD_CLIENTE": ["1", "2", "3"],
+                        "DISTRIBUIDOR": ["DISPAN DISTRIBUIDORA DE PRODUTOS LT", "DIBS", "NOVO SJRP"],
+                        "COD_DISTRIBUIDOR": pd.array(["1049118", "1006829", pd.NA], dtype="string")})
+    nomes = pd.DataFrame({"COD_DISTRIBUIDOR": ["1049118"], "NOME": ["DISPAN"]})
+    orig = (cad._DIST, cad.caminho, cad.cache.ler)
+    try:
+        cad._DIST = {"arquivo": "x"}
+        cad.caminho = lambda _r: Path(__file__)
+        cad.cache.ler = lambda _a, _f: (nomes, {})
+        out = cad._nomear_destinos(rtm, [])
+    finally:
+        cad._DIST, cad.caminho, cad.cache.ler = orig
+    assert list(out["DISTRIBUIDOR"]) == ["DISPAN", "DIBS", "NOVO SJRP"]
+
+
 # ============================================================ normalizacao
 def test_digitos_tira_zeros_a_esquerda():
     """A armadilha que faz o join casar com ZERO cliente, em silêncio."""

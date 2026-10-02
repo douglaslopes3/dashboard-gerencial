@@ -3485,3 +3485,30 @@ muda, e por isso não houve publicação nova.
 1049118 aparece como "DISPAN DISTRIBUIDORA DE PRODUTOS LT" aqui, pelo nome do
 RTM, e "DISPAN" no DN); Clientes_Rota do ROTA pela Estrutura de Clientes; meta
 do ROTA (orçado do BI) × `Metas_FY'27`.
+
+## D-86 · Cadastro único de distribuidores, comum ao DN (02/10/2026)
+
+**Pedido.** Continuação da D-85: um cadastro só de distribuidores para os
+painéis. Medido antes: o DN agrupa o distribuidor pelo nome reduzido do
+`Distribuidores_DePara.xlsx`; o Gerencial mostra a bandeira e o nome do BI
+(sell-in); o texto livre do RTM ("Dsitribuidor Nome Reduzido") só chegava ao
+`DIM_CLIENTE.DISTRIBUIDOR` e ao relatório de qualidade daqui.
+
+**Decisões do Douglas (02/10).**
+1. A tela do Gerencial **não muda**: continua com a bandeira do BI (igual ao Power BI).
+2. O `Distribuidores_DePara.xlsx` vai para `../bases compartilhadas/` e é o
+   cadastro único. Aqui ele dá o nome do destino do RTM pelo código
+   (`fontes.distribuidores`, `cadastros._nomear_destinos`); código fora do
+   cadastro ou sem código fica com o texto do RTM.
+3. Regra "1 nome reduzido no DN = 1 bandeira do BI": no cadastro, CHUA SERRA
+   (1039743, bandeira "CHUA", outro supervisor, sem venda desde abr/26) e
+   ZAFFALON PELOTAS / ZAFFALON RIO PARDO (duas bandeiras aqui) foram separados.
+   CHUA Governador Valadares + Juiz de Fora seguem "CHUA" (bandeira "DIST. CHUA").
+4. DIBS (1006829) e NOVA ENERGIA (1054683) entram no cadastro quando o Douglas
+   passar os CNPJs (pendente).
+
+**Medido depois.** `run_pipeline.py` exit 0; DIM_CLIENTE, DIM_PRODUTO,
+DIM_CALENDARIO, FATO_META e FATO_SELLIN idênticas exceto `DIM_CLIENTE.DISTRIBUIDOR`
+em 146 clientes RTM ("DISPAN DISTRIBUIDORA DE PRODUTOS LT" → "DISPAN") e a linha
+correspondente do relatório de qualidade. Nada da tela muda; 83/83 testes
+(novo `test_d86_...`). Sem publicação nova.
