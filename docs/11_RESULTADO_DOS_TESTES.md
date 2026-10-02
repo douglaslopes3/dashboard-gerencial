@@ -1442,3 +1442,10 @@ do Douglas, 22/09)               identico ao build em 73/73; comparar_paineis
 - `ferramentas/diagnostico_cobertura.py`: 99,94%, 17.922 clientes na hierarquia, 16.180 casam (99,8% dos que faturam).
 - Receita out/25 a set/26 por head antes × depois na tabela da D-83 (total igual, R$ 1.172,62 mi).
 - Não rodados: `tests/cenarios.py` (publicação ligada) e conferência no navegador.
+
+## T-69 · D-84: SKUs que não são produto fora do painel (02/10/2026)
+
+- `python tests/test_regras.py`: **82 de 82** (novo `test_d84_skus_que_nao_sao_produto_saem_depois_da_reconciliacao`).
+- `run_pipeline.py`: reconciliado contra a fonte em 29 arquivos (3 métricas) antes da retirada; D-84 tira 165 linhas (R$ 29.628,39 · 56.854,9 kg); 10 categorias, 397 SKUs; nenhum cliente da DIM sem fato.
+- `run_dashboard.py` (publicação desligada): Full 20,00 MB; particionamento N1 = R$ 2.409.666.143,41 (antes R$ 2.409.695.771,80; diferença igual ao retirado).
+- Publicado com o ok do Douglas: 74/74 MD5 = build.

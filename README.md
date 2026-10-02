@@ -12,6 +12,10 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 
 ---
 
+> **02/10/2026 — D-84 (PUBLICADA):** pallet e 2 displays (SKUs 1900002, 8001095,
+> 8001030) saem do painel depois da reconciliação com a fonte; categorias 12 → 10.
+> Detalhes: docs/12 D-84.
+>
 > **02/10/2026 — D-83 (PUBLICADA):** hierarquia nova comum ao DN e ao ROTA
 > (`../bases compartilhadas/Hierarquia_AAAAMMDD.xlsx`, a mais recente; bandeira do
 > cadastro pela `Estrutura de Clientes_AAAAMMDD.xlsx`), rótulo **"código - nome"**

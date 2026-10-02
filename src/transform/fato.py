@@ -101,6 +101,26 @@ def conferir_integridade(f: pd.DataFrame, dim_cliente: pd.DataFrame,
         log(f"FK {coluna:<14} -> {nome:<16} ok")
 
 
+def retirar_nao_produto(f: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """D-84 (02/10/2026): tira da fato os SKUs declarados em
+    `fontes.sellin.skus_nao_produto` (pallet e displays). Roda DEPOIS da
+    reconciliacao contra a fonte, que confere todas as linhas. Devolve a fato
+    sem eles e o que saiu por SKU x mes (para log, relatorio e csv)."""
+    cods = {str(k) for k in (CFG["fontes"]["sellin"].get("skus_nao_produto") or {})}
+    sai = f["COD_PRODUTO"].astype(str).isin(cods)
+    retirado = (f[sai].groupby(["COD_PRODUTO", "ANO_MES"], observed=True)
+                      [["RECEITA", "PESO_KG", "CAIXAS"]].sum().reset_index())
+    if sai.any():
+        log(f"D-84: {int(sai.sum()):,} linha(s) de {retirado['COD_PRODUTO'].nunique()} SKU(s) "
+            f"que nao sao produto sairam do painel: R$ {retirado['RECEITA'].sum():,.2f} · "
+            f"{retirado['PESO_KG'].sum():,.1f} kg · {retirado['CAIXAS'].sum():,.0f} cx "
+            "(a reconciliacao com a fonte ja contou estas linhas)", "ok")
+    fora = sorted(cods - set(f["COD_PRODUTO"].astype(str)))
+    if fora:
+        log(f"D-84: SKU(s) declarado(s) sem linha no sell-in (regra ociosa): {fora}", "aviso")
+    return f[~sai].reset_index(drop=True), retirado
+
+
 def reconciliar_origem(f: pd.DataFrame, meta: dict) -> list[str]:
     """Soma da fato x linha `Total` de cada arquivo, nas TRÊS métricas.
 

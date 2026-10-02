@@ -37,6 +37,23 @@ def test_linha_100_zerada_e_descartada_e_contada():
     assert list(out["RECEITA"]) == [10.0, -5.0]
 
 
+
+def test_d84_skus_que_nao_sao_produto_saem_depois_da_reconciliacao():
+    """D-84: os SKUs de `fontes.sellin.skus_nao_produto` saem da fato e o que saiu
+    (por SKU x mes) volta para o relatorio; o resto fica intacto, negativo inclusive."""
+    from src.transform import fato as fato_mod
+    df = pd.DataFrame({
+        "ANO_MES": ["2026-09"] * 4, "COD_CLIENTE": ["1", "1", "2", "2"],
+        "COD_PRODUTO": ["1900002", "8001095", "123", "123"],
+        "RECEITA": [100.0, -50.0, 10.0, -5.0], "PESO_KG": [100.0, -1.0, 1.0, 0.0],
+        "CAIXAS": [0.0, 0.0, 1.0, 0.0]})
+    out, ret = fato_mod.retirar_nao_produto(df)
+    assert list(out["COD_PRODUTO"]) == ["123", "123"]
+    assert set(ret["COD_PRODUTO"]) == {"1900002", "8001095"}
+    assert round(ret["RECEITA"].sum(), 2) == 50.0
+    assert round(out["RECEITA"].sum() + ret["RECEITA"].sum(), 2) == round(df["RECEITA"].sum(), 2)
+
+
 # ============================================================ normalizacao
 def test_digitos_tira_zeros_a_esquerda():
     """A armadilha que faz o join casar com ZERO cliente, em silêncio."""

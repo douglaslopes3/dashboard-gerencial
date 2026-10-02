@@ -96,6 +96,14 @@ def gerar(fato: pd.DataFrame, dim_cliente: pd.DataFrame,
               "alteram a reconciliação")
     else:
         linha("- **Linhas 100% zeradas descartadas (D-36):** 0")
+    ret = meta.get("skus_nao_produto")
+    if ret is not None and len(ret):
+        _csv(ret, "skus_nao_produto.csv")
+        por_sku = ret.groupby("COD_PRODUTO", observed=True)[["RECEITA", "PESO_KG"]].sum()
+        det = "; ".join(f"`{k}` R$ {v.RECEITA:,.2f} / {v.PESO_KG:,.1f} kg" for k, v in por_sku.iterrows())
+        linha(f"- **SKUs que não são produto retirados do painel (D-84):** {det}. "
+              "A reconciliação com a fonte contou estas linhas; a tabela abaixo é "
+              "da fato SEM elas → `skus_nao_produto.csv`")
     linha()
     linha("| Arquivo | Mês(es) | Linhas | Receita R$ | Peso kg | Caixas |")
     linha("|---|---|---:|---:|---:|---:|")

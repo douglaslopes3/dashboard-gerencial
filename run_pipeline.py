@@ -85,6 +85,8 @@ def main() -> int:
     f = fato_mod.construir(bruto)
     fato_mod.conferir_grao(f)
     avisos_negocio += fato_mod.reconciliar_origem(f, meta)
+    # D-84: SKUs que nao sao produto saem DEPOIS da reconciliacao (que conta todas as linhas)
+    f, meta["skus_nao_produto"] = fato_mod.retirar_nao_produto(f)
 
     # ------------------------------------------------------ 3. DIMENSOES
     titulo("3/6 · DIMENSOES")
@@ -98,6 +100,7 @@ def main() -> int:
     dim_cli = dimensoes.dim_cliente(bruto, estrutura, canais,
                                     clientes_extra=fato_meta["COD_CLIENTE"])
     dim_prod = dimensoes.dim_produto(bruto, produtos)
+    dim_prod = dim_prod[dim_prod["COD_PRODUTO"].isin(set(f["COD_PRODUTO"]))].reset_index(drop=True)   # D-84
     del bruto    # B4: 692 MB que ninguem mais le — fora do pico de memoria
     # D-74/Q5-a: categoria da meta que nao existe no modelo ABORTA.
     metas.conferir_categorias(fato_meta, dim_prod)

@@ -3425,3 +3425,34 @@ perdeu o objeto (os 162 têm posição na base nova).
 Reverter = restaurar os arquivos, restaurar a Consolidada no config e rodar
 `run_pipeline.py` e `run_dashboard.py` (as pastas teriam de voltar aos nomes
 antigos pelo `.json` de renomeações).
+
+## D-84 · SKUs que não são produto saem do painel (02/10/2026, opção A do Douglas)
+
+**Pedido.** Com captura da aba Categorias ("NAO INFORMADO > 1900002 - PALLETS PBR
+1.000 X 1200 PBR I"): "no Gerencial não faz sentido a gente mostrar isso". Não
+veio da D-83: o pallet está no sell-in desde set/24 e ficou no painel pela D-36
+(item 2, opção C, 28/08/2026).
+
+**Decisão (opção A).** Lista declarada `fontes.sellin.skus_nao_produto` com os
+3 SKUs que não são produto: `1900002` PALLETS (R$ 52.944,84 e 57,7 t em 25
+meses, 100% de clientes do 1120), `8001095` DISPLAY ILHA (−R$ 23.299,71) e
+`8001030` DISPLAY ORELHINHA JUNINA (−R$ 16,74). A reconciliação contra a linha
+Total da fonte roda **antes**, com todas as linhas (a D-36 tinha mantido os
+SKUs por esse motivo); depois `fato.retirar_nao_produto` tira os 3 da fato e a
+DIM_PRODUTO fica só com SKU que tem fato. O que saiu vai para o log, o §1 do
+relatório de qualidade e `data/quality/skus_nao_produto.csv`. Revoga o item 2
+da D-36. O pedido ao BI para tirá-los da extração continua valendo. Opções
+recusadas: B (esconder só na aba Categorias: a soma das categorias deixaria de
+bater com o total) e C sozinha (depende de terceiros).
+
+**Medido (T-69).** 82/82 (teste novo `test_d84_...`); reconciliação com a
+fonte em 29 arquivos nas 3 métricas; 165 linhas saem (R$ 29.628,39 ·
+56.854,9 kg · 0 cx); categorias 12 → 10 (saem NAO INFORMADO e
+DISPLAY/MAT.PROMOCIONAL); SKUs 400 → 397; particionamento N1 R$ 2.409.695.771,80
+→ R$ 2.409.666.143,41 (diferença = R$ 29.628,39); Full 20,00 MB.
+
+**Publicação.** Desligada antes da mudança (backup em
+`_arquivo/backups-pre-fases/backup_2026-10-02_pre_D84/`). **RELIGADA e
+PUBLICADA em 02/10/2026 com o "pode publicar" dele:** 74 arquivos, MD5
+publicado = build em 74/74, nenhum arquivo do Gerencial fora da lista nas
+pastas. Publicação automática LIGADA.

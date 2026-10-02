@@ -66,6 +66,16 @@ fontes:
     # linhas somam exatamente zero, entao a reconciliacao contra o gabarito
     # da fonte nao se altera.
     descartar_linhas_100_zeradas: true
+    # D-84 (02/10/2026, opcao A do Douglas): SKUs que NAO sao produto saem do
+    # painel. A reconciliacao contra a linha Total da fonte roda ANTES, com
+    # todas as linhas; depois estes codigos saem da fato e da DIM_PRODUTO, e o
+    # que saiu (por SKU e por mes) fica no log, no relatorio de qualidade e em
+    # data/quality/skus_nao_produto.csv. Revoga o item 2 da D-36. Pedido ao BI
+    # para tira-los da extracao continua valendo (correcao na origem).
+    skus_nao_produto:
+      "1900002": "PALLETS PBR 1.000 X 1200 (pallet, nao e produto)"
+      "8001095": "DISPLAY ILHA (material promocional)"
+      "8001030": "DISPLAY ORELHINHA JUNINA (material promocional)"
 
   produtos:
     arquivo: "bases/Bases para tabelas dimensões/Produtos.xlsx"
@@ -472,6 +482,9 @@ dashboard:
     # Religar so com o ok do Douglas, depois da comparacao.
     # RELIGADA em 02/10/2026 com o "pode publicar" do Douglas (itens 1 a 3: pastas
     # renomeadas pelo codigo, 73 arquivos da D-83, DN por usuario).
+    # DESLIGADA em 02/10/2026 para a D-84 (3 SKUs que nao sao produto saem do
+    # painel). Backup em _arquivo/backups-pre-fases/backup_2026-10-02_pre_D84/.
+    # RELIGADA em 02/10/2026 com o "pode publicar" do Douglas (D-84).
     ativo: true
     destino: "../../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
