@@ -3416,8 +3416,9 @@ com a publicação ligada).
 
 **Pendências.** ROTA ainda grava com o rótulo antigo (publicação travada,
 `liberada: false`); `Hierarquia_Consolidada.xlsx` e
-`Hierarquia_Clientes_Faltando.xlsx` continuam em `bases/` sem uso (mover para
-`_arquivo` só com o ok dele); `docs/pedidos/pedido_Q5_hierarquia_158.*`
+`Hierarquia_Clientes_Faltando.xlsx` **movidas em 02/10/2026 com o ok dele** para
+`_arquivo/bases-fora-do-escopo/hierarquia_ate_2026-10-01/` (pipeline exit 0
+depois, cobertura 99,94%); `docs/pedidos/pedido_Q5_hierarquia_158.*`
 perdeu o objeto (os 162 têm posição na base nova).
 
 **Backup** em `_arquivo/backups-pre-fases/backup_2026-10-02_pre_hierarquia/`
