@@ -463,7 +463,7 @@ dashboard:
     # RELIGADA em 22/09/2026 com o "pode publicar" do Douglas: a geracao leva
     # a D-82 (filtros de Bandeira e Cliente) para os 73 arquivos.
     ativo: true
-    destino: "../Painéis Comerciais/Gerencial"
+    destino: "../../Painéis Comerciais/Gerencial"
     # D-73 (04/09/2026 a noite, pedido do Douglas): o Full deixa a RAIZ do
     # destino e passa a ser gravado nesta subpasta, porque ele precisou
     # compartilhar o Full com pessoas que NAO podem ver as pastas dos outros
