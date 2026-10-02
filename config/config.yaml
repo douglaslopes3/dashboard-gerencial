@@ -77,8 +77,12 @@ fontes:
       "8001095": "DISPLAY ILHA (material promocional)"
       "8001030": "DISPLAY ORELHINHA JUNINA (material promocional)"
 
+  # D-85 (02/10/2026, Douglas): Produtos e RTM-Transicao passaram para a pasta
+  # COMPARTILHADA com o DN (uma copia so). Produtos identico byte a byte; o
+  # RTM e a versao do DN (tem a coluna CNPJ a mais; o leitor daqui devolve o
+  # mesmo resultado com as duas versoes, medido em 02/10).
   produtos:
-    arquivo: "bases/Bases para tabelas dimensões/Produtos.xlsx"
+    arquivo: "../bases compartilhadas/Produtos.xlsx"
     aba: "Produtos"
     colunas_obrigatorias: ["Código Produto", "Descrição Produto", "Categoria"]
     colunas_opcionais: ["Marca"]
@@ -153,7 +157,7 @@ fontes:
   # `saneamento.rtm_herda_bandeira`, abaixo) — a Q4-a original a preservava.
   # "Dsitribuidor" esta grafado assim NA ORIGEM — nao corrigir aqui.
   rtm_transicao:
-    arquivo: "bases/RTM-Transicao/RTM_DePara_Transicao.xlsx"
+    arquivo: "../bases compartilhadas/RTM_DePara_Transicao.xlsx"   # D-85
     aba: "De-Para RTM"
     colunas_obrigatorias:
       - "Cód. Cliente [Antigo]"

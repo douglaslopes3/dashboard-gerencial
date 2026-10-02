@@ -134,7 +134,7 @@ fonte entrega e é o que o painel mostra.
 
 ## 2. Fontes de dimensão
 
-### 2.1 `bases/Bases para tabelas dimensões/Produtos.xlsx` — cadastro de SKU
+### 2.1 `../bases compartilhadas/Produtos.xlsx` (D-85; até 02/10/2026 em `bases/Bases para tabelas dimensões/`) — cadastro de SKU
 
 Aba `Produtos` · 1.712 linhas · colunas `Código Produto`, `Descrição Produto`,
 **`Marca`** (90 valores), `Categoria` (11 valores).
@@ -277,7 +277,7 @@ pedidos ao Comercial abertos, ver D-42/D-43).
 
 ---
 
-### 2.6 `bases/RTM-Transicao/RTM_DePara_Transicao.xlsx` (D-50, 02/09/2026)
+### 2.6 `../bases compartilhadas/RTM_DePara_Transicao.xlsx` (D-85; até 02/10/2026 em `bases/RTM-Transicao/`) (D-50, 02/09/2026)
 
 De-para da transição RTM: clientes que saíram do atendimento direto para
 distribuidor. Aba `De-Para RTM`, medido em 02/09/2026: **1.762 clientes

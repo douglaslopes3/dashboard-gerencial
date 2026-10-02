@@ -3457,3 +3457,31 @@ DISPLAY/MAT.PROMOCIONAL); SKUs 400 → 397; particionamento N1 R$ 2.409.695.771,
 PUBLICADA em 02/10/2026 com o "pode publicar" dele:** 74 arquivos, MD5
 publicado = build em 74/74, nenhum arquivo do Gerencial fora da lista nas
 pastas. Publicação automática LIGADA.
+
+## D-85 · Produtos e RTM-Transicao na pasta compartilhada com o DN (02/10/2026)
+
+**Pedido.** Análise de bases que podem ser lidas em comum pelos três painéis,
+para diminuir a chance de mostrarem dados diferentes. O Douglas aprovou mover
+estas duas primeiro ("pode mover Produtos e RTM, depois vemos o resto").
+
+**Medido antes.** `Produtos.xlsx`: mesmo MD5 no DN e no Gerencial
+(`64eb5ab8…`). `RTM_DePara_Transicao.xlsx`: MD5 diferente (DN 10/09, Gerencial
+21/09), mas 1.762 clientes nas duas e 0 diferenças nas 4 colunas comuns; a do
+DN tem a coluna `CNPJ` a mais. O leitor do Gerencial (`_ler_rtm`) devolve o
+mesmo DataFrame com as duas versões.
+
+**Feito.** As duas bases foram para `../bases compartilhadas/` (o RTM é a versão
+do DN). Os dois configs apontam para lá. As cópias antigas foram para
+`_arquivo/bases-fora-do-escopo/movidas_para_compartilhadas_2026-10-02/`, e a do
+DN para o `_arquivo` do DN. As pastas `bases/Bases para tabelas dimensões/` e
+`bases/RTM-Transicao/` ficaram vazias e foram removidas.
+
+**Medido depois.** `run_pipeline.py` exit 0 em 43,5 s; DIM_CLIENTE, DIM_PRODUTO,
+DIM_CALENDARIO, FATO_META e FATO_SELLIN (3.226.513 linhas) **idênticas** às de
+antes da mudança: só o ID e a hora da execução mudaram. Nenhum número do painel
+muda, e por isso não houve publicação nova.
+
+**Ainda em aberto (análise de 02/10):** cadastro único de distribuidores (o
+1049118 aparece como "DISPAN DISTRIBUIDORA DE PRODUTOS LT" aqui, pelo nome do
+RTM, e "DISPAN" no DN); Clientes_Rota do ROTA pela Estrutura de Clientes; meta
+do ROTA (orçado do BI) × `Metas_FY'27`.

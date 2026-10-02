@@ -294,13 +294,14 @@ pipeline com as bases reais. Nada sintético sobrevive.
 
 ```
 bases/Sell In/              origem (somente leitura)
-bases/RTM-Transicao/        de-para cliente -> distribuidor (D-50)
+bases/Canais/, bases/Metas/  canal por cliente e metas FY27
 ../bases compartilhadas/     Hierarquia_AAAAMMDD (N1-N4, vale a mais recente)
                             e Estrutura de Clientes_AAAAMMDD (bandeira do
-                            cadastro), comuns ao DN e ao ROTA (D-83, 02/10/2026)
-bases/Bases para tabelas dimensões/
-                            Produtos; Hierarquia_Consolidada e
-                            Hierarquia_Clientes_Faltando sem uso desde a D-83
+                            cadastro), comuns ao DN e ao ROTA (D-83, 02/10/2026);
+                            Produtos e RTM_DePara_Transicao (de-para cliente ->
+                            distribuidor, D-50), comuns ao DN (D-85, 02/10/2026)
+_arquivo/bases-fora-do-escopo/ copias antigas (Consolidada e Faltando ate a D-83;
+                            Produtos e RTM do Gerencial ate a D-85)
 data/raw/sell_in/           pasta do ciclo diario
 data/staging/               cache de leitura (pode apagar; sera refeito)
 data/curated/               modelo estrela + cubos  <- o que o painel consome

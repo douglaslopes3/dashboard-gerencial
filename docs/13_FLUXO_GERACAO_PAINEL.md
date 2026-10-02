@@ -30,10 +30,10 @@
 | # | Arquivo | Aba | O que traz | Cadência |
 |---|---|---|---|---|
 | 1 | `bases/Sell In/sellin_*.xlsx` (29 arquivos) e/ou `data/raw/sell_in/*.xlsx` | `Export` | **o faturamento**: 3.127.196 linhas úteis (3.516 linhas 100% zeradas descartadas, D-36), mês × cliente × SKU, com Receita Líquida, Peso Líquido (kg) e Qtde Faturado (caixas). Cada arquivo tem um rodapé com a linha `Total` e o texto dos filtros da extração | **diária** (ver doc 14) |
-| 2 | `bases/Bases para tabelas dimensões/Produtos.xlsx` | `Produtos` | cadastro de SKU: código, descrição, **categoria**, **marca** | estática |
+| 2 | `../bases compartilhadas/Produtos.xlsx` (D-85; até 02/10/2026 em `bases/Bases para tabelas dimensões/`) | `Produtos` | cadastro de SKU: código, descrição, **categoria**, **marca** | estática |
 | 3 | `bases/Bases para tabelas dimensões/Hierarquia_Consolidada.xlsx` | `Planilha1` | estrutura comercial por cliente, **N1 a N4** (head, gerente, sup./exec., vend./RCA) como rótulo `código - papel - nome`, mais projeto e código de bandeira. **Única fonte** da hierarquia (D-56): 13.516 clientes | estática, dono no Comercial |
 | 4 | `bases/Canais/Canais.xlsx` | `Export` | **canal e subcanal** por cliente (43.072 clientes; cobre 100% do sell-in) | estática |
-| 5 | `bases/RTM-Transicao/RTM_DePara_Transicao.xlsx` | `De-Para RTM` | 1.762 clientes que passaram a ser atendidos por **27 distribuidores** (166 sem código de distribuidor = exceção) | estática (D-50) |
+| 5 | `../bases compartilhadas/RTM_DePara_Transicao.xlsx` (D-85; até 02/10/2026 em `bases/RTM-Transicao/`) | `De-Para RTM` | 1.762 clientes que passaram a ser atendidos por **27 distribuidores** (166 sem código de distribuidor = exceção) | estática (D-50) |
 | 6 | `bases/Bases para tabelas dimensões/Hierarquia_Clientes_Faltando.xlsx` | `Planilha1` | 850 clientes sem vínculo, com a coluna `Hierarquia` SIM (70) / NÃO (780) que decide o saneamento | estática (D-50) |
 | — | `config/config.yaml` + `config/geografia.yaml` | — | parâmetros: pastas, colunas obrigatórias, ano fiscal (set→ago), tolerâncias, correções declaradas (`[Vago]` → `[VAGO]`), regras do saneamento (`rtm_herda_bandeira`, janela), cortes de exibição, nomes de saída e destino de publicação | muda por decisão |
 

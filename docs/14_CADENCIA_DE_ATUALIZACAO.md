@@ -119,7 +119,7 @@ depois.
 | **Conferir depois** | `cobertura da estrutura` (hoje 97,65%; piso 95%); §10 do relatório: avisos de conflito N1–N4 (hoje zero) e correções `[Vago]` → `[VAGO]` (433 + 780 linhas, esperadas); §7b: RTM reatribuídos (1.596) e inativados (612) não devem mudar sem motivo. Se abortar no piso, `python ferramentas/diagnostico_cobertura.py` diz quem ficou fora e por quê |
 | **Atenção** | este arquivo tem **dono no Comercial**: alteração local que não voltar ao arquivo-mestre será desfeita na próxima atualização dele. Os cabeçalhos têm quebra de linha interna (o leitor normaliza); a granularidade é cliente × vendedor (N4, ingerido desde a D-50). Grafia nova de posto vago → correção declarada em `config → dimensoes.estrutura_comercial.correcoes_*`, nunca no código |
 
-### 2.3 `bases/RTM-Transicao/RTM_DePara_Transicao.xlsx` (D-50, D-59)
+### 2.3 `../bases compartilhadas/RTM_DePara_Transicao.xlsx` (D-85; até 02/10/2026 em `bases/RTM-Transicao/`) (D-50, D-59)
 
 | | |
 |---|---|
@@ -137,7 +137,7 @@ depois.
 | **O que caracteriza alteração** | cliente que sai da lista (foi incorporado à Hierarquia_Consolidada); mudança SIM/NÃO; resposta do Comercial aos 158 pendentes Q5 |
 | **Conferir depois** | §7b: inativados (612) e pendentes (158); `saneamento_inativados.csv` e `saneamento_pendentes_decisao.csv`. A janela de 6 meses é ancorada na última competência **fechada**, então a lista de inativos só muda quando um mês fecha |
 
-### 2.5 `bases/Bases para tabelas dimensões/Produtos.xlsx` (cadastro de SKU)
+### 2.5 `../bases compartilhadas/Produtos.xlsx` (D-85; até 02/10/2026 em `bases/Bases para tabelas dimensões/`) (cadastro de SKU)
 
 | | |
 |---|---|
