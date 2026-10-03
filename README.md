@@ -35,7 +35,7 @@ python run_dashboard.py     # Parquet -> painel v4 + 72 arquivos por nivel, publ
 > fixas no topo e setas do teclado. **Nada de dado, cálculo, ordem de aba ou
 > disposição de visual mudou** — os números desta seção seguem valendo.
 > Decisões, divergências e medidas: **docs/12, D-80 e D-81**.
-> Backups em `_arquivo/backups-pre-fases/backup_2026-09-15_pre_visual/`.
+> (Backups locais removidos em 03/10/2026; as versões anteriores estão no git.)
 >
 > **22/09/2026 — D-82:** filtros de **Bandeira** e **Cliente** na barra lateral
 > (opção A do Douglas). **Publicada em 22/09 com o ok dele** (73/73 MD5 = build).
@@ -190,8 +190,8 @@ FORMATACAO (D-55, 03/09)     uma funcao formata todo numero de metrica:
                              R$ 1 mil · R$ 25 mil · R$ 1,5 mi · R$ 1,2 bi. O
                              "R$" sai da metrica ativa, entao Volume (t) e
                              Caixas (cx) nunca o recebem
-                             template_v3 fica como retorno rapido (exige o
-                             pipeline pre-D-51, via git)
+                             template_v3 removido em 03/10/2026 (esta no
+                             git; exige o pipeline pre-D-51)
 por nivel (D-52)             73 arquivos: Full + 4 N1 + 13 N2 + 55 N3, recorte
                              FISICO na geracao (o arquivo de um nivel nao
                              contem dados de fora do escopo; assert por
@@ -383,7 +383,7 @@ bases/                     origem (somente leitura): Sell In, Canais,
                            dimensões, RTM-Transicao, Metas
 data/{raw,staging,curated,quality}/
 src/{extract,transform,load,utils}/
-dashboard/{lib,template_v4.html,build/}   (template_v3.html: retorno rapido)
+dashboard/{lib,template_v4.html,build/}
 config/{config.yaml,geografia.yaml}
 docs/  logs/  tests/
 run_pipeline.py  run_dashboard.py
@@ -391,9 +391,6 @@ ferramentas/               scripts de medicao e manutencao, fora do pipeline:
                            diagnostico de cobertura (D-61), analise da bandeira
                            RTM (D-59), recolhimento de paineis antigos (D-60);
                            ver ferramentas/LEIA-ME.md
-_arquivo/                  fora de uso (D-53): bases fora do escopo, protótipo,
-                           templates v1/v2, backups pré-fases — nada lido pelo
-                           pipeline; ver _arquivo/LEIA-ME.md
 ```
 
 ## Documentação
@@ -451,7 +448,7 @@ vez de fingir. Recorte/link guardam rotulo da bandeira e codigo do cliente.
 Medido: KPI = soma da linha ao centavo (Full, N3 pequeno, N3 RS/SC, meta);
 81/81; build 73 em 22,9 s, Full 19.77 MB. **PUBLICADA em 22/09 com o "pode
 publicar" dele: 73/73 MD5 = build, comparar_paineis 0 centavo; publicacao
-automatica LIGADA.** Pendente dele: aviso aos usuarios (texto em docs/12 D-82). Backup em `_arquivo/backups-pre-fases/backup_2026-09-22_pre_D82/`.
+automatica LIGADA.** Pendente dele: aviso aos usuarios (texto em docs/12 D-82). (Backup local removido em 03/10/2026; versão anterior no git.)
 
 ## Roadmap — fechamento de 08/09/2026
 

@@ -38,8 +38,7 @@
 | — | `config/config.yaml` + `config/geografia.yaml` | — | parâmetros: pastas, colunas obrigatórias, ano fiscal (set→ago), tolerâncias, correções declaradas (`[Vago]` → `[VAGO]`), regras do saneamento (`rtm_herda_bandeira`, janela), cortes de exibição, nomes de saída e destino de publicação | muda por decisão |
 
 **O que NÃO entra:** Sell Out (MTRIX/FEMSA/KAN), Previsão, Estoque, Alavancas
-e o arquivo de Metas foram para `_arquivo/bases-fora-do-escopo/` (D-53) ou
-ficaram em `bases/Metas/` sem leitor (D-49). Nenhum é lido. As METAS voltaram na D-74 (`Metas_FY'27.xlsx`) e, desde a D-87 (02/10/2026), ficam em `../bases compartilhadas/` — lidas também pelo ROTA.
+e o arquivo de Metas antigo saíram do escopo (D-53/D-49) e foram excluídos na limpeza de 03/10/2026. Nenhum é lido. As METAS voltaram na D-74 (`Metas_FY'27.xlsx`) e, desde a D-87 (02/10/2026), ficam em `../bases compartilhadas/` — lidas também pelo ROTA.
 
 ---
 

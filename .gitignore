@@ -26,11 +26,6 @@ desktop.ini
 ~$*
 *.tmp
 
-# Arquivo morto (D-53): material fora de uso, movido da raiz — nada disto e
-# lido pelo pipeline. Os poucos arquivos versionados la dentro (prototipo,
-# templates v1/v2) continuam rastreados; o resto nao entra.
-_arquivo/
-
 # Planilhas e listas dos pedidos ao Comercial: têm dados de clientes (nunca versionadas; os .md dos pedidos ficam)
 docs/pedidos/*.xlsx
 docs/pedidos/*.csv

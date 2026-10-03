@@ -302,21 +302,18 @@ bases/Canais/              canal por cliente
                             distribuidor, D-50), comuns ao DN (D-85, 02/10/2026);
                             Distribuidores_DePara (D-86) e Metas_*.xlsx (D-87,
                             comum ao ROTA)
-_arquivo/bases-fora-do-escopo/ copias antigas (Consolidada e Faltando ate a D-83;
-                            Produtos e RTM do Gerencial ate a D-85)
 data/raw/sell_in/           pasta do ciclo diario
 data/staging/               cache de leitura (pode apagar; sera refeito)
 data/curated/               modelo estrela + cubos  <- o que o painel consome
 data/quality/               relatorio e CSVs de excecao da ultima execucao
 logs/                       log completo, um por execucao
-dashboard/template_v4.html  interface (editada a mao; template_v3 = retorno
-                            rapido, exige o pipeline pre-D-51 via git)
+dashboard/template_v4.html  interface (editada a mao; versoes anteriores
+                            no git)
 dashboard/build/            os 73 paineis gerados
 ferramentas/                diagnostico de cobertura, analise da bandeira RTM,
                             limpeza de paineis antigos (ver LEIA-ME de la)
 config/config.yaml          todos os parametros
 docs/                       esta documentacao
-_arquivo/                   fora de uso (D-53); nada lido pelo pipeline
 ```
 
 Apagar `data/` e `logs/` é seguro: `python run_pipeline.py` refaz tudo a partir

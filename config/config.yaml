@@ -189,8 +189,8 @@ fontes:
   # cobre 849 dos 850 clientes desta lista (607 dos 608 inativados e os 162
   # pendentes da Q5 tem posicao real), entao o saneamento por ela deixou de
   # valer. Vazio = nenhum cliente e inativado e nada fica pendente. Para
-  # religar, restaurar o bloco (arquivo, aba, colunas) do backup
-  # _arquivo/backups-pre-fases/backup_2026-10-02_pre_hierarquia/config.yaml.
+  # religar, restaurar o bloco (arquivo, aba, colunas) do config.yaml do
+  # commit anterior a D-83 no git (backups locais removidos em 03/10/2026).
   hierarquia_faltando: {}
 
   # D-74 (08/09/2026): METAS por CLIENTE x CATEGORIA x MES (formato longo,
@@ -344,8 +344,8 @@ validacao:
 # -----------------------------------------------------------------------------
 dashboard:
   # D-51 (Fase 3): o painel ativo passou a ser o TEMPLATE V4 (3 abas + matriz
-  # hierarquica). O template_v3.html fica na pasta como retorno rapido, com a
-  # ressalva: ele le cubos COM o eixo UF — para reativa-lo e preciso voltar
+  # hierarquica). O template_v3.html saiu da pasta em 03/10/2026 (limpeza) e
+  # continua no git; ressalva para reativa-lo: ele le cubos COM o eixo UF — para reativa-lo e preciso voltar
   # tambem o pipeline (git checkout do commit da D-50 ou anterior).
   # D-58 (03/09/2026, pedido do Douglas): "_Canais_v4" saiu dos nomes de
   # arquivo. O sufixo de versao no nome do entregavel envelhece — a versao do
@@ -439,6 +439,8 @@ dashboard:
   # compartilhadas. O nome da pasta e o rotulo completo do colaborador, com
   # os caracteres invalidos de nome de pasta trocados por "-".
   publicacao:
+    # 03/10/2026: os backups citados abaixo em _arquivo/backups-pre-fases/ foram
+    # removidos na limpeza do ambiente; as versoes anteriores estao no git.
     # Ficou desligada durante a rodada D-63..D-71 (03 e 04/09/2026) para o
     # Douglas ver os 73 arquivos antes; religada em 04/09 com o ok dele.
     # DESLIGADA de novo em 04/09 a tarde para a rodada D-72 (nivel Cliente na

@@ -155,12 +155,12 @@ depois.
 
 | | |
 |---|---|
-| **O que caracteriza alteração** | mudança de layout/tela (template editado à mão; o ativo é o que `dashboard.template` aponta; `template_v3.html` é retorno rápido e exige o pipeline pré-D-51 via git); atualização da biblioteca de gráfico (raro; hoje Chart.js 4.4.1) |
+| **O que caracteriza alteração** | mudança de layout/tela (template editado à mão; o ativo é o que `dashboard.template` aponta; versões anteriores do template estão no git); atualização da biblioteca de gráfico (raro; hoje Chart.js 4.4.1) |
 | **Refazer** | só `python run_dashboard.py`: o pipeline de dados não é tocado, e os 73 arquivos saem (e são publicados) na mesma execução |
 | **Atenção** | os marcadores de dados e de biblioteca têm de existir **exatamente 1 vez** cada; o gerador aborta se alguém duplicar um em comentário. Depois de editar o template, **sempre regenerar antes de distribuir**; e regenerar publica |
 
 ### 2.8 O que NÃO dispara nada
 
 As metas (`Metas_*.xlsx`) são lidas desde a D-74 e ficam em `../bases compartilhadas/` desde a D-87: substituir o arquivo muda o Gerencial E o ROTA. Sell Out, Previsão, Estoque,
-Alavancas e scorecards-comerciais estão em `_arquivo/bases-fora-do-escopo/`
-(D-53). Atualizá-los não muda o painel gerencial.
+Alavancas e scorecards-comerciais saíram do escopo (D-53) e foram excluídos na
+limpeza de 03/10/2026; não são lidos pelo painel gerencial.
